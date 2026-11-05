@@ -7,6 +7,7 @@ class BuckInputs {
     required this.switchingFrequency,
     required this.rippleFraction,
     required this.diodeForwardVoltage,
+    this.operatingInputVoltage,
     this.selectedInductance,
   });
 
@@ -17,7 +18,7 @@ class BuckInputs {
   final double switchingFrequency;
   final double rippleFraction;
   final double diodeForwardVoltage;
-  // Null means the designer automatically uses the calculated minimum value.
+  final double? operatingInputVoltage;
   final double? selectedInductance;
 
   factory BuckInputs.defaults() => const BuckInputs(

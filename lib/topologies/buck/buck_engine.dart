@@ -14,35 +14,36 @@ class BuckEngine {
       'Switching frequency': input.switchingFrequency,
       'Ripple fraction': input.rippleFraction,
     });
-    if (input.inputVoltageMin > input.inputVoltageMax) {
-      errors.add('Input voltage minimum cannot exceed maximum.');
-    }
+    if (input.inputVoltageMin > input.inputVoltageMax) errors.add('Input voltage minimum cannot exceed maximum.');
     if (input.rippleFraction > 1) errors.add('Ripple fraction must not exceed 1 (100%).');
-    if (input.outputVoltage >= input.inputVoltageMin) {
-      errors.add('Buck output voltage must be below minimum input voltage.');
-    }
-    if (input.diodeForwardVoltage < 0 || !input.diodeForwardVoltage.isFinite) {
-      errors.add('Diode forward voltage must be finite and non-negative.');
+    if (input.outputVoltage >= input.inputVoltageMin) errors.add('Buck output voltage must be below minimum input voltage.');
+    if (input.diodeForwardVoltage < 0 || !input.diodeForwardVoltage.isFinite) errors.add('Diode forward voltage must be finite and non-negative.');
+    final vin = input.operatingInputVoltage ?? input.inputVoltageMin;
+    if (!vin.isFinite || vin < input.inputVoltageMin || vin > input.inputVoltageMax) {
+      errors.add('Operating input voltage must be within the input voltage range.');
     }
     final selected = input.selectedInductance;
-    if (selected != null && (!selected.isFinite || selected <= 0)) {
-      errors.add('Selected inductance must be greater than zero.');
-    }
+    if (selected != null && (!selected.isFinite || selected <= 0)) errors.add('Selected inductance must be greater than zero.');
     if (errors.isNotEmpty) return CalculationResult(values: const {}, errors: errors);
 
-    final vin = input.inputVoltageMax;
     final vo = input.outputVoltage;
     final vf = input.diodeForwardVoltage;
     final fs = input.switchingFrequency;
     final rippleTarget = input.outputCurrent * input.rippleFraction;
+
+    // PSD-style design recommendation at maximum input voltage.
+    final vinDesign = input.inputVoltageMax;
+    final minimumInductance = ((vinDesign - vo) * (vo + vf)) /
+        (fs * (vinDesign + vf) * rippleTarget);
+
+    // Operating values follow the selected input-voltage point.
     final duty = (vo + vf) / (vin + vf);
-    final minimumInductance = ((vin - vo) * (vo + vf)) /
-        (fs * (vin + vf) * rippleTarget);
     final inductanceUsed = selected ?? minimumInductance;
     final ripple = ((vin - vo) * duty) / (inductanceUsed * fs);
     final minimumCurrent = input.outputCurrent - ripple / 2;
     final peakCurrent = input.outputCurrent + ripple / 2;
     return CalculationResult(values: {
+      'operatingInputVoltage': vin,
       'dutyCycle': duty,
       'minimumInductance': minimumInductance,
       'inductanceUsed': inductanceUsed,

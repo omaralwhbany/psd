@@ -6,6 +6,7 @@ class BoostInputs {
     required this.outputCurrent,
     required this.switchingFrequency,
     required this.rippleFraction,
+    this.operatingInputVoltage,
     this.selectedInductance,
   });
 
@@ -15,6 +16,7 @@ class BoostInputs {
   final double outputCurrent;
   final double switchingFrequency;
   final double rippleFraction;
+  final double? operatingInputVoltage;
   final double? selectedInductance;
 
   factory BoostInputs.defaults() => const BoostInputs(
