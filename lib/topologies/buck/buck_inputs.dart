@@ -1,5 +1,15 @@
 class BuckInputs {
-  const BuckInputs({required this.inputVoltageMin, required this.inputVoltageMax, required this.outputVoltage, required this.outputCurrent, required this.switchingFrequency, required this.rippleFraction, required this.diodeForwardVoltage, required this.inductance});
+  const BuckInputs({
+    required this.inputVoltageMin,
+    required this.inputVoltageMax,
+    required this.outputVoltage,
+    required this.outputCurrent,
+    required this.switchingFrequency,
+    required this.rippleFraction,
+    required this.diodeForwardVoltage,
+    this.selectedInductance,
+  });
+
   final double inputVoltageMin;
   final double inputVoltageMax;
   final double outputVoltage;
@@ -7,6 +17,16 @@ class BuckInputs {
   final double switchingFrequency;
   final double rippleFraction;
   final double diodeForwardVoltage;
-  final double inductance;
-  factory BuckInputs.defaults() => const BuckInputs(inputVoltageMin: 18, inputVoltageMax: 36, outputVoltage: 12, outputCurrent: 5, switchingFrequency: 200e3, rippleFraction: 0.30, diodeForwardVoltage: 0.5, inductance: 33e-6);
+  // Null means the designer automatically uses the calculated minimum value.
+  final double? selectedInductance;
+
+  factory BuckInputs.defaults() => const BuckInputs(
+    inputVoltageMin: 18,
+    inputVoltageMax: 36,
+    outputVoltage: 12,
+    outputCurrent: 5,
+    switchingFrequency: 200e3,
+    rippleFraction: 0.30,
+    diodeForwardVoltage: 0.5,
+  );
 }
