@@ -68,7 +68,7 @@ class _BuckScreenState extends State<BuckScreen> {
         _result(s.peakCurrent, result.values['peakCurrent']!.toStringAsFixed(3) + ' A'),
         _result(s.minimumCurrent, result.values['minimumCurrent']!.toStringAsFixed(3) + ' A'),
         _result(s.operatingMode, result.values['isCcm'] == 1 ? s.ccm : s.dcm, emphasize: true),
-      ]) : Column(crossAxisAlignment: CrossAxisAlignment.start, children: result.errors.map((e) => Padding(padding: const EdgeInsets.only(bottom: 6), child: Text(e, style: const TextStyle(color: Colors.red))).toList())),
+      ]) : Column(crossAxisAlignment: CrossAxisAlignment.start, children: result.errors.map((e) => Padding(padding: const EdgeInsets.only(bottom: 6), child: Text(e, style: const TextStyle(color: Colors.red)))).toList())),
     ]);
   }
 
