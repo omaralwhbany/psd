@@ -27,6 +27,7 @@ void main() {
       switchingFrequency: input.switchingFrequency,
       rippleFraction: input.rippleFraction,
       diodeForwardVoltage: input.diodeForwardVoltage,
+      operatingInputVoltage: input.inputVoltageMax,
       selectedInductance: 3e-6,
     );
     expect(buck.calculate(custom).values['isCcm'], 0);
