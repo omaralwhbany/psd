@@ -4,6 +4,7 @@ import 'buck_inputs.dart';
 
 class BuckEngine {
   const BuckEngine();
+
   CalculationResult calculate(BuckInputs input) {
     final errors = Validation.positiveValues({
       'Input voltage minimum': input.inputVoltageMin,
@@ -12,12 +13,21 @@ class BuckEngine {
       'Output current': input.outputCurrent,
       'Switching frequency': input.switchingFrequency,
       'Ripple fraction': input.rippleFraction,
-      'Inductance': input.inductance,
     });
-    if (input.inputVoltageMin > input.inputVoltageMax) errors.add('Input voltage minimum cannot exceed maximum.');
+    if (input.inputVoltageMin > input.inputVoltageMax) {
+      errors.add('Input voltage minimum cannot exceed maximum.');
+    }
     if (input.rippleFraction > 1) errors.add('Ripple fraction must not exceed 1 (100%).');
-    if (input.outputVoltage >= input.inputVoltageMin) errors.add('Buck output voltage must be below minimum input voltage.');
-    if (input.diodeForwardVoltage < 0 || !input.diodeForwardVoltage.isFinite) errors.add('Diode forward voltage must be finite and non-negative.');
+    if (input.outputVoltage >= input.inputVoltageMin) {
+      errors.add('Buck output voltage must be below minimum input voltage.');
+    }
+    if (input.diodeForwardVoltage < 0 || !input.diodeForwardVoltage.isFinite) {
+      errors.add('Diode forward voltage must be finite and non-negative.');
+    }
+    final selected = input.selectedInductance;
+    if (selected != null && (!selected.isFinite || selected <= 0)) {
+      errors.add('Selected inductance must be greater than zero.');
+    }
     if (errors.isNotEmpty) return CalculationResult(values: const {}, errors: errors);
 
     final vin = input.inputVoltageMax;
@@ -26,13 +36,16 @@ class BuckEngine {
     final fs = input.switchingFrequency;
     final rippleTarget = input.outputCurrent * input.rippleFraction;
     final duty = (vo + vf) / (vin + vf);
-    final minimumInductance = ((vin - vo) * (vo + vf)) / (fs * (vin + vf) * rippleTarget);
-    final ripple = ((vin - vo) * duty) / (input.inductance * fs);
+    final minimumInductance = ((vin - vo) * (vo + vf)) /
+        (fs * (vin + vf) * rippleTarget);
+    final inductanceUsed = selected ?? minimumInductance;
+    final ripple = ((vin - vo) * duty) / (inductanceUsed * fs);
     final minimumCurrent = input.outputCurrent - ripple / 2;
     final peakCurrent = input.outputCurrent + ripple / 2;
     return CalculationResult(values: {
       'dutyCycle': duty,
       'minimumInductance': minimumInductance,
+      'inductanceUsed': inductanceUsed,
       'rippleCurrent': ripple,
       'peakCurrent': peakCurrent,
       'minimumCurrent': minimumCurrent,
