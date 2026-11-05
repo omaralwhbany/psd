@@ -8,7 +8,7 @@ class AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stages = [strings.buckConverter, 'Boost Converter', 'Inverting Buck-Boost', 'SEPIC', 'Zeta', 'Ćuk', 'Flyback', 'Forward Converter', 'LLC Resonant'];
+    final stages = [strings.buckConverter, 'Boost Converter', 'Inverting Buck-Boost', 'SEPIC', 'Zeta', 'Ćuk', 'Synchronous Buck', 'Series Capacitor Buck', 'Flyback', 'QR Flyback', 'Two-Switch Flyback', 'Single-Switch Forward', 'Two-Switch Forward', 'Active-Clamp Forward', 'Half Bridge', 'Full Bridge', 'Push-Pull', 'Phase-Shifted Full Bridge', 'LLC Half Bridge', 'LLC Full Bridge', 'Weinberg'];
     final tools = ['MOSFET Losses', 'Loop Compensation', 'Filter Designer', 'Bulk Capacitor', 'Current Sharing', 'Snubber Designer', 'Load Step', 'Resistor Divider'];
     return Drawer(child: SafeArea(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Padding(padding: const EdgeInsets.fromLTRB(20, 20, 20, 16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(strings.appTitle, style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)), Text(strings.subtitle)])),
