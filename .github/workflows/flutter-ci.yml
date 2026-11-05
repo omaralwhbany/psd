@@ -16,6 +16,8 @@ jobs:
           channel: stable
       - name: Generate Android platform files
         run: flutter create . --platforms android --project-name psd
+      - name: Remove generated template test
+        run: rm -f test/widget_test.dart
       - name: Install dependencies
         run: flutter pub get
       - name: Analyze
