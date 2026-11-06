@@ -20,13 +20,23 @@ class BuckEngine {
       'Ripple fraction': input.rippleFraction,
     });
     if (input.inputVoltageMin > input.inputVoltageMax) errors.add('Input voltage minimum cannot exceed maximum.');
+    // Match the input limits enforced by the original PSD5 Buck.java checks.
+    if (input.inputVoltageMin > 10000 || input.inputVoltageMax > 10000) {
+      errors.add('Input voltage must not exceed 10000 V.');
+    }
+    if (input.outputVoltage > 10000) errors.add('Output voltage must not exceed 10000 V.');
+    if (input.outputCurrent > 1000) errors.add('Output current must not exceed 1000 A.');
+    if (input.switchingFrequency > 1e7) errors.add('Switching frequency must not exceed 10 MHz.');
     if (input.rippleFraction > 1) errors.add('Ripple fraction must not exceed 1 (100%).');
     if (input.outputVoltage >= input.inputVoltageMin) errors.add('Buck output voltage must be below minimum input voltage.');
-    if (input.diodeForwardVoltage < 0 || !input.diodeForwardVoltage.isFinite) errors.add('Diode forward voltage must be finite and non-negative.');
+    if (input.diodeForwardVoltage < 0 || input.diodeForwardVoltage > 5 || !input.diodeForwardVoltage.isFinite) {
+      errors.add('Diode forward voltage must be between 0 and 5 V.');
+    }
     final vin = input.operatingInputVoltage ?? input.inputVoltageMin;
     if (!vin.isFinite || vin < input.inputVoltageMin || vin > input.inputVoltageMax) errors.add('Operating input voltage must be within the input voltage range.');
     final selected = input.selectedInductance;
     if (selected != null && (!selected.isFinite || selected <= 0)) errors.add('Selected inductance must be greater than zero.');
+    if (selected != null && selected > 0.0022) errors.add('Selected inductance must not exceed 2200 µH.');
     if (errors.isNotEmpty) return CalculationResult(values: const {}, errors: errors);
 
     final vo = input.outputVoltage;
@@ -43,6 +53,12 @@ class BuckEngine {
     final inductance = selected ?? minimumInductance;
 
     final dutyCcm = (vo + vf) / (vin + vf);
+    // PSD5 Buck.checkDutyCycle() rejects a calculated duty cycle above 100%.
+    if (dutyCcm > 1) {
+      return const CalculationResult(values: {}, errors: [
+        'Buck duty cycle must not exceed 100% at the selected operating point.',
+      ]);
+    }
     final rippleCcm = (vin - vo) * dutyCcm / (inductance * fs);
     final isCcm = rippleCcm <= 2 * iout;
 
