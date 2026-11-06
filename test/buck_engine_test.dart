@@ -93,6 +93,94 @@ void main() {
     expect(r.values['inductorAverageCurrent'], closeTo(input.outputCurrent, 1e-9));
   });
 
+  // Expected values below were captured by executing the original
+  // com.ti.switchingpowersupplydesign.sheets.Buck class from PSD5.jar
+  // (not by reusing BuckEngine or deriving expectations from its output).
+  test('Buck CCM matches original PSD5.jar runtime oracle', () {
+    const input = BuckInputs(
+      inputVoltageMin: 18,
+      inputVoltageMax: 36,
+      outputVoltage: 12,
+      outputCurrent: 5,
+      switchingFrequency: 200e3,
+      rippleFraction: 0.30,
+      diodeForwardVoltage: 0.5,
+      operatingInputVoltage: 18,
+      selectedInductance: 33e-6,
+    );
+    final r = buck.calculate(input);
+    expect(r.isValid, isTrue);
+    expect(r.values['isCcm'], 1);
+    expect(r.values['rippleCurrent'], closeTo(0.6142506142506142, 1e-12));
+    expect(r.values['dutyCycle'], closeTo(0.6756756756756758, 1e-12));
+    expect(r.values['onTime'], closeTo(3.3783783783783788e-6, 1e-18));
+    expect(r.values['offTime'], closeTo(1.6216216216216216e-6, 1e-18));
+    expect(r.values['idleTime'], 1e-9);
+    expect(r.values['inductorRmsCurrent'], closeTo(5.002642971212262, 1e-12));
+    expect(r.values['mosfetRmsCurrent'], closeTo(4.112147191587798, 1e-12));
+    expect(r.values['diodeRmsCurrent'], closeTo(2.8489791456126947, 1e-12));
+    expect(r.values['inputCapacitorRmsCurrent'], closeTo(3.784345775445198, 1e-12));
+    expect(r.values['outputCapacitorRmsCurrent'], closeTo(0.17731887874374277, 1e-12));
+    expect(r.values['inputPower'], closeTo(60.810810810810814, 1e-11));
+    expect(r.values['inputAverageCurrent'], closeTo(3.3783783783783785, 1e-12));
+  });
+
+  test('Buck DCM matches original PSD5.jar runtime oracle', () {
+    const input = BuckInputs(
+      inputVoltageMin: 9,
+      inputVoltageMax: 16,
+      outputVoltage: 5,
+      outputCurrent: 2,
+      switchingFrequency: 100e3,
+      rippleFraction: 0.30,
+      diodeForwardVoltage: 0.7,
+      operatingInputVoltage: 16,
+      selectedInductance: 3e-6,
+    );
+    final r = buck.calculate(input);
+    expect(r.isValid, isTrue);
+    expect(r.values['isCcm'], 0);
+    expect(r.values['rippleCurrent'], closeTo(12.51497005988024, 1e-11));
+    expect(r.values['dutyCycle'], closeTo(0.1929627468340959, 1e-12));
+    expect(r.values['onTime'], closeTo(1.929627468340959e-6, 1e-18));
+    expect(r.values['offTime'], closeTo(3.7238424827632533e-6, 1e-18));
+    expect(r.values['idleTime'], closeTo(4.3465300488957885e-6, 1e-18));
+    expect(r.values['inductorAverageCurrent'], closeTo(2.0, 1e-12));
+    expect(r.values['inductorRmsCurrent'], closeTo(3.071438472388289, 1e-12));
+    expect(r.values['mosfetAverageCurrent'], closeTo(0.682634730538922, 1e-12));
+    expect(r.values['mosfetRmsCurrent'], closeTo(1.7944072370566497, 1e-12));
+    expect(r.values['diodeAverageCurrent'], closeTo(1.3173652694610771, 1e-12));
+    expect(r.values['diodeRmsCurrent'], closeTo(2.4927568989505624, 1e-12));
+    expect(r.values['inputCapacitorRmsCurrent'], closeTo(1.5446030885048225, 1e-12));
+    expect(r.values['outputCapacitorRmsCurrent'], closeTo(2.3310371703743615, 1e-12));
+    expect(r.values['inputPower'], closeTo(10.922155688622754, 1e-12));
+  });
+
+  test('Buck CCM/DCM transition equality matches original PSD5.jar', () {
+    const input = BuckInputs(
+      inputVoltageMin: 9,
+      inputVoltageMax: 16,
+      outputVoltage: 5,
+      outputCurrent: 2,
+      switchingFrequency: 100e3,
+      rippleFraction: 0.30,
+      diodeForwardVoltage: 0.7,
+      operatingInputVoltage: 16,
+      selectedInductance: 9.38622754491018e-6,
+    );
+    final r = buck.calculate(input);
+    expect(r.isValid, isTrue);
+    // Original checkForCCMDCCM() uses <=, so equality is classified as CCM.
+    expect(r.values['isCcm'], 1);
+    expect(r.values['rippleCurrent'], closeTo(4.0, 1e-12));
+    expect(r.values['minimumCurrent'], closeTo(0.0, 1e-12));
+    expect(r.values['idleTime'], 1e-9);
+    expect(r.values['inductorRmsCurrent'], closeTo(2.3092856153641974, 1e-12));
+    expect(r.values['mosfetRmsCurrent'], closeTo(1.3491394530258, 1e-12));
+    expect(r.values['diodeRmsCurrent'], closeTo(1.8741992395733291, 1e-12));
+    expect(r.values['outputCapacitorRmsCurrent'], closeTo(1.1547005383792515, 1e-12));
+  });
+
   test('Buck enforces the original TI PSD input and operating limits', () {
     final d = BuckInputs.defaults();
     BuckInputs changed({
