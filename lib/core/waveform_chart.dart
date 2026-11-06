@@ -8,7 +8,6 @@ class PowerWaveformChart extends StatelessWidget {
     required this.averageCurrent,
     required this.rippleCurrent,
     required this.dutyCycle,
-    required this.switchHighDuringOn,
     required this.currentLabel,
     required this.switchHighDuringOn,
   });
@@ -77,6 +76,7 @@ class _PowerWaveformPainter extends CustomPainter {
     required this.averageCurrent,
     required this.rippleCurrent,
     required this.dutyCycle,
+    required this.switchHighDuringOn,
     required this.currentColor,
     required this.switchColor,
     required this.gridColor,
