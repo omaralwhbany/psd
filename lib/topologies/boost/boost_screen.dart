@@ -91,8 +91,13 @@ class _BoostScreenState extends State<BoostScreen> {
             averageCurrent: r.values['inputAverageCurrent']!,
             rippleCurrent: r.values['rippleCurrent']!,
             dutyCycle: r.values['dutyCycle']!,
-            currentLabel: 'Boost inductor current',
+            currentLabel: r.values['isCcm'] == 0
+                ? 'Boost inductor current (DCM)'
+                : 'Boost inductor current (CCM)',
             switchHighDuringOn: false,
+            discontinuous: r.values['isCcm'] == 0,
+            onFraction: r.values['onFraction']!,
+            offFraction: r.values['offFraction']!,
           ),
         ],
       ]))),

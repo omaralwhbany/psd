@@ -59,6 +59,30 @@ void main() {
     expect(result.values['inputAverageCurrent'], greaterThan(0));
   });
 
+  test('Boost custom small inductor reports DCM with three intervals', () {
+    const input = BoostInputs(
+      inputVoltageMin: 9,
+      inputVoltageMax: 16,
+      outputVoltage: 24,
+      outputCurrent: 2,
+      switchingFrequency: 100e3,
+      rippleFraction: 0.30,
+      operatingInputVoltage: 16,
+      selectedInductance: 5e-6,
+    );
+    final result = boost.calculate(input);
+    expect(result.isValid, isTrue);
+    expect(result.values['isCcm'], 0);
+    expect(result.values['minimumCurrent'], 0);
+    expect(result.values['idleFraction'], greaterThan(0));
+    expect(
+      result.values['onFraction']! +
+          result.values['offFraction']! +
+          result.values['idleFraction']!,
+      closeTo(1, 1e-9),
+    );
+  });
+
   test('Boost rejects an output voltage that is not above input', () {
     const input = BoostInputs(
       inputVoltageMin: 12,
