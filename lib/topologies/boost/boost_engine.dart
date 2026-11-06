@@ -67,7 +67,7 @@ class BoostEngine {
       final toff = ton * vin / (vout - vin);
       final tidle = period - ton - toff;
       if (!ton.isFinite || !toff.isFinite || tidle < -1e-12) {
-        return CalculationResult(values: const {}, errors: const [
+        return const CalculationResult(values: {}, errors: [
           'The selected inductance does not produce a valid Boost DCM cycle at this operating point.',
         ]);
       }
