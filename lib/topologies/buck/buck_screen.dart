@@ -147,6 +147,8 @@ class _BuckScreenState extends State<BuckScreen> {
           inputVoltage: result.values['operatingInputVoltage']!,
           outputVoltage: input.outputVoltage,
           diodeDrop: input.diodeForwardVoltage,
+          periodCaption: s.oneSwitchingPeriod,
+          idealizedNote: s.idealizedWaveformNote,
         )),
       ],
     ]);
