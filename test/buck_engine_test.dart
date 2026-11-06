@@ -142,7 +142,10 @@ void main() {
     final r = buck.calculate(input);
     expect(r.isValid, isTrue);
     expect(r.values['isCcm'], 0);
-    expect(r.values['rippleCurrent'], closeTo(12.51497005988024, 1e-11));
+    // In DCM the engine reports the physical 0-to-peak excursion; TI's
+    // separate iripple_buck field remains the CCM design-ripple estimate.
+    expect(r.values['rippleCurrent'], closeTo(7.075300717250182, 1e-11));
+    expect(r.values['peakCurrent'], closeTo(7.075300717250182, 1e-11));
     expect(r.values['dutyCycle'], closeTo(0.1929627468340959, 1e-12));
     expect(r.values['onTime'], closeTo(1.929627468340959e-6, 1e-18));
     expect(r.values['offTime'], closeTo(3.7238424827632533e-6, 1e-18));
