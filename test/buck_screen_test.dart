@@ -23,6 +23,11 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+      find.text('قدرة الخرج'),
+      280,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('قدرة الخرج'), findsOneWidget);
     expect(find.text('قدرة الدخل'), findsOneWidget);
     expect(tester.takeException(), isNull);
