@@ -94,8 +94,10 @@ void main() {
   });
 
   // Expected values below were captured by executing the original
-  // com.ti.switchingpowersupplydesign.sheets.Buck class from PSD5.jar
-  // (not by reusing BuckEngine or deriving expectations from its output).
+  // com.ti.switchingpowersupplydesign.sheets.Buck class from PSD5.jar.
+  // The oracle runs calculate() twice after changing inputs because the
+  // original userCalculate() evaluates actualValues() before general()
+  // refreshes iin; the second pass is the settled steady-input result.
   test('Buck CCM matches original PSD5.jar runtime oracle', () {
     const input = BuckInputs(
       inputVoltageMin: 18,
@@ -119,7 +121,7 @@ void main() {
     expect(r.values['inductorRmsCurrent'], closeTo(5.002642971212262, 1e-12));
     expect(r.values['mosfetRmsCurrent'], closeTo(4.112147191587798, 1e-12));
     expect(r.values['diodeRmsCurrent'], closeTo(2.8489791456126947, 1e-12));
-    expect(r.values['inputCapacitorRmsCurrent'], closeTo(3.784345775445198, 1e-12));
+    expect(r.values['inputCapacitorRmsCurrent'], closeTo(2.344908588716427, 1e-12));
     expect(r.values['outputCapacitorRmsCurrent'], closeTo(0.17731887874374277, 1e-12));
     expect(r.values['inputPower'], closeTo(60.810810810810814, 1e-11));
     expect(r.values['inputAverageCurrent'], closeTo(3.3783783783783785, 1e-12));
@@ -151,7 +153,7 @@ void main() {
     expect(r.values['mosfetRmsCurrent'], closeTo(1.7944072370566497, 1e-12));
     expect(r.values['diodeAverageCurrent'], closeTo(1.3173652694610771, 1e-12));
     expect(r.values['diodeRmsCurrent'], closeTo(2.4927568989505624, 1e-12));
-    expect(r.values['inputCapacitorRmsCurrent'], closeTo(1.5446030885048225, 1e-12));
+    expect(r.values['inputCapacitorRmsCurrent'], closeTo(1.6594900292147985, 1e-12));
     expect(r.values['outputCapacitorRmsCurrent'], closeTo(2.3310371703743615, 1e-12));
     expect(r.values['inputPower'], closeTo(10.922155688622754, 1e-12));
   });
