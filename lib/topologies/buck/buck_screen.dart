@@ -188,8 +188,23 @@ class _BuckScreenState extends State<BuckScreen> {
 
   Widget _result(String label, String value, {bool emphasize = false}) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 8),
-    child: Row(children: [Expanded(child: Text(label)),
-      Text(value, style: TextStyle(fontWeight: FontWeight.bold,
-        color: emphasize ? Theme.of(context).colorScheme.primary : null))]),
+    child: LayoutBuilder(builder: (context, constraints) {
+      final valueText = Text(value, textAlign: TextAlign.end,
+        softWrap: true,
+        style: TextStyle(fontWeight: FontWeight.bold,
+          color: emphasize ? Theme.of(context).colorScheme.primary : null));
+      if (constraints.maxWidth < 340) {
+        return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text(label),
+          const SizedBox(height: 3),
+          Align(alignment: AlignmentDirectional.centerEnd, child: valueText),
+        ]);
+      }
+      return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Expanded(flex: 5, child: Text(label, softWrap: true)),
+        const SizedBox(width: 10),
+        Expanded(flex: 4, child: valueText),
+      ]);
+    }),
   );
 }
