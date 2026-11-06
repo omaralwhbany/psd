@@ -35,6 +35,9 @@ void main() {
     expect(result.values['isCcm'], 0);
     expect(result.values['minimumCurrent'], 0);
     expect(result.values['idleFraction'], greaterThan(0));
+    final triangularAverage = result.values['peakCurrent']! *
+        (result.values['onFraction']! + result.values['offFraction']!) / 2;
+    expect(triangularAverage, closeTo(custom.outputCurrent, 1e-9));
     expect(
       result.values['onFraction']! +
           result.values['offFraction']! +
@@ -75,6 +78,8 @@ void main() {
     expect(result.values['isCcm'], 0);
     expect(result.values['minimumCurrent'], 0);
     expect(result.values['idleFraction'], greaterThan(0));
+    final averageDiodeCurrent = result.values['peakCurrent']! * result.values['offFraction']! / 2;
+    expect(averageDiodeCurrent, closeTo(input.outputCurrent, 1e-9));
     expect(
       result.values['onFraction']! +
           result.values['offFraction']! +
