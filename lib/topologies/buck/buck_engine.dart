@@ -55,7 +55,8 @@ class BuckEngine {
     if (isCcm) {
       ton = dutyCcm * period;
       toff = period - ton;
-      tidle = 0;
+      // TI PSD Buck.onofftimes() uses a 1 ns numerical zero-current interval in CCM.
+      tidle = 1e-9;
       peak = iout + rippleCcm / 2;
       minimum = iout - rippleCcm / 2;
       ripple = rippleCcm;
@@ -76,9 +77,13 @@ class BuckEngine {
       ripple = peak;
     }
 
-    final onFraction = ton / period;
-    final offFraction = toff / period;
-    final idleFraction = tidle / period;
+    // Java actualValues() normalizes device RMS integrals by t1+t2+t3.
+    // In CCM t3 is the source's 1 ns numerical epsilon; in DCM the
+    // three intervals sum to one switching period.
+    final integrationPeriod = ton + toff + tidle;
+    final onFraction = ton / integrationPeriod;
+    final offFraction = toff / integrationPeriod;
+    final idleFraction = tidle / integrationPeriod;
     final currentIntegral = isCcm
         ? (peak * minimum + (peak - minimum) * (peak - minimum) / 3)
         : peak * peak / 3;
