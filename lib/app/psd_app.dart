@@ -10,7 +10,7 @@ class PsdApp extends StatefulWidget {
 }
 
 class _PsdAppState extends State<PsdApp> {
-  Locale _locale = const Locale('en');
+  Locale _locale = const Locale('ar');
   void _changeLocale(Locale locale) => setState(() => _locale = locale);
 
   @override
