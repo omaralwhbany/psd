@@ -66,7 +66,7 @@ class BuckEngine {
       final toff = ton * (vin - vo) / (vo + vf);
       final tidle = period - ton - toff;
       if (!ton.isFinite || !toff.isFinite || tidle < -1e-12) {
-        return CalculationResult(values: const {}, errors: [
+        return CalculationResult(values: const {}, errors: const [
           'The selected inductance does not produce a valid Buck DCM cycle at this operating point.',
         ]);
       }
