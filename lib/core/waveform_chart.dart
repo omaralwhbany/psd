@@ -43,10 +43,22 @@ class PowerWaveformChart extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
-        Wrap(spacing: 16, children: [
-          _LegendDot(color: colors.primary, label: 'Inductor current'),
-          _LegendDot(color: colors.tertiary, label: 'Switch-node voltage (normalized)'),
-        ]),
+        LayoutBuilder(builder: (context, constraints) {
+          final legends = [
+            _LegendDot(color: colors.primary, label: 'Inductor current'),
+            _LegendDot(color: colors.tertiary, label: 'Switch-node voltage (normalized)'),
+          ];
+          if (constraints.maxWidth < 390) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: legends.map((item) => Padding(
+                padding: const EdgeInsets.only(bottom: 5),
+                child: item,
+              )).toList(),
+            );
+          }
+          return Wrap(spacing: 16, runSpacing: 6, children: legends);
+        }),
         const SizedBox(height: 4),
         Text('Idealized one-cycle view • Duty: ${(dutyCycle * 100).toStringAsFixed(1)}%',
           style: Theme.of(context).textTheme.bodySmall),
@@ -66,7 +78,7 @@ class _LegendDot extends StatelessWidget {
     children: [
       Container(width: 9, height: 9, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
       const SizedBox(width: 5),
-      Text(label, style: Theme.of(context).textTheme.bodySmall),
+      Flexible(child: Text(label, softWrap: true, style: Theme.of(context).textTheme.bodySmall)),
     ],
   );
 }
