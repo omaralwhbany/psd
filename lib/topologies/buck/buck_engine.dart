@@ -96,19 +96,22 @@ class BuckEngine {
         ? math.sqrt((ton + toff) / period * currentIntegral)
         : peak * math.sqrt((ton + toff) / (3 * period));
 
-    // Input capacitor current is i_in - i_L during switch on and i_in
-    // during freewheel/idle. This is the exact piecewise-linear PSD integral.
+    // PSD Buck.java sets the input-capacitor off-interval current to
+    // the MOSFET average current (iincap_off_buck = ifet_avg_buck).
+    // Keep that source-specific definition in both CCM and DCM integrals.
     final outputPower = vo * iout;
     final diodeLoss = vf * diodeAverage;
     final inputPower = outputPower + diodeLoss;
     final inputAverage = inputPower / vin;
+    final inputCapOffCurrent = fetAverage;
     final capInRmsSquared = isCcm
         ? onFraction * ((inputAverage - minimum) * (inputAverage - peak) +
                 (peak - minimum) * (peak - minimum) / 3) +
-            offFraction * inputAverage * inputAverage
+            offFraction * inputCapOffCurrent * inputCapOffCurrent
         : onFraction * (inputAverage * (inputAverage - peak) +
                 peak * peak / 3) +
-            (offFraction + idleFraction) * inputAverage * inputAverage;
+            (offFraction + idleFraction) *
+                inputCapOffCurrent * inputCapOffCurrent;
     final inputCapRms = math.sqrt(math.max(0, capInRmsSquared));
 
     // Output capacitor current iC = iL - Iout, integrated over each
