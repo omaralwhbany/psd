@@ -101,9 +101,12 @@ class _SynchronizedWaveformPainter extends CustomPainter {
     // the diode drop applies only to the freewheel OFF interval.
     final vlOn = isBuck ? vin - vout : vin;
     final vlOff = isBuck ? -(vout + diodeDrop) : vin - (vout + diodeDrop);
-    final vSwitchOn = isBuck ? vin : 0.0;
-    final vSwitchOff = isBuck ? -diodeDrop : vout + diodeDrop;
-    final switchIdle = vout;
+    // For Buck, PSD5 Buck.java models the MOSFET voltage as:
+    // 0 V while ON, Vin + Vf while the diode freewheels, and Vin - Vo
+    // during the DCM zero-inductor-current interval.
+    final vSwitchOn = 0.0;
+    final vSwitchOff = isBuck ? vin + diodeDrop : vout + diodeDrop;
+    final switchIdle = isBuck ? vin - vout : vout;
     final vlValues = [vlOn, vlOff, 0.0];
     final switchValues = discontinuous
         ? [vSwitchOn, vSwitchOff, switchIdle]
