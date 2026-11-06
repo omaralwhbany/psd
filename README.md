@@ -7,7 +7,10 @@ A modular Flutter application for power-stage design calculations.
 - Flutter / Dart application foundation
 - English-first interface with Arabic localization architecture
 - Left navigation drawer for topologies and design calculators
-- First working topology: **Buck Converter**
+- Working topology engines and screens: **Buck** and **Boost**
+- Responsive input rows and Android safe-area handling
+- Idealized one-cycle inductor-current and switch-node waveform view
+- Widget tests for waveform rendering on normal and narrow layouts
 - SI units inside the calculation engine
 - Unit tests for the Buck calculations
 
@@ -41,4 +44,4 @@ The calculation engine uses SI units internally. UI values are converted at the 
 
 ## Status
 
-Milestone 1 — application foundation and Buck Converter prototype.
+Milestone 2 — Buck/Boost calculation baseline, responsive UI, and explanatory waveforms. Direct numerical comparison against TI Power Stage Designer remains a required validation task; waveform charts are idealized illustrations, not transient circuit simulation.
