@@ -130,7 +130,7 @@ class _BuckScreenState extends State<BuckScreen> {
           _result(s.inputPower, '${result.values['inputPower']!.toStringAsFixed(2)} W'),
           _result(s.inputCurrent, '${result.values['inputAverageCurrent']!.toStringAsFixed(3)} A'),
         ],
-      ) : _errors(result.errors)),
+      ) : _errors(result.errors, s)),
       if (result.isValid) ...[
         const SizedBox(height: 14),
         _panel(s.synchronizedWaveforms, PowerWaveformChart(
@@ -152,9 +152,9 @@ class _BuckScreenState extends State<BuckScreen> {
     ]);
   }
 
-  Widget _errors(List<String> errors) => Column(crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _errors(List<String> errors, AppStrings strings) => Column(crossAxisAlignment: CrossAxisAlignment.start,
     children: errors.map((e) => Padding(padding: const EdgeInsets.only(bottom: 6),
-      child: Text(e, style: const TextStyle(color: Colors.red)))).toList());
+      child: Text(strings.localizeBuckError(e), style: const TextStyle(color: Colors.red)))).toList());
 
   Widget _field(String label, String key, String unit) => Padding(
     padding: const EdgeInsets.only(bottom: 12),
