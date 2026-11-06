@@ -48,15 +48,19 @@ void main() {
     final input = BuckInputs.defaults();
     final r = buck.calculate(input);
     expect(r.isValid, isTrue);
-    final d = r.values['onFraction']!;
-    final off = r.values['offFraction']!;
+    final onTime = r.values['onTime']!;
+    final offTime = r.values['offTime']!;
+    final idleTime = r.values['idleTime']!;
+    final integrationPeriod = onTime + offTime + idleTime;
+    final on = onTime / integrationPeriod;
+    final off = offTime / integrationPeriod;
     final iin = r.values['inputAverageCurrent']!;
     final imin = r.values['minimumCurrent']!;
     final imax = r.values['peakCurrent']!;
     final ifetAvg = r.values['mosfetAverageCurrent']!;
     final onIntegral = (iin - imin) * (iin - imax) +
         (imax - imin) * (imax - imin) / 3;
-    final expected = math.sqrt(d * onIntegral + off * ifetAvg * ifetAvg);
+    final expected = math.sqrt(on * onIntegral + off * ifetAvg * ifetAvg);
     expect(r.values['inputCapacitorRmsCurrent'], closeTo(expected, 1e-10));
   });
 
