@@ -25,6 +25,7 @@ void main() {
     final r = buck.calculate(input);
     expect(r.isValid, isTrue);
     final d = r.values['onFraction']!;
+    final off = r.values['offFraction']!;
     final i = input.outputCurrent;
     final di = r.values['rippleCurrent']!;
     expect(r.values['inductorAverageCurrent'], closeTo(i, 1e-10));
@@ -35,7 +36,7 @@ void main() {
         closeTo(math.sqrt(d * (i * i + di * di / 12)), 1e-10));
     expect(r.values['diodeAverageCurrent'], closeTo(i * (1 - d), 1e-10));
     expect(r.values['diodeRmsCurrent'],
-        closeTo(math.sqrt((1 - d) * (i * i + di * di / 12)), 1e-10));
+        closeTo(math.sqrt(off * (i * i + di * di / 12)), 1e-10));
     expect(r.values['mosfetVoltageMax'],
         closeTo(r.values['operatingInputVoltage']! + input.diodeForwardVoltage, 1e-12));
     expect(r.values['diodeVoltageMin'],
