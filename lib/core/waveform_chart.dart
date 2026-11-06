@@ -18,6 +18,8 @@ class PowerWaveformChart extends StatelessWidget {
     this.inputVoltage = 12,
     this.outputVoltage = 5,
     this.diodeDrop = 0,
+    this.periodCaption = 'One switching period • D = ',
+    this.idealizedNote = 'Idealized waveforms; parasitic effects, dead time and switching transitions are omitted.',
   });
 
   final double averageCurrent, rippleCurrent, dutyCycle;
@@ -27,6 +29,7 @@ class PowerWaveformChart extends StatelessWidget {
   final double idleFraction;
   final String topology;
   final double inputVoltage, outputVoltage, diodeDrop;
+  final String periodCaption, idealizedNote;
 
   @override
   Widget build(BuildContext context) {
@@ -57,10 +60,10 @@ class PowerWaveformChart extends StatelessWidget {
         )),
       ),
       const SizedBox(height: 4),
-      Text('One switching period • D = ${(dutyCycle * 100).toStringAsFixed(1)}% • ${discontinuous ? 'DCM' : 'CCM'}',
+      Text('$periodCaption${(dutyCycle * 100).toStringAsFixed(1)}% • ${discontinuous ? 'DCM' : 'CCM'}',
         style: Theme.of(context).textTheme.bodySmall),
       const SizedBox(height: 4),
-      Text('Idealized waveforms; parasitic effects, dead time and switching transitions are omitted.',
+      Text(idealizedNote,
         style: Theme.of(context).textTheme.bodySmall),
     ]);
   }
