@@ -84,7 +84,7 @@ class _SynchronizedWaveformPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    const left = 62.0, right = 8.0, top = 5.0, bottom = 20.0, gap = 7.0;
+    const left = 86.0, right = 8.0, top = 5.0, bottom = 20.0, gap = 7.0;
     final plotLeft = left, plotRight = size.width - right;
     final plotWidth = (plotRight - plotLeft).clamp(1.0, double.infinity);
     final laneHeight = (size.height - top - bottom - gap * 3) / 4;
@@ -98,9 +98,17 @@ class _SynchronizedWaveformPainter extends CustomPainter {
     final vlOff = isBuck ? -(vout + diodeDrop) : vin - vout;
     final vSwitchOn = isBuck ? vin : 0.0;
     final vSwitchOff = isBuck ? -diodeDrop : vout;
-    final voltageValues = [vlOn, vlOff, 0.0, vSwitchOn, vSwitchOff];
-    final vMin = voltageValues.reduce((a, b) => a < b ? a : b);
-    final vMax = voltageValues.reduce((a, b) => a > b ? a : b);
+    final switchIdle = isBuck ? vout : vout;
+    final vlValues = [vlOn, vlOff, 0.0];
+    final switchValues = discontinuous
+        ? [vSwitchOn, vSwitchOff, switchIdle]
+        : [vSwitchOn, vSwitchOff];
+    double minOf(List<double> values) => values.reduce((a, b) => a < b ? a : b);
+    double maxOf(List<double> values) => values.reduce((a, b) => a > b ? a : b);
+    final vlMin = minOf(vlValues);
+    final vlMax = maxOf(vlValues);
+    final swMin = minOf(switchValues);
+    final swMax = maxOf(switchValues);
     final labels = ['IL (A)', 'VL (V)', 'VSW (V)', 'GATE'];
     final colors = [currentColor, voltageColor, switchColor, gateColor];
     final grid = Paint()..color = gridColor..strokeWidth = 0.7;
@@ -111,10 +119,18 @@ class _SynchronizedWaveformPainter extends CustomPainter {
       final yBottom = yTop + laneHeight;
       final label = TextPainter(text: TextSpan(text: labels[lane], style: style),
         textDirection: TextDirection.ltr)..layout(maxWidth: left - 5);
-      label.paint(canvas, Offset(2, (yTop + yBottom - label.height) / 2));
+      label.paint(canvas, Offset(2, yTop));
+      final axisMin = lane == 0 ? currentLow : lane == 1 ? vlMin : lane == 2 ? swMin : 0.0;
+      final axisMax = lane == 0 ? currentHigh : lane == 1 ? vlMax : lane == 2 ? swMax : 1.0;
       for (var i = 0; i <= 2; i++) {
         final y = yTop + laneHeight * i / 2;
         canvas.drawLine(Offset(plotLeft, y), Offset(plotRight, y), grid);
+        final value = axisMax - (axisMax - axisMin) * i / 2;
+        final tick = TextPainter(
+          text: TextSpan(text: value.toStringAsFixed(value.abs() >= 100 ? 0 : 1), style: style.copyWith(fontSize: 9)),
+          textDirection: TextDirection.ltr,
+        )..layout(maxWidth: 34);
+        tick.paint(canvas, Offset(plotLeft - tick.width - 5, y - tick.height / 2));
       }
       canvas.drawLine(Offset(plotLeft, yBottom), Offset(plotRight, yBottom), grid);
 
@@ -128,23 +144,25 @@ class _SynchronizedWaveformPainter extends CustomPainter {
         path.moveTo(plotLeft, yFor(discontinuous ? 0 : currentLow, currentLow, currentHigh));
         path.lineTo(xOn, yFor(currentHigh, currentLow, currentHigh));
         path.lineTo(xOff, yFor(discontinuous ? 0 : currentLow, currentLow, currentHigh));
-        path.lineTo(plotRight, yFor(0, currentLow, currentHigh));
+        path.lineTo(plotRight, yFor(discontinuous ? 0 : currentLow, currentLow, currentHigh));
       } else if (lane == 1) {
-        path.moveTo(plotLeft, yFor(vlOn, vMin, vMax));
-        path.lineTo(xOn, yFor(vlOn, vMin, vMax));
-        path.lineTo(xOn, yFor(vlOff, vMin, vMax));
-        path.lineTo(xOff, yFor(vlOff, vMin, vMax));
+        path.moveTo(plotLeft, yFor(vlOn, vlMin, vlMax));
+        path.lineTo(xOn, yFor(vlOn, vlMin, vlMax));
+        path.lineTo(xOn, yFor(vlOff, vlMin, vlMax));
+        path.lineTo(xOff, yFor(vlOff, vlMin, vlMax));
         if (discontinuous) {
-          path.lineTo(xOff, yFor(0, vMin, vMax));
-          path.lineTo(plotRight, yFor(0, vMin, vMax));
-        } else {
-          path.lineTo(plotRight, yFor(vlOn, vMin, vMax));
+          path.lineTo(xOff, yFor(0, vlMin, vlMax));
+          path.lineTo(plotRight, yFor(0, vlMin, vlMax));
         }
       } else if (lane == 2) {
-        path.moveTo(plotLeft, yFor(vSwitchOn, vMin, vMax));
-        path.lineTo(xOn, yFor(vSwitchOn, vMin, vMax));
-        path.lineTo(xOn, yFor(vSwitchOff, vMin, vMax));
-        path.lineTo(plotRight, yFor(vSwitchOff, vMin, vMax));
+        path.moveTo(plotLeft, yFor(vSwitchOn, swMin, swMax));
+        path.lineTo(xOn, yFor(vSwitchOn, swMin, swMax));
+        path.lineTo(xOn, yFor(vSwitchOff, swMin, swMax));
+        path.lineTo(xOff, yFor(vSwitchOff, swMin, swMax));
+        if (discontinuous) {
+          path.lineTo(xOff, yFor(switchIdle, swMin, swMax));
+          path.lineTo(plotRight, yFor(switchIdle, swMin, swMax));
+        }
       } else {
         path.moveTo(plotLeft, yFor(1, 0, 1));
         path.lineTo(xOn, yFor(1, 0, 1));
