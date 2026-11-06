@@ -87,6 +87,9 @@ class _BuckScreenState extends State<BuckScreen> {
         _result(s.rippleCurrent, '${result.values['rippleCurrent']!.toStringAsFixed(3)} A'),
         _result(s.peakCurrent, '${result.values['peakCurrent']!.toStringAsFixed(3)} A'),
         _result(s.minimumCurrent, '${result.values['minimumCurrent']!.toStringAsFixed(3)} A'),
+        _result(s.inputCurrent, '${result.values['inputAverageCurrent']!.toStringAsFixed(3)} A'),
+        _result('Output power', '${result.values['outputPower']!.toStringAsFixed(2)} W'),
+        _result('Diode loss', '${result.values['diodeLosses']!.toStringAsFixed(2)} W'),
         _result(s.operatingMode, result.values['isCcm'] == 1 ? s.ccm : s.dcm, emphasize: true),
       ]) : _errors(result.errors)),
       if (result.isValid) ...[

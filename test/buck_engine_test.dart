@@ -15,6 +15,8 @@ void main() {
     expect(result.values['minimumInductance'], greaterThan(0));
     expect(result.values['inductanceUsed'], result.values['minimumInductance']);
     expect(result.values['peakCurrent'], greaterThan(5));
+    expect(result.values['inputPower'], closeTo(
+      result.values['outputPower']! + result.values['diodeLosses']!, 1e-9));
   });
 
   test('Buck accepts a custom inductor and reports DCM for a small value', () {
@@ -100,6 +102,8 @@ void main() {
     expect(result.values['dutyCycle'], closeTo(1 - 12 / 24.7, 1e-12));
     expect(result.values['inputAverageCurrent'], closeTo(24.7 * 2 / 12, 1e-12));
     expect(result.values['diodeLosses'], closeTo(1.4, 1e-12));
+    expect(result.values['inputPower'], closeTo(
+      result.values['outputPower']! + result.values['diodeLosses']!, 1e-9));
   });
 
   test('Boost rejects an output voltage that is not above input', () {

@@ -44,6 +44,10 @@ class BuckEngine {
     final ripple = ((vin - vo) * duty) / (inductanceUsed * fs);
     final ccmMinimum = input.outputCurrent - ripple / 2;
     final isCcm = ccmMinimum >= 0;
+    final inputAverageCurrent = duty * input.outputCurrent;
+    final inputPower = vin * inputAverageCurrent;
+    final outputPower = vo * input.outputCurrent;
+    final diodeLosses = (1 - duty) * vf * input.outputCurrent;
     final period = 1 / fs;
     var onFraction = duty;
     var offFraction = 1 - duty;
@@ -80,6 +84,10 @@ class BuckEngine {
 
     return CalculationResult(values: {
       'operatingInputVoltage': vin,
+      'inputAverageCurrent': inputAverageCurrent,
+      'inputPower': inputPower,
+      'outputPower': outputPower,
+      'diodeLosses': diodeLosses,
       'dutyCycle': duty,
       'minimumInductance': minimumInductance,
       'inductanceUsed': inductanceUsed,
