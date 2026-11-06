@@ -117,11 +117,11 @@ void main() {
     expect(buck.calculate(changed(ripple: 1.01)).isValid, isFalse);
     expect(buck.calculate(changed(inductance: 0.002200001)).isValid, isFalse);
 
-    // Output voltage below Vin alone is insufficient when the diode drop
-    // pushes the idealized Buck duty ratio above 100%.
+    // Original PSD5 Buck.java rejects Vo > VinMin, not equality. At equality
+    // the source's calculated duty is exactly 100%, which checkDutyCycle allows.
     expect(
-      buck.calculate(changed(vinMin: 5, vinMax: 8, vo: 4.9, vf: 5)).isValid,
-      isFalse,
+      buck.calculate(changed(vinMin: 5, vinMax: 8, vo: 5, vf: 5)).isValid,
+      isTrue,
     );
   });
 
