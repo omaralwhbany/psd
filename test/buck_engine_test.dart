@@ -25,18 +25,25 @@ void main() {
     final r = buck.calculate(input);
     expect(r.isValid, isTrue);
     final d = r.values['onFraction']!;
-    final off = r.values['offFraction']!;
     final i = input.outputCurrent;
     final di = r.values['rippleCurrent']!;
+    final onTime = r.values['onTime']!;
+    final offTime = r.values['offTime']!;
+    final idleTime = r.values['idleTime']!;
+    final integrationPeriod = onTime + offTime + idleTime;
+    final onIntegralFraction = onTime / integrationPeriod;
+    final offIntegralFraction = offTime / integrationPeriod;
+    final activeIntegralFraction = (onTime + offTime) / integrationPeriod;
+    final triangularCurrentIntegral = i * i + di * di / 12;
     expect(r.values['inductorAverageCurrent'], closeTo(i, 1e-10));
-    expect(r.values['inductorRmsCurrent'],
-        closeTo(math.sqrt(i * i + di * di / 12), 1e-10));
+    expect(r.values['inductorRmsCurrent'], closeTo(
+        math.sqrt(activeIntegralFraction * triangularCurrentIntegral), 1e-10));
     expect(r.values['mosfetAverageCurrent'], closeTo(i * d, 1e-10));
-    expect(r.values['mosfetRmsCurrent'],
-        closeTo(math.sqrt(d * (i * i + di * di / 12)), 1e-10));
+    expect(r.values['mosfetRmsCurrent'], closeTo(
+        math.sqrt(onIntegralFraction * triangularCurrentIntegral), 1e-10));
     expect(r.values['diodeAverageCurrent'], closeTo(i * (1 - d), 1e-10));
-    expect(r.values['diodeRmsCurrent'],
-        closeTo(math.sqrt(off * (i * i + di * di / 12)), 1e-10));
+    expect(r.values['diodeRmsCurrent'], closeTo(
+        math.sqrt(offIntegralFraction * triangularCurrentIntegral), 1e-10));
     expect(r.values['mosfetVoltageMax'],
         closeTo(r.values['operatingInputVoltage']! + input.diodeForwardVoltage, 1e-12));
     expect(r.values['diodeVoltageMin'],
