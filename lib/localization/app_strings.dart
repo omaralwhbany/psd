@@ -62,5 +62,7 @@ class AppStrings {
   String get buckCcmCurrent => isArabic ? 'تيار ملف Buck في نمط CCM' : 'Buck inductor current (CCM)';
   String get buckDcmCurrent => isArabic ? 'تيار ملف Buck في نمط DCM' : 'Buck inductor current (DCM)';
   String get buckDescription => isArabic ? 'غير معزول • محول DC-DC خافض للجهد' : 'Non-isolated • Step-down DC-DC converter';
+  String get designRippleCurrent => isArabic ? 'تموج التيار التصميمي (حسب نموذج TI)' : 'TI design ripple estimate';
+  String get actualCurrentExcursion => isArabic ? 'تغير التيار الفعلي من صفر إلى الذروة' : 'Actual current excursion (zero to peak)';
   String get language => isArabic ? 'English' : 'العربية';
 }
