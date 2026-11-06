@@ -81,24 +81,31 @@ class BuckEngine {
     // In CCM t3 is the source's 1 ns numerical epsilon; in DCM the
     // three intervals sum to one switching period.
     final integrationPeriod = ton + toff + tidle;
-    final onFraction = ton / integrationPeriod;
-    final offFraction = toff / integrationPeriod;
-    final idleFraction = tidle / integrationPeriod;
+    // Time fractions use the switching period, as used by TI's timing and
+    // average-current equations. RMS integrals use t1+t2+t3, which differs
+    // by the 1 ns CCM epsilon in the original Java implementation.
+    final onFraction = ton / period;
+    final offFraction = toff / period;
+    final idleFraction = tidle / period;
+    final onIntegralFraction = ton / integrationPeriod;
+    final offIntegralFraction = toff / integrationPeriod;
+    final activeIntegralFraction = (ton + toff) / integrationPeriod;
     final currentIntegral = isCcm
         ? (peak * minimum + (peak - minimum) * (peak - minimum) / 3)
         : peak * peak / 3;
 
-    // TI PSD Java actualValues(): per-device average and RMS currents.
-    final fetAverage = isCcm ? iout * onFraction : peak * onFraction / 2;
-    final fetRms = math.sqrt(onFraction * currentIntegral);
-    final diodeAverage = isCcm ? iout * offFraction : peak * offFraction / 2;
-    final diodeRms = math.sqrt(offFraction * currentIntegral);
+    // TI PSD Java actualValues(): average currents use t*fs; RMS currents
+    // use the exact t1+t2+t3 integration denominator.
+    final fetAverage = isCcm ? iout * ton * fs : peak * ton * fs / 2;
+    final fetRms = math.sqrt(onIntegralFraction * currentIntegral);
+    final diodeAverage = isCcm ? iout * toff * fs : peak * toff * fs / 2;
+    final diodeRms = math.sqrt(offIntegralFraction * currentIntegral);
 
     final inductorAverage = isCcm
         ? (minimum + peak) / 2
         : peak * (ton + toff) / (2 * period);
     final inductorRms = isCcm
-        ? math.sqrt((ton + toff) / period * currentIntegral)
+        ? math.sqrt(activeIntegralFraction * currentIntegral)
         : peak * math.sqrt((ton + toff) / (3 * period));
 
     // PSD Buck.java sets the input-capacitor off-interval current to
@@ -110,12 +117,12 @@ class BuckEngine {
     final inputAverage = inputPower / vin;
     final inputCapOffCurrent = fetAverage;
     final capInRmsSquared = isCcm
-        ? onFraction * ((inputAverage - minimum) * (inputAverage - peak) +
+        ? onIntegralFraction * ((inputAverage - minimum) * (inputAverage - peak) +
                 (peak - minimum) * (peak - minimum) / 3) +
-            offFraction * inputCapOffCurrent * inputCapOffCurrent
-        : onFraction * (inputAverage * (inputAverage - peak) +
+            offIntegralFraction * inputCapOffCurrent * inputCapOffCurrent
+        : onIntegralFraction * (inputAverage * (inputAverage - peak) +
                 peak * peak / 3) +
-            (offFraction + idleFraction) *
+            ((toff + tidle) / integrationPeriod) *
                 inputCapOffCurrent * inputCapOffCurrent;
     final inputCapRms = math.sqrt(math.max(0, capInRmsSquared));
 
@@ -132,7 +139,7 @@ class BuckEngine {
             tidle * fs * iout * iout;
     final outputCapRms = math.sqrt(math.max(0, capOutRmsSquared));
 
-    final duty = onFraction;
+    final duty = ton * fs;
     return CalculationResult(values: {
       'operatingInputVoltage': vin,
       'inputAverageCurrent': inputAverage,
