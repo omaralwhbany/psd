@@ -64,5 +64,36 @@ class AppStrings {
   String get buckDescription => isArabic ? 'غير معزول • محول DC-DC خافض للجهد' : 'Non-isolated • Step-down DC-DC converter';
   String get designRippleCurrent => isArabic ? 'تموج التيار التصميمي (حسب نموذج TI)' : 'TI design ripple estimate';
   String get actualCurrentExcursion => isArabic ? 'تغير التيار الفعلي من صفر إلى الذروة' : 'Actual current excursion (zero to peak)';
+  String localizeBuckError(String error) {
+    if (!isArabic) return error;
+    const translations = <String, String>{
+      'Input voltage minimum must be a finite value greater than zero.': 'يجب أن يكون أقل جهد دخل رقماً محدوداً وأكبر من صفر.',
+      'Input voltage maximum must be a finite value greater than zero.': 'يجب أن يكون أعلى جهد دخل رقماً محدوداً وأكبر من صفر.',
+      'Output voltage must be a finite value greater than zero.': 'يجب أن يكون جهد الخرج رقماً محدوداً وأكبر من صفر.',
+      'Output current must be a finite value greater than zero.': 'يجب أن يكون تيار الخرج رقماً محدوداً وأكبر من صفر.',
+      'Switching frequency must be a finite value greater than zero.': 'يجب أن يكون تردد التبديل رقماً محدوداً وأكبر من صفر.',
+      'Ripple fraction must be a finite value greater than zero.': 'يجب أن تكون نسبة تموج التيار رقماً محدوداً وأكبر من صفر.',
+      'Input voltage minimum cannot exceed maximum.': 'لا يمكن أن يكون أقل جهد دخل أكبر من أعلى جهد دخل.',
+      'Input voltage must not exceed 10000 V.': 'يجب ألا يتجاوز جهد الدخل 10000 فولت.',
+      'Output voltage must not exceed 10000 V.': 'يجب ألا يتجاوز جهد الخرج 10000 فولت.',
+      'Output current must not exceed 1000 A.': 'يجب ألا يتجاوز تيار الخرج 1000 أمبير.',
+      'Switching frequency must not exceed 10 MHz.': 'يجب ألا يتجاوز تردد التبديل 10 ميجاهرتز.',
+      'Ripple fraction must not exceed 1 (100%).': 'يجب ألا تتجاوز نسبة التموج 100%.',
+      'Buck output voltage must be below minimum input voltage.': 'يجب أن يكون جهد خرج المحول الخافض أقل من أقل جهد دخل.',
+      'Diode forward voltage must be between 0 and 5 V.': 'يجب أن يكون هبوط جهد الدايود بين 0 و5 فولت.',
+      'Operating input voltage must be within the input voltage range.': 'يجب أن يقع جهد الدخل التشغيلي ضمن مجال جهد الدخل المحدد.',
+      'Selected inductance must be greater than zero.': 'يجب أن تكون قيمة المحاثة المختارة أكبر من صفر.',
+      'Selected inductance must not exceed 2200 µH.': 'يجب ألا تتجاوز المحاثة المختارة 2200 ميكروهنري.',
+      'Buck duty cycle must not exceed 100% at the selected operating point.': 'نسبة تشغيل المحول الخافض لا يمكن أن تتجاوز 100% عند نقطة التشغيل المحددة.',
+      'The selected inductance does not produce a valid Buck DCM cycle at this operating point.': 'قيمة المحاثة المختارة لا تنتج دورة تشغيل DCM صالحة عند نقطة التشغيل هذه.',
+    };
+    return translations[error] ?? error;
+  }
+
+  String get oneSwitchingPeriod => isArabic ? 'دورة تبديل واحدة • D = ' : 'One switching period • D = ';
+  String get idealizedWaveformNote => isArabic
+      ? 'أشكال موجية مثالية؛ لا تشمل التأثيرات الطفيلية أو زمن الفصل الميت أو انتقالات التبديل.'
+      : 'Idealized waveforms; parasitic effects, dead time and switching transitions are omitted.';
+
   String get language => isArabic ? 'English' : 'العربية';
 }
