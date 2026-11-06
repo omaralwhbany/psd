@@ -70,7 +70,7 @@ class BoostEngine {
       // DCM: average diode current equals IOUT; current is triangular
       // during the off interval and zero during the idle interval.
       final ton = math.sqrt(
-        2 * input.outputCurrent * inductanceUsed * effectiveOutput /
+        2 * input.outputCurrent * inductanceUsed * (effectiveOutput - vin) /
         (vin * vin * fs),
       );
       final toff = ton * vin / (effectiveOutput - vin);

@@ -95,10 +95,10 @@ class _SynchronizedWaveformPainter extends CustomPainter {
     final currentLow = discontinuous ? 0.0 : averageCurrent - rippleCurrent / 2;
     final currentHigh = discontinuous ? rippleCurrent : averageCurrent + rippleCurrent / 2;
     final vlOn = isBuck ? vin - vout - diodeDrop : vin;
-    final vlOff = isBuck ? -(vout + diodeDrop) : vin - vout;
+    final vlOff = isBuck ? -(vout + diodeDrop) : vin - (vout + diodeDrop);
     final vSwitchOn = isBuck ? vin : 0.0;
-    final vSwitchOff = isBuck ? -diodeDrop : vout;
-    final switchIdle = isBuck ? vout : vout;
+    final vSwitchOff = isBuck ? -diodeDrop : vout + diodeDrop;
+    final switchIdle = vout;
     final vlValues = [vlOn, vlOff, 0.0];
     final switchValues = discontinuous
         ? [vSwitchOn, vSwitchOff, switchIdle]
