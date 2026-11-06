@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/units.dart';
+import '../../core/waveform_chart.dart';
 import '../../localization/app_strings.dart';
 import 'buck_engine.dart';
 import 'buck_inputs.dart';
@@ -23,6 +24,7 @@ class _BuckScreenState extends State<BuckScreen> {
     _controllers.addAll({
       'vinMin': TextEditingController(text: d.inputVoltageMin.toString()),
       'vinMax': TextEditingController(text: d.inputVoltageMax.toString()),
+      'vinOperating': TextEditingController(text: d.inputVoltageMin.toString()),
       'vout': TextEditingController(text: d.outputVoltage.toString()),
       'iout': TextEditingController(text: d.outputCurrent.toString()),
       'fsw': TextEditingController(text: Units.baseToKilo(d.switchingFrequency).toStringAsFixed(0)),
@@ -48,6 +50,7 @@ class _BuckScreenState extends State<BuckScreen> {
     switchingFrequency: Units.kiloToBase(_v('fsw')),
     rippleFraction: _v('ripple') / 100,
     diodeForwardVoltage: _v('vf'),
+    operatingInputVoltage: _v('vinOperating'),
     selectedInductance: _customInductance ? Units.microToBase(_v('inductance')) : null,
   );
 
@@ -67,6 +70,7 @@ class _BuckScreenState extends State<BuckScreen> {
         _panel(s.inputs, Column(children: [
           _field(s.inputVoltageMin, 'vinMin', 'V'),
           _field(s.inputVoltageMax, 'vinMax', 'V'),
+          _field('Operating input voltage', 'vinOperating', 'V'),
           _field(s.outputVoltage, 'vout', 'V'),
           _field(s.outputCurrent, 'iout', 'A'),
           _field(s.switchingFrequency, 'fsw', 'kHz'),
@@ -96,7 +100,16 @@ class _BuckScreenState extends State<BuckScreen> {
           _result(s.peakCurrent, '${result.values['peakCurrent']!.toStringAsFixed(3)} A'),
           _result(s.minimumCurrent, '${result.values['minimumCurrent']!.toStringAsFixed(3)} A'),
           _result(s.operatingMode, result.values['isCcm'] == 1 ? s.ccm : s.dcm, emphasize: true),
-        ]) : _errors(result.errors)),
+         ]) : _errors(result.errors)),
+        if (result.isValid) ...[
+          const SizedBox(height: 14),
+          _panel('Waveforms', PowerWaveformChart(
+            averageCurrent: _input.outputCurrent,
+            rippleCurrent: result.values['rippleCurrent']!,
+            dutyCycle: result.values['dutyCycle']!,
+            currentLabel: 'Inductor current',
+          )),
+        ],
       ],
     );
   }

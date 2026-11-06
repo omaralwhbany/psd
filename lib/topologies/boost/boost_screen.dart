@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/units.dart';
+import '../../core/waveform_chart.dart';
 import '../../localization/app_strings.dart';
 import 'boost_engine.dart';
 import 'boost_inputs.dart';
@@ -22,6 +23,7 @@ class _BoostScreenState extends State<BoostScreen> {
     _controllers.addAll({
       'vinMin': TextEditingController(text: d.inputVoltageMin.toString()),
       'vinMax': TextEditingController(text: d.inputVoltageMax.toString()),
+      'vinOperating': TextEditingController(text: d.inputVoltageMin.toString()),
       'vout': TextEditingController(text: d.outputVoltage.toString()),
       'iout': TextEditingController(text: d.outputCurrent.toString()),
       'fsw': TextEditingController(text: Units.baseToKilo(d.switchingFrequency).toStringAsFixed(0)),
@@ -41,6 +43,7 @@ class _BoostScreenState extends State<BoostScreen> {
     outputCurrent: _v('iout'),
     switchingFrequency: Units.kiloToBase(_v('fsw')),
     rippleFraction: _v('ripple') / 100,
+    operatingInputVoltage: _v('vinOperating'),
     selectedInductance: _customInductance ? Units.microToBase(_v('inductance')) : null,
   );
 
@@ -58,6 +61,7 @@ class _BoostScreenState extends State<BoostScreen> {
         const SizedBox(height: 12),
         _field(s.inputVoltageMin, 'vinMin', 'V'),
         _field(s.inputVoltageMax, 'vinMax', 'V'),
+        _field('Operating input voltage', 'vinOperating', 'V'),
         _field(s.outputVoltage, 'vout', 'V'),
         _field(s.outputCurrent, 'iout', 'A'),
         _field(s.switchingFrequency, 'fsw', 'kHz'),
@@ -78,8 +82,18 @@ class _BoostScreenState extends State<BoostScreen> {
           _result(s.rippleCurrent, '${r.values['rippleCurrent']!.toStringAsFixed(3)} A'),
           _result(s.peakCurrent, '${r.values['peakCurrent']!.toStringAsFixed(3)} A'),
           _result(s.minimumCurrent, '${r.values['minimumCurrent']!.toStringAsFixed(3)} A'),
+          _result('Critical design input voltage', '${r.values['designInputVoltage']!.toStringAsFixed(2)} V'),
           _result(s.operatingMode, r.values['isCcm'] == 1 ? s.ccm : s.dcm),
-        ] else ...r.errors.map((e) => Padding(padding: const EdgeInsets.only(bottom: 6), child: Text(e, style: const TextStyle(color: Colors.red)))),
+         ] else ...r.errors.map((e) => Padding(padding: const EdgeInsets.only(bottom: 6), child: Text(e, style: const TextStyle(color: Colors.red)))),
+        if (r.isValid) ...[
+          const SizedBox(height: 14),
+          PowerWaveformChart(
+            averageCurrent: r.values['inputAverageCurrent']!,
+            rippleCurrent: r.values['rippleCurrent']!,
+            dutyCycle: r.values['dutyCycle']!,
+            currentLabel: 'Inductor / input current',
+          ),
+        ],
       ]))),
     ]);
   }
