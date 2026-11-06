@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:psd/core/waveform_chart.dart';
 
 void main() {
-  testWidgets('waveform chart renders current and switch-node legends', (tester) async {
+  testWidgets('waveform chart renders current label and synchronized period', (tester) async {
     await tester.pumpWidget(const MaterialApp(
       home: Scaffold(
         body: PowerWaveformChart(
@@ -17,9 +17,8 @@ void main() {
     ));
 
     expect(find.text('Buck inductor current'), findsOneWidget);
-    expect(find.text('Inductor current'), findsOneWidget);
-    expect(find.text('Switch-node voltage (normalized)'), findsOneWidget);
-    expect(find.textContaining('Duty: 40.0%'), findsOneWidget);
+    expect(find.textContaining('One switching period'), findsOneWidget);
+    expect(find.textContaining('D = 40.0%'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -44,7 +43,7 @@ void main() {
       ),
     ));
 
-    expect(find.textContaining('Duty: 65.0%'), findsOneWidget);
+    expect(find.textContaining('D = 65.0%'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
