@@ -68,6 +68,7 @@ void main() {
       inputVoltageMax: 16,
       outputVoltage: 24,
       outputCurrent: 2,
+      diodeForwardVoltage: 0.7,
       switchingFrequency: 100e3,
       rippleFraction: 0.30,
       operatingInputVoltage: 16,
@@ -86,6 +87,19 @@ void main() {
           result.values['idleFraction']!,
       closeTo(1, 1e-9),
     );
+  });
+
+  test('Boost includes diode drop in duty and input power', () {
+    const input = BoostInputs(
+      inputVoltageMin: 9, inputVoltageMax: 16, outputVoltage: 24,
+      outputCurrent: 2, switchingFrequency: 100e3, rippleFraction: 0.30,
+      diodeForwardVoltage: 0.7, operatingInputVoltage: 12,
+    );
+    final result = boost.calculate(input);
+    expect(result.isValid, isTrue);
+    expect(result.values['dutyCycle'], closeTo(1 - 12 / 24.7, 1e-12));
+    expect(result.values['inputAverageCurrent'], closeTo(24.7 * 2 / 12, 1e-12));
+    expect(result.values['diodeLosses'], closeTo(1.4, 1e-12));
   });
 
   test('Boost rejects an output voltage that is not above input', () {

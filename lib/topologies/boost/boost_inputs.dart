@@ -6,6 +6,7 @@ class BoostInputs {
     required this.outputCurrent,
     required this.switchingFrequency,
     required this.rippleFraction,
+    this.diodeForwardVoltage = 0.7,
     this.operatingInputVoltage,
     this.selectedInductance,
   });
@@ -16,6 +17,7 @@ class BoostInputs {
   final double outputCurrent;
   final double switchingFrequency;
   final double rippleFraction;
+  final double diodeForwardVoltage;
   final double? operatingInputVoltage;
   final double? selectedInductance;
 
@@ -26,5 +28,6 @@ class BoostInputs {
     outputCurrent: 2,
     switchingFrequency: 100e3,
     rippleFraction: 0.30,
+    diodeForwardVoltage: 0.7,
   );
 }

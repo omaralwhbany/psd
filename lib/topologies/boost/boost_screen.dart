@@ -28,6 +28,7 @@ class _BoostScreenState extends State<BoostScreen> {
       'iout': TextEditingController(text: d.outputCurrent.toString()),
       'fsw': TextEditingController(text: Units.baseToKilo(d.switchingFrequency).toStringAsFixed(0)),
       'ripple': TextEditingController(text: (d.rippleFraction * 100).toStringAsFixed(0)),
+      'vf': TextEditingController(text: d.diodeForwardVoltage.toString()),
       'inductance': TextEditingController(text: '100'),
     });
   }
@@ -40,7 +41,7 @@ class _BoostScreenState extends State<BoostScreen> {
     inputVoltageMin: _v('vinMin'), inputVoltageMax: _v('vinMax'),
     outputVoltage: _v('vout'), outputCurrent: _v('iout'),
     switchingFrequency: Units.kiloToBase(_v('fsw')), rippleFraction: _v('ripple') / 100,
-    operatingInputVoltage: _v('vinOperating'),
+    operatingInputVoltage: _v('vinOperating'), diodeForwardVoltage: _v('vf'),
     selectedInductance: _customInductance ? Units.microToBase(_v('inductance')) : null,
   );
 
@@ -64,6 +65,7 @@ class _BoostScreenState extends State<BoostScreen> {
         _field(s.outputCurrent, 'iout', 'A'),
         _field(s.switchingFrequency, 'fsw', 'kHz'),
         _field(s.ripplePercent, 'ripple', '%'),
+        _field(s.diodeDrop, 'vf', 'V'),
         SwitchListTile(contentPadding: EdgeInsets.zero, title: Text(s.customInductor),
           subtitle: Text(s.automaticInductor), value: _customInductance,
           onChanged: (v) => setState(() => _customInductance = v)),
@@ -102,6 +104,7 @@ class _BoostScreenState extends State<BoostScreen> {
             topology: 'boost',
             inputVoltage: r.values['operatingInputVoltage']!,
             outputVoltage: input.outputVoltage,
+            diodeDrop: input.diodeForwardVoltage,
           ),
         ],
       ]))),

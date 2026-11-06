@@ -19,6 +19,9 @@ class BoostEngine {
     if (input.inputVoltageMin > input.inputVoltageMax) errors.add('Input voltage minimum cannot exceed maximum.');
     if (input.outputVoltage <= input.inputVoltageMax) errors.add('Boost output voltage must exceed maximum input voltage.');
     if (input.rippleFraction > 1) errors.add('Ripple fraction must not exceed 1 (100%).');
+    if (!input.diodeForwardVoltage.isFinite || input.diodeForwardVoltage < 0) {
+      errors.add('Diode forward voltage must be finite and non-negative.');
+    }
     final vin = input.operatingInputVoltage ?? input.inputVoltageMin;
     if (!vin.isFinite || vin < input.inputVoltageMin || vin > input.inputVoltageMax) {
       errors.add('Operating input voltage must be within the input voltage range.');
@@ -28,20 +31,25 @@ class BoostEngine {
     if (errors.isNotEmpty) return CalculationResult(values: const {}, errors: errors);
 
     final vout = input.outputVoltage;
+    final vf = input.diodeForwardVoltage;
+    final effectiveOutput = vout + vf;
     final fs = input.switchingFrequency;
+    final duty = (effectiveOutput - vin) / effectiveOutput;
     final powerOut = vout * input.outputCurrent;
+    // The diode conducts the output current during the off interval.
+    // This includes its forward-drop loss, matching TI's nonsynchronous model.
+    final inputAverageCurrent = effectiveOutput * input.outputCurrent / vin;
 
-    // For fixed output power and a fixed ripple ratio of average input current,
-    // L_required(Vin) = Vin^2 * (1 - Vin/Vout) / (fs * rippleFraction * Pout).
-    // Its maximum occurs at 2/3 Vout, clamped to the specified input range.
-    final criticalVin = (2 * vout / 3).clamp(input.inputVoltageMin, input.inputVoltageMax);
-    final criticalDuty = 1 - criticalVin / vout;
-    final criticalInputCurrent = powerOut / criticalVin;
+    // Find the worst-case inductance requirement over the complete VIN range.
+    // L = VIN * D / (fs * rippleFraction * IIN); its unconstrained maximum
+    // occurs at VIN = 2/3 * (VOUT + VF).
+    final criticalVin = (2 * effectiveOutput / 3)
+        .clamp(input.inputVoltageMin, input.inputVoltageMax);
+    final criticalDuty = 1 - criticalVin / effectiveOutput;
+    final criticalInputCurrent = effectiveOutput * input.outputCurrent / criticalVin;
     final rippleTarget = criticalInputCurrent * input.rippleFraction;
     final minimumInductance = criticalVin * criticalDuty / (fs * rippleTarget);
 
-    final duty = 1 - vin / vout;
-    final inputAverageCurrent = powerOut / vin;
     final inductanceUsed = selected ?? minimumInductance;
     final ripple = vin * duty / (inductanceUsed * fs);
     final ccmMinimum = inputAverageCurrent - ripple / 2;
@@ -59,12 +67,13 @@ class BoostEngine {
       peakCurrent = inputAverageCurrent + ripple / 2;
       actualRipple = ripple;
     } else {
-      // Boost DCM: Iout is the average diode current during the off interval.
+      // DCM: average diode current equals IOUT; current is triangular
+      // during the off interval and zero during the idle interval.
       final ton = math.sqrt(
-        2 * input.outputCurrent * inductanceUsed * (vout - vin) /
+        2 * input.outputCurrent * inductanceUsed * effectiveOutput /
         (vin * vin * fs),
       );
-      final toff = ton * vin / (vout - vin);
+      final toff = ton * vin / (effectiveOutput - vin);
       final tidle = period - ton - toff;
       if (!ton.isFinite || !toff.isFinite || tidle < -1e-12) {
         return const CalculationResult(values: {}, errors: [
@@ -86,6 +95,9 @@ class BoostEngine {
       'minimumInductance': minimumInductance,
       'inductanceUsed': inductanceUsed,
       'inputAverageCurrent': inputAverageCurrent,
+      'inputPower': vin * inputAverageCurrent,
+      'outputPower': powerOut,
+      'diodeLosses': input.diodeForwardVoltage * input.outputCurrent,
       'rippleCurrent': actualRipple,
       'peakCurrent': peakCurrent,
       'minimumCurrent': minimumCurrent,
