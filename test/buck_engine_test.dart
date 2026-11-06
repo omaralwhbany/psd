@@ -43,6 +43,22 @@ void main() {
     expect(r.values['outputCapacitorRmsCurrent'], closeTo(di / math.sqrt(12), 1e-10));
   });
 
+  test('Buck input capacitor RMS uses TI Java off-current definition in CCM', () {
+    final input = BuckInputs.defaults();
+    final r = buck.calculate(input);
+    expect(r.isValid, isTrue);
+    final d = r.values['onFraction']!;
+    final off = r.values['offFraction']!;
+    final iin = r.values['inputAverageCurrent']!;
+    final imin = r.values['minimumCurrent']!;
+    final imax = r.values['peakCurrent']!;
+    final ifetAvg = r.values['mosfetAverageCurrent']!;
+    final onIntegral = (iin - imin) * (iin - imax) +
+        (imax - imin) * (imax - imin) / 3;
+    final expected = math.sqrt(d * onIntegral + off * ifetAvg * ifetAvg);
+    expect(r.values['inputCapacitorRmsCurrent'], closeTo(expected, 1e-10));
+  });
+
   test('Buck custom small inductor DCM RMS currents and intervals match TI integrals', () {
     const input = BuckInputs(
       inputVoltageMin: 9, inputVoltageMax: 16, outputVoltage: 5,
