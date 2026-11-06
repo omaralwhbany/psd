@@ -121,8 +121,10 @@ class _BuckScreenState extends State<BuckScreen> {
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         textAlign: TextAlign.end, decoration: InputDecoration(suffixText: unit, isDense: true),
         onChanged: (_) => setState(() {}));
-      if (constraints.maxWidth < 380) return Column(crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [Text(label), const SizedBox(height: 5), input]);
+      if (constraints.maxWidth < 380) {
+        return Column(crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [Text(label), const SizedBox(height: 5), input]);
+      }
       return Row(children: [Expanded(flex: 5, child: Text(label)), const SizedBox(width: 12),
         Expanded(flex: 4, child: input)]);
     }),
