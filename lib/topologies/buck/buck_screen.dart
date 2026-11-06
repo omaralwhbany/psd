@@ -94,7 +94,10 @@ class _BuckScreenState extends State<BuckScreen> {
           _sectionTitle(s.inductor),
           _result(s.minimumInductance, '${Units.baseToMicro(result.values['minimumInductance']!).toStringAsFixed(2)} µH'),
           _result(s.inductanceUsed, '${Units.baseToMicro(result.values['inductanceUsed']!).toStringAsFixed(2)} µH'),
-          _result(s.rippleCurrent, '${result.values['rippleCurrent']!.toStringAsFixed(3)} A'),
+          if (result.values['isCcm'] == 0)
+            _result(s.designRippleCurrent, '${result.values['designRippleCurrent']!.toStringAsFixed(3)} A'),
+          _result(result.values['isCcm'] == 0 ? s.actualCurrentExcursion : s.rippleCurrent,
+            '${result.values['rippleCurrent']!.toStringAsFixed(3)} A'),
           _result(s.averageCurrent, '${result.values['inductorAverageCurrent']!.toStringAsFixed(3)} A'),
           _result(s.rmsCurrent, '${result.values['inductorRmsCurrent']!.toStringAsFixed(3)} A'),
           _result(s.peakCurrent, '${result.values['inductorPeakCurrent']!.toStringAsFixed(3)} A'),
