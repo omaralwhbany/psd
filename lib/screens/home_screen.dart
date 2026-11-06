@@ -40,7 +40,15 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: _topology == 'buck' ? const BuckScreen() : _topology == 'boost' ? const BoostScreen() : Center(child: Text(title)),
+      body: SafeArea(
+        top: false,
+        bottom: true,
+        child: _topology == 'buck'
+            ? const BuckScreen()
+            : _topology == 'boost'
+                ? const BoostScreen()
+                : Center(child: Text(title)),
+      ),
     );
   }
 }

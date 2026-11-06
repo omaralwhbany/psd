@@ -91,17 +91,34 @@ class _BoostScreenState extends State<BoostScreen> {
             averageCurrent: r.values['inputAverageCurrent']!,
             rippleCurrent: r.values['rippleCurrent']!,
             dutyCycle: r.values['dutyCycle']!,
-            currentLabel: 'Inductor / input current',
+            currentLabel: 'Boost inductor current',
+            switchHighDuringOn: false,
           ),
         ],
       ]))),
     ]);
   }
 
-  Widget _field(String label, String key, String unit) => Padding(padding: const EdgeInsets.only(bottom: 10), child: Row(children: [
-    Expanded(flex: 5, child: Text(label)),
-    Expanded(flex: 4, child: TextField(controller: _controllers[key], keyboardType: const TextInputType.numberWithOptions(decimal: true), textAlign: TextAlign.end, decoration: InputDecoration(suffixText: unit, isDense: true), onChanged: (_) => setState(() {}))),
-  ]));
+  Widget _field(String label, String key, String unit) => Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: LayoutBuilder(builder: (context, constraints) {
+      final input = TextField(
+        controller: _controllers[key],
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        textAlign: TextAlign.end,
+        decoration: InputDecoration(suffixText: unit, isDense: true),
+        onChanged: (_) => setState(() {}),
+      );
+      if (constraints.maxWidth < 380) {
+        return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text(label),
+          const SizedBox(height: 5),
+          input,
+        ]);
+      }
+      return Row(children: [Expanded(flex: 5, child: Text(label)), const SizedBox(width: 12), Expanded(flex: 4, child: input)]);
+    }),
+  );
 
   Widget _result(String label, String value) => Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(children: [
     Expanded(child: Text(label)), Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),

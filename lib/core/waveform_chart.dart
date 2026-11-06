@@ -8,13 +8,16 @@ class PowerWaveformChart extends StatelessWidget {
     required this.averageCurrent,
     required this.rippleCurrent,
     required this.dutyCycle,
+    required this.switchHighDuringOn,
     required this.currentLabel,
+    required this.switchHighDuringOn,
   });
 
   final double averageCurrent;
   final double rippleCurrent;
   final double dutyCycle;
   final String currentLabel;
+  final bool switchHighDuringOn;
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +35,7 @@ class PowerWaveformChart extends StatelessWidget {
               averageCurrent: averageCurrent,
               rippleCurrent: rippleCurrent,
               dutyCycle: dutyCycle.clamp(0.01, 0.99),
+              switchHighDuringOn: switchHighDuringOn,
               currentColor: colors.primary,
               switchColor: colors.tertiary,
               gridColor: colors.outlineVariant,
@@ -42,7 +46,7 @@ class PowerWaveformChart extends StatelessWidget {
         const SizedBox(height: 4),
         Wrap(spacing: 16, children: [
           _LegendDot(color: colors.primary, label: 'Inductor current'),
-          _LegendDot(color: colors.tertiary, label: 'Switch node (normalized)'),
+          _LegendDot(color: colors.tertiary, label: 'Switch-node voltage (normalized)'),
         ]),
         const SizedBox(height: 4),
         Text('Idealized one-cycle view • Duty: ${(dutyCycle * 100).toStringAsFixed(1)}%',
@@ -82,6 +86,7 @@ class _PowerWaveformPainter extends CustomPainter {
   final double averageCurrent;
   final double rippleCurrent;
   final double dutyCycle;
+  final bool switchHighDuringOn;
   final Color currentColor;
   final Color switchColor;
   final Color gridColor;
@@ -120,11 +125,15 @@ class _PowerWaveformPainter extends CustomPainter {
       ..lineTo(plot.right, yFor(low));
     canvas.drawPath(triangle, current);
 
+    final highY = plot.top + plot.height * 0.12;
+    final lowY = plot.top + plot.height * 0.42;
+    final onY = switchHighDuringOn ? highY : lowY;
+    final offY = switchHighDuringOn ? lowY : highY;
     final switchPath = Path()
-      ..moveTo(plot.left, plot.top + 5)
-      ..lineTo(xMid, plot.top + 5)
-      ..lineTo(xMid, plot.top + plot.height * 0.32)
-      ..lineTo(plot.right, plot.top + plot.height * 0.32);
+      ..moveTo(plot.left, onY)
+      ..lineTo(xMid, onY)
+      ..lineTo(xMid, offY)
+      ..lineTo(plot.right, offY);
     canvas.drawPath(switchPath, sw);
 
     final textStyle = TextStyle(color: textColor, fontSize: 10);
@@ -143,6 +152,7 @@ class _PowerWaveformPainter extends CustomPainter {
       old.averageCurrent != averageCurrent ||
       old.rippleCurrent != rippleCurrent ||
       old.dutyCycle != dutyCycle ||
+      old.switchHighDuringOn != switchHighDuringOn ||
       old.currentColor != currentColor ||
       old.switchColor != switchColor ||
       old.gridColor != gridColor;

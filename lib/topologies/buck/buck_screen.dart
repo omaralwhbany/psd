@@ -107,7 +107,8 @@ class _BuckScreenState extends State<BuckScreen> {
             averageCurrent: _input.outputCurrent,
             rippleCurrent: result.values['rippleCurrent']!,
             dutyCycle: result.values['dutyCycle']!,
-            currentLabel: 'Inductor current',
+            currentLabel: 'Buck inductor current',
+            switchHighDuringOn: true,
           )),
         ],
       ],
@@ -117,17 +118,24 @@ class _BuckScreenState extends State<BuckScreen> {
   Widget _errors(List<String> errors) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: errors.map((e) => Padding(padding: const EdgeInsets.only(bottom: 6), child: Text(e, style: const TextStyle(color: Colors.red)))).toList());
 
   Widget _field(String label, String key, String unit) => Padding(
-    padding: const EdgeInsets.only(bottom: 10),
-    child: Row(children: [
-      Expanded(flex: 5, child: Text(label)),
-      Expanded(flex: 4, child: TextField(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: LayoutBuilder(builder: (context, constraints) {
+      final input = TextField(
         controller: _controllers[key],
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         textAlign: TextAlign.end,
         decoration: InputDecoration(suffixText: unit, isDense: true),
         onChanged: (_) => setState(() {}),
-      )),
-    ]),
+      );
+      if (constraints.maxWidth < 380) {
+        return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text(label),
+          const SizedBox(height: 5),
+          input,
+        ]);
+      }
+      return Row(children: [Expanded(flex: 5, child: Text(label)), const SizedBox(width: 12), Expanded(flex: 4, child: input)]);
+    }),
   );
 
   Widget _panel(String title, Widget child) => Card(child: Padding(
