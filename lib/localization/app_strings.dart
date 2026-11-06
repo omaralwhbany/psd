@@ -34,5 +34,33 @@ class AppStrings {
   String get operatingMode => isArabic ? 'نمط التشغيل' : 'Operating Mode';
   String get ccm => isArabic ? 'تيار مستمر CCM' : 'Continuous Conduction (CCM)';
   String get dcm => isArabic ? 'تيار متقطع DCM' : 'Discontinuous Conduction (DCM)';
+
+  String get operatingInputVoltage => isArabic ? 'جهد الدخل أثناء التشغيل' : 'Operating input voltage';
+  String get operatingPoint => isArabic ? 'نقطة التشغيل' : 'Operating point';
+  String get switchingPeriod => isArabic ? 'زمن الدورة' : 'Switching period';
+  String get onTime => isArabic ? 'زمن التوصيل ON' : 'ON time';
+  String get offTime => isArabic ? 'زمن الفصل OFF' : 'OFF time';
+  String get zeroCurrentTime => isArabic ? 'زمن انعدام التيار' : 'Zero-current time';
+  String get inductor => isArabic ? 'الملف الحثي' : 'Inductor';
+  String get averageCurrent => isArabic ? 'متوسط التيار' : 'Average current';
+  String get rmsCurrent => isArabic ? 'تيار RMS الفعال' : 'RMS current';
+  String get voltageMinMax => isArabic ? 'أقل / أعلى جهد' : 'Voltage min / max';
+  String get mosfet => 'MOSFET';
+  String get freewheelDiode => isArabic ? 'دايود المسار الحر' : 'Freewheel diode';
+  String get peakCurrentGeneric => isArabic ? 'تيار الذروة' : 'Peak current';
+  String get voltageAtZeroCurrent => isArabic ? 'الجهد عند انعدام تيار الملف' : 'Voltage at zero current';
+  String get capacitors => isArabic ? 'المكثفات' : 'Capacitors';
+  String get inputCapacitorRmsCurrent => isArabic ? 'تيار RMS لمكثف الدخل' : 'Input capacitor RMS current';
+  String get inputCapacitorVoltage => isArabic ? 'جهد مكثف الدخل' : 'Input capacitor voltage';
+  String get outputCapacitorRmsCurrent => isArabic ? 'تيار RMS لمكثف الخرج' : 'Output capacitor RMS current';
+  String get outputCapacitorVoltage => isArabic ? 'جهد مكثف الخرج' : 'Output capacitor voltage';
+  String get power => isArabic ? 'القدرة' : 'Power';
+  String get outputPower => isArabic ? 'قدرة الخرج' : 'Output power';
+  String get diodeLoss => isArabic ? 'فقد الدايود' : 'Diode loss';
+  String get inputPower => isArabic ? 'قدرة الدخل' : 'Input power';
+  String get synchronizedWaveforms => isArabic ? 'الأشكال الموجية المتزامنة' : 'Synchronized waveforms';
+  String get buckCcmCurrent => isArabic ? 'تيار ملف Buck في نمط CCM' : 'Buck inductor current (CCM)';
+  String get buckDcmCurrent => isArabic ? 'تيار ملف Buck في نمط DCM' : 'Buck inductor current (DCM)';
+  String get buckDescription => isArabic ? 'غير معزول • محول DC-DC خافض للجهد' : 'Non-isolated • Step-down DC-DC converter';
   String get language => isArabic ? 'English' : 'العربية';
 }
