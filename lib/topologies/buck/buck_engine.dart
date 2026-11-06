@@ -165,6 +165,9 @@ class BuckEngine {
       'dutyCycle': duty,
       'minimumInductance': minimumInductance,
       'inductanceUsed': inductance,
+      // TI PSD's iripple_buck is the CCM design-ripple estimate even in DCM.
+      'designRippleCurrent': rippleCcm,
+      // Physical excursion: peak-to-valley in CCM, zero-to-peak in DCM.
       'rippleCurrent': ripple,
       'peakCurrent': peak,
       'minimumCurrent': minimum,
