@@ -107,8 +107,13 @@ class _BuckScreenState extends State<BuckScreen> {
             averageCurrent: _input.outputCurrent,
             rippleCurrent: result.values['rippleCurrent']!,
             dutyCycle: result.values['dutyCycle']!,
-            currentLabel: 'Buck inductor current',
+            currentLabel: result.values['isCcm'] == 0
+                ? 'Buck inductor current (DCM)'
+                : 'Buck inductor current (CCM)',
             switchHighDuringOn: true,
+            discontinuous: result.values['isCcm'] == 0,
+            onFraction: result.values['onFraction']!,
+            offFraction: result.values['offFraction']!,
           )),
         ],
       ],

@@ -10,6 +10,9 @@ class PowerWaveformChart extends StatelessWidget {
     required this.dutyCycle,
     required this.currentLabel,
     required this.switchHighDuringOn,
+    this.discontinuous = false,
+    this.onFraction,
+    this.offFraction,
   });
 
   final double averageCurrent;
@@ -17,6 +20,9 @@ class PowerWaveformChart extends StatelessWidget {
   final double dutyCycle;
   final String currentLabel;
   final bool switchHighDuringOn;
+  final bool discontinuous;
+  final double? onFraction;
+  final double? offFraction;
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +41,9 @@ class PowerWaveformChart extends StatelessWidget {
               rippleCurrent: rippleCurrent,
               dutyCycle: dutyCycle.clamp(0.01, 0.99),
               switchHighDuringOn: switchHighDuringOn,
+              discontinuous: discontinuous,
+              onFraction: onFraction,
+              offFraction: offFraction,
               currentColor: colors.primary,
               switchColor: colors.tertiary,
               gridColor: colors.outlineVariant,
@@ -89,6 +98,9 @@ class _PowerWaveformPainter extends CustomPainter {
     required this.rippleCurrent,
     required this.dutyCycle,
     required this.switchHighDuringOn,
+    required this.discontinuous,
+    required this.onFraction,
+    required this.offFraction,
     required this.currentColor,
     required this.switchColor,
     required this.gridColor,
@@ -99,6 +111,9 @@ class _PowerWaveformPainter extends CustomPainter {
   final double rippleCurrent;
   final double dutyCycle;
   final bool switchHighDuringOn;
+  final bool discontinuous;
+  final double? onFraction;
+  final double? offFraction;
   final Color currentColor;
   final Color switchColor;
   final Color gridColor;
@@ -123,20 +138,27 @@ class _PowerWaveformPainter extends CustomPainter {
     canvas.drawLine(Offset(plot.left, plot.top), Offset(plot.left, plot.bottom), axis);
     canvas.drawLine(Offset(plot.left, plot.bottom), Offset(plot.right, plot.bottom), axis);
 
-    final low = averageCurrent - rippleCurrent / 2;
-    final high = averageCurrent + rippleCurrent / 2;
+    final low = discontinuous ? 0.0 : averageCurrent - rippleCurrent / 2;
+    final high = discontinuous ? rippleCurrent : averageCurrent + rippleCurrent / 2;
     final span = (high - low).abs().clamp(0.000001, double.infinity);
     final minY = low - span * 0.45;
     final maxY = high + span * 0.45;
     double yFor(double value) => plot.bottom - (value - minY) / (maxY - minY) * plot.height;
-    final xMid = plot.left + plot.width * dutyCycle;
+    final onEnd = plot.left + plot.width * (onFraction ?? dutyCycle);
+    final offEnd = plot.left + plot.width * ((onFraction ?? dutyCycle) + (offFraction ?? (1 - dutyCycle)));
 
     final triangle = Path()
       ..moveTo(plot.left, yFor(low))
-      ..lineTo(xMid, yFor(high))
-      ..lineTo(plot.right, yFor(low));
+      ..lineTo(onEnd, yFor(high))
+      ..lineTo(offEnd, yFor(low));
+    if (discontinuous) {
+      triangle.lineTo(plot.right, yFor(0));
+    } else {
+      triangle.lineTo(plot.right, yFor(low));
+    }
     canvas.drawPath(triangle, current);
 
+    final xMid = onEnd;
     final highY = plot.top + plot.height * 0.12;
     final lowY = plot.top + plot.height * 0.42;
     final onY = switchHighDuringOn ? highY : lowY;
@@ -165,6 +187,9 @@ class _PowerWaveformPainter extends CustomPainter {
       old.rippleCurrent != rippleCurrent ||
       old.dutyCycle != dutyCycle ||
       old.switchHighDuringOn != switchHighDuringOn ||
+      old.discontinuous != discontinuous ||
+      old.onFraction != onFraction ||
+      old.offFraction != offFraction ||
       old.currentColor != currentColor ||
       old.switchColor != switchColor ||
       old.gridColor != gridColor;

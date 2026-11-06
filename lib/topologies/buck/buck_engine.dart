@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../../core/calculation_result.dart';
 import '../../core/validation.dart';
 import 'buck_inputs.dart';
@@ -40,17 +42,54 @@ class BuckEngine {
     final duty = (vo + vf) / (vin + vf);
     final inductanceUsed = selected ?? minimumInductance;
     final ripple = ((vin - vo) * duty) / (inductanceUsed * fs);
-    final minimumCurrent = input.outputCurrent - ripple / 2;
-    final peakCurrent = input.outputCurrent + ripple / 2;
+    final ccmMinimum = input.outputCurrent - ripple / 2;
+    final isCcm = ccmMinimum >= 0;
+    final period = 1 / fs;
+    var onFraction = duty;
+    var offFraction = 1 - duty;
+    var idleFraction = 0.0;
+    late final double peakCurrent;
+    late final double minimumCurrent;
+    late final double actualRipple;
+
+    if (isCcm) {
+      peakCurrent = input.outputCurrent + ripple / 2;
+      minimumCurrent = ccmMinimum;
+      actualRipple = ripple;
+    } else {
+      // Buck DCM: Iout = 0.5 * Ipeak * (ton + toff) / T.
+      // Inductor slopes include the freewheel-diode forward drop.
+      final ton = math.sqrt(
+        2 * input.outputCurrent * inductanceUsed * (vo + vf) /
+        (fs * (vin - vo) * (vin + vf)),
+      );
+      final toff = ton * (vin - vo) / (vo + vf);
+      final tidle = period - ton - toff;
+      if (!ton.isFinite || !toff.isFinite || tidle < -1e-12) {
+        return CalculationResult(values: const {}, errors: [
+          'The selected inductance does not produce a valid Buck DCM cycle at this operating point.',
+        ]);
+      }
+      onFraction = ton / period;
+      offFraction = toff / period;
+      idleFraction = (tidle / period).clamp(0.0, 1.0);
+      peakCurrent = (vin - vo) * ton / inductanceUsed;
+      minimumCurrent = 0;
+      actualRipple = peakCurrent;
+    }
+
     return CalculationResult(values: {
       'operatingInputVoltage': vin,
       'dutyCycle': duty,
       'minimumInductance': minimumInductance,
       'inductanceUsed': inductanceUsed,
-      'rippleCurrent': ripple,
+      'rippleCurrent': actualRipple,
       'peakCurrent': peakCurrent,
       'minimumCurrent': minimumCurrent,
-      'isCcm': minimumCurrent >= 0 ? 1 : 0,
+      'isCcm': isCcm ? 1 : 0,
+      'onFraction': onFraction,
+      'offFraction': offFraction,
+      'idleFraction': idleFraction,
     });
   }
 }

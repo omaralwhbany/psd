@@ -30,7 +30,24 @@ void main() {
       operatingInputVoltage: input.inputVoltageMax,
       selectedInductance: 3e-6,
     );
-    expect(buck.calculate(custom).values['isCcm'], 0);
+    final result = buck.calculate(custom);
+    expect(result.isValid, isTrue);
+    expect(result.values['isCcm'], 0);
+    expect(result.values['minimumCurrent'], 0);
+    expect(result.values['idleFraction'], greaterThan(0));
+    expect(
+      result.values['onFraction']! +
+          result.values['offFraction']! +
+          result.values['idleFraction']!,
+      closeTo(1, 1e-9),
+    );
+  });
+
+  test('Buck default design has no idle interval in CCM', () {
+    final result = buck.calculate(BuckInputs.defaults());
+    expect(result.isValid, isTrue);
+    expect(result.values['isCcm'], 1);
+    expect(result.values['idleFraction'], 0);
   });
 
   test('Boost calculates its inductor automatically by default', () {
