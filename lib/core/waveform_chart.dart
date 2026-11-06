@@ -94,7 +94,9 @@ class _SynchronizedWaveformPainter extends CustomPainter {
 
     final currentLow = discontinuous ? 0.0 : averageCurrent - rippleCurrent / 2;
     final currentHigh = discontinuous ? rippleCurrent : averageCurrent + rippleCurrent / 2;
-    final vlOn = isBuck ? vin - vout - diodeDrop : vin;
+    // PSD5 Buck.java sets inductor voltage to Vin - Vo during the ON interval;
+    // the diode drop applies only to the freewheel OFF interval.
+    final vlOn = isBuck ? vin - vout : vin;
     final vlOff = isBuck ? -(vout + diodeDrop) : vin - (vout + diodeDrop);
     final vSwitchOn = isBuck ? vin : 0.0;
     final vSwitchOff = isBuck ? -diodeDrop : vout + diodeDrop;
