@@ -93,6 +93,38 @@ void main() {
     expect(r.values['inductorAverageCurrent'], closeTo(input.outputCurrent, 1e-9));
   });
 
+  test('Buck enforces the original TI PSD input and operating limits', () {
+    final d = BuckInputs.defaults();
+    BuckInputs changed({
+      double? vinMin, double? vinMax, double? vo, double? io,
+      double? fs, double? ripple, double? vf, double? inductance,
+    }) => BuckInputs(
+      inputVoltageMin: vinMin ?? d.inputVoltageMin,
+      inputVoltageMax: vinMax ?? d.inputVoltageMax,
+      outputVoltage: vo ?? d.outputVoltage,
+      outputCurrent: io ?? d.outputCurrent,
+      switchingFrequency: fs ?? d.switchingFrequency,
+      rippleFraction: ripple ?? d.rippleFraction,
+      diodeForwardVoltage: vf ?? d.diodeForwardVoltage,
+      selectedInductance: inductance,
+    );
+
+    expect(buck.calculate(changed(vinMax: 10000.01)).isValid, isFalse);
+    expect(buck.calculate(changed(vo: 10000.01)).isValid, isFalse);
+    expect(buck.calculate(changed(io: 1000.01)).isValid, isFalse);
+    expect(buck.calculate(changed(fs: 10000001)).isValid, isFalse);
+    expect(buck.calculate(changed(vf: 5.01)).isValid, isFalse);
+    expect(buck.calculate(changed(ripple: 1.01)).isValid, isFalse);
+    expect(buck.calculate(changed(inductance: 0.002200001)).isValid, isFalse);
+
+    // Output voltage below Vin alone is insufficient when the diode drop
+    // pushes the idealized Buck duty ratio above 100%.
+    expect(
+      buck.calculate(changed(vinMin: 5, vinMax: 8, vo: 4.9, vf: 5)).isValid,
+      isFalse,
+    );
+  });
+
   test('Buck rejects invalid operating input voltage', () {
     final d = BuckInputs.defaults();
     final invalid = BuckInputs(
