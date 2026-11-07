@@ -1,5 +1,33 @@
 import 'package:flutter/material.dart';
 
+/// Buck MOSFET voltage levels taken from PSD5 Buck.java actualValues().
+///
+/// The original model uses 0 V while the switch is ON, Vin + Vf while the
+/// freewheel diode conducts, and Vin - Vo after inductor current reaches zero.
+class BuckMosfetVoltageLevels {
+  const BuckMosfetVoltageLevels({
+    required this.onState,
+    required this.freewheel,
+    required this.zeroCurrent,
+  });
+
+  factory BuckMosfetVoltageLevels.fromOperatingPoint({
+    required double inputVoltage,
+    required double outputVoltage,
+    required double diodeDrop,
+  }) {
+    return BuckMosfetVoltageLevels(
+      onState: 0,
+      freewheel: inputVoltage + diodeDrop,
+      zeroCurrent: inputVoltage - outputVoltage,
+    );
+  }
+
+  final double onState;
+  final double freewheel;
+  final double zeroCurrent;
+}
+
 /// Synchronized ideal steady-state waveforms for Buck and Boost converters.
 /// This is an explanatory averaged-switching model, not a SPICE simulation.
 class PowerWaveformChart extends StatelessWidget {
@@ -104,9 +132,16 @@ class _SynchronizedWaveformPainter extends CustomPainter {
     // For Buck, PSD5 Buck.java models the MOSFET voltage as:
     // 0 V while ON, Vin + Vf while the diode freewheels, and Vin - Vo
     // during the DCM zero-inductor-current interval.
-    final vSwitchOn = 0.0;
-    final vSwitchOff = isBuck ? vin + diodeDrop : vout + diodeDrop;
-    final switchIdle = isBuck ? vin - vout : vout;
+    final buckMosfetLevels = isBuck
+        ? BuckMosfetVoltageLevels.fromOperatingPoint(
+            inputVoltage: vin,
+            outputVoltage: vout,
+            diodeDrop: diodeDrop,
+          )
+        : null;
+    final vSwitchOn = buckMosfetLevels?.onState ?? 0.0;
+    final vSwitchOff = buckMosfetLevels?.freewheel ?? vout + diodeDrop;
+    final switchIdle = buckMosfetLevels?.zeroCurrent ?? vout;
     final vlValues = [vlOn, vlOff, 0.0];
     final switchValues = discontinuous
         ? [vSwitchOn, vSwitchOff, switchIdle]

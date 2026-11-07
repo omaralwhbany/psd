@@ -3,6 +3,20 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:psd/core/waveform_chart.dart';
 
 void main() {
+  test('Buck MOSFET voltage levels match PSD5 Buck.java', () {
+    // Source: Buck.java actualValues() assigns vfet_min_buck = 0,
+    // vfet_max_buck = Vin + Vf, and vfet_ind_cur_zero_buck = Vin - Vo.
+    final levels = BuckMosfetVoltageLevels.fromOperatingPoint(
+      inputVoltage: 12,
+      outputVoltage: 5,
+      diodeDrop: 0.7,
+    );
+
+    expect(levels.onState, 0);
+    expect(levels.freewheel, closeTo(12.7, 1e-12));
+    expect(levels.zeroCurrent, 7);
+  });
+
   testWidgets('waveform chart renders current label and synchronized period', (tester) async {
     await tester.pumpWidget(const MaterialApp(
       home: Scaffold(
