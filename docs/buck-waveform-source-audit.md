@@ -121,3 +121,14 @@ uses the same zero-inclusive range and tick positions, and labels the time
 axis in microseconds. This is a source comparison of the original panel
 geometry; no claim is made that the Flutter and Swing rasterization are pixel
 identical.
+
+
+## Checked-in original Java runtime graph fixture
+
+A compact fixture at test/fixtures/buck_graph_java_oracle.json records the
+first 20 plotted time/value samples from the original PSD5.jar runtime for
+both fixed operating points and all five devices. It was captured by
+reflectively invoking the original private Java graph methods after two
+calculation passes with each input set, under OpenJDK 21 headless mode.
+Flutter tests now read these fixed Java values directly; expected graph
+samples and time coordinates are not derived from BuckEngine output.
