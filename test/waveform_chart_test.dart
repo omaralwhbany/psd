@@ -244,7 +244,10 @@ void main() {
     ));
     expect(find.text('المقياس الزمني (µs)'), findsNWidgets(10));
     final labelRect = tester.getRect(find.text('الجهد (V)').first);
-    final chartRect = tester.getRect(find.byType(CustomPaint).first);
+    final chartFinder = find.byWidgetPredicate((widget) =>
+        widget is CustomPaint &&
+        widget.painter.runtimeType.toString() == '_BuckTracePainter');
+    final chartRect = tester.getRect(chartFinder.first);
     expect(labelRect.right, lessThanOrEqualTo(chartRect.left + 1));
     expect(tester.takeException(), isNull);
   });
