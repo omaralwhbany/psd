@@ -183,7 +183,7 @@ class BuckWaveformSet {
     final outputCapMetrics = metrics(
       minV: values['outputCapacitorVoltageMin']!,
       maxV: values['outputCapacitorVoltageMax']!,
-      minI: -iout, maxI: peak - iout,
+      minI: dcm ? -iout : minimum - iout, maxI: peak - iout,
       rmsI: values['outputCapacitorRmsCurrent']!,
       averageI: values['outputCapacitorAverageCurrent']!,
     );

@@ -62,6 +62,46 @@ void main() {
         expect(device.voltage, hasLength(20));
         expect(device.current, hasLength(20));
 
+        final expectedVoltageMetrics = expected['voltageMetrics'] as List<dynamic>;
+        final expectedCurrentMetrics = expected['currentMetrics'] as List<dynamic>;
+        expect(expectedVoltageMetrics, hasLength(2));
+        expect(expectedCurrentMetrics, hasLength(5));
+        expect(
+          device.metrics.minimumVoltage,
+          closeTo((expectedVoltageMetrics[0] as num).toDouble(), 1e-5),
+          reason: '${device.id} Java minimum voltage metric',
+        );
+        expect(
+          device.metrics.maximumVoltage,
+          closeTo((expectedVoltageMetrics[1] as num).toDouble(), 1e-5),
+          reason: '${device.id} Java maximum voltage metric',
+        );
+        expect(
+          device.metrics.minimumCurrent,
+          closeTo((expectedCurrentMetrics[0] as num).toDouble(), 1e-5),
+          reason: '${device.id} Java minimum current metric',
+        );
+        expect(
+          device.metrics.maximumCurrent,
+          closeTo((expectedCurrentMetrics[1] as num).toDouble(), 1e-5),
+          reason: '${device.id} Java maximum current metric',
+        );
+        expect(
+          device.metrics.rmsCurrent,
+          closeTo((expectedCurrentMetrics[2] as num).toDouble(), 1e-5),
+          reason: '${device.id} Java RMS current metric',
+        );
+        expect(
+          device.metrics.averageCurrent,
+          closeTo((expectedCurrentMetrics[3] as num).toDouble(), 1e-5),
+          reason: '${device.id} Java average current metric',
+        );
+        expect(
+          device.metrics.acCurrent,
+          closeTo((expectedCurrentMetrics[4] as num).toDouble(), 1e-5),
+          reason: '${device.id} Java AC current metric',
+        );
+
         for (var index = 0; index < 20; index++) {
           final time = expectedTimes[index];
           expect(
