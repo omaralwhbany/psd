@@ -12,7 +12,7 @@ void main() {
   ) as Map<String, dynamic>;
   final cases = fixture['cases'] as Map<String, dynamic>;
 
-  for (final caseName in ['ccm', 'dcm']) {
+  for (final caseName in ['ccm', 'dcm', 'boundary']) {
     test('all five Buck $caseName graph traces match original PSD5.jar runtime', () {
       final scenario = cases[caseName] as Map<String, dynamic>;
       final inputValues = scenario['input'] as Map<String, dynamic>;
@@ -30,7 +30,10 @@ void main() {
       );
       final result = const BuckEngine().calculate(input);
       expect(result.isValid, isTrue);
-      expect(result.values['isCcm'], caseName == 'ccm' ? 1 : 0);
+      expect(result.values['isCcm'], caseName == 'dcm' ? 0 : 1);
+      if (caseName == 'boundary') {
+        expect(result.values['minimumCurrent'], closeTo(0, 1e-12));
+      }
 
       final actual = BuckWaveformSet.fromCalculation(
         input: input,
