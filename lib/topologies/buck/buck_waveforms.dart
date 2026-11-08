@@ -381,7 +381,7 @@ class _BuckTracePainter extends CustomPainter {
     final zeroY = y(0);
 
     final axis = Paint()..color = gridColor..strokeWidth = 0.7;
-    canvas.drawLine(Offset(left, top), Offset(left, plotBottom), axis);
+    canvas.drawLine(const Offset(left, top), Offset(left, plotBottom), axis);
     canvas.drawLine(Offset(left, zeroY), Offset(plotRight, zeroY), axis);
 
     final textStyle = TextStyle(color: textColor, fontSize: 8);
