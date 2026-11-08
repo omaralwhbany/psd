@@ -35,6 +35,10 @@ void main() {
 
   testWidgets('Buck screen shows the TI ripple-limit warning without hiding results',
       (tester) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(const MaterialApp(
       locale: Locale('en'),
       supportedLocales: [Locale('en'), Locale('ar')],
