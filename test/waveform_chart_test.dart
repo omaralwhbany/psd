@@ -120,7 +120,7 @@ void main() {
     expect(set.devices[0].metrics.maximumCurrent,
         closeTo(fetAverage, 1e-12));
     expect(set.devices[0].metrics.averageCurrent, 0);
-    expect(set.devices[1].metrics.minimumCurrent, minimum);
+    expect(set.devices[1].metrics.minimumCurrent, closeTo(minimum, 1e-12));
     expect(set.devices[1].metrics.maximumCurrent, peak);
     expect(set.devices[2].metrics.rmsCurrent,
         closeTo(result.values['inductorRmsCurrent']!, 1e-12));
@@ -237,6 +237,26 @@ void main() {
         closeTo((ton + toff + tidle + 1e-9) * 1e6, 1e-9));
   });
 
+  test('Buck graph unit prefixes follow the original Graph.java side-label rule', () {
+    const input = BuckInputs(
+      inputVoltageMin: 0.9,
+      inputVoltageMax: 1.2,
+      outputVoltage: 0.3,
+      outputCurrent: 0.2,
+      switchingFrequency: 100e3,
+      rippleFraction: 0.30,
+      diodeForwardVoltage: 0.05,
+      operatingInputVoltage: 0.9,
+      selectedInductance: 45e-6,
+    );
+    final result = const BuckEngine().calculate(input);
+    expect(result.isValid, isTrue);
+    final set = BuckWaveformSet.fromCalculation(input: input, values: result.values);
+    expect(set.devices, hasLength(5));
+    expect(set.devices.every((device) => device.metrics.voltageScale == 1000), isTrue);
+    expect(set.devices.every((device) => device.metrics.currentScale == 1000), isTrue);
+  });
+
   testWidgets('five Buck device waveform panels render on narrow screens', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
@@ -268,7 +288,7 @@ void main() {
         ),
       ),
     ));
-    expect(find.text('Current (mA)'), findsOneWidget);
+    expect(find.text('Current (A)'), findsWidgets);
     for (final title in [
       'Input capacitor Ci', 'MOSFET Q1', 'Inductor L1',
       'Freewheel diode D1', 'Output capacitor Co',
