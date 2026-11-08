@@ -206,6 +206,49 @@ void main() {
     expect(set.devices.every((device) => device.metrics.currentScale == 1000), isTrue);
   });
 
+
+  testWidgets('Buck waveform chart remains left-to-right in Arabic RTL', (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final input = BuckInputs.defaults();
+    final result = const BuckEngine().calculate(input);
+    await tester.pumpWidget(MaterialApp(
+      locale: const Locale('ar'),
+      supportedLocales: const [Locale('ar'), Locale('en')],
+      home: Scaffold(
+        body: SingleChildScrollView(
+          child: BuckDeviceWaveformsView(
+            waveforms: BuckWaveformSet.fromCalculation(input: input, values: result.values),
+            voltageLabel: 'الجهد',
+            currentLabel: 'التيار',
+            periodLabel: 'ثلاث دورات',
+            timeAxisLabel: 'المقياس الزمني (µs)',
+            deviceTitles: const {
+              'inputCapacitor': 'مكثف الدخل',
+              'mosfet': 'MOSFET Q1',
+              'inductor': 'المحث L1',
+              'diode': 'دايود التدوير الحر',
+              'outputCapacitor': 'مكثف الخرج',
+            },
+            metricLabels: const {
+              'minimumVoltage': 'أدنى جهد', 'maximumVoltage': 'أعلى جهد',
+              'minimumCurrent': 'أدنى تيار', 'maximumCurrent': 'أعلى تيار',
+              'rmsCurrent': 'تيار RMS', 'averageCurrent': 'متوسط التيار',
+              'acCurrent': 'تيار AC',
+            },
+          ),
+        ),
+      ),
+    ));
+    expect(find.text('المقياس الزمني (µs)'), findsNWidgets(10));
+    final labelRect = tester.getRect(find.text('الجهد (V)').first);
+    final chartRect = tester.getRect(find.byType(CustomPaint).first);
+    expect(labelRect.right, lessThanOrEqualTo(chartRect.left + 1));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('five Buck device waveform panels render on narrow screens', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;

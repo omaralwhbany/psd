@@ -294,9 +294,12 @@ class _BuckTrace extends StatelessWidget {
     final displayUnit = scale == 1000.0 ? 'm$unit' : unit;
     return SizedBox(
       height: 94,
-      child: Row(children: [
-        SizedBox(width: 76, child: Text('$label ($displayUnit)',
-          style: Theme.of(context).textTheme.labelSmall)),
+      child: Row(textDirection: TextDirection.ltr, children: [
+        SizedBox(width: 76, child: Directionality(
+          textDirection: Directionality.of(context),
+          child: Text('$label ($displayUnit)',
+            style: Theme.of(context).textTheme.labelSmall),
+        )),
         Expanded(child: Column(children: [
           Expanded(child: CustomPaint(
             painter: _BuckTracePainter(points: points, scale: scale, color: color,
