@@ -60,4 +60,43 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Buck custom inductance uses the Java conversion at the CCM boundary',
+      (tester) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(const MaterialApp(
+      locale: Locale('en'),
+      supportedLocales: [Locale('en'), Locale('ar')],
+      home: Scaffold(body: BuckScreen()),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byType(TextField).at(4),
+      '1.7332368894298449',
+    );
+    await tester.pumpAndSettle();
+
+    final customToggle = find.text('Use custom inductor value');
+    await tester.ensureVisible(customToggle);
+    await tester.tap(customToggle);
+    await tester.pumpAndSettle();
+
+    final inductanceField = find.byType(TextField).last;
+    await tester.ensureVisible(inductanceField);
+    await tester.enterText(inductanceField, '5.847518707306725');
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('Continuous Conduction (CCM)'),
+      240,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Continuous Conduction (CCM)'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
 }
