@@ -126,7 +126,10 @@ void main() {
         closeTo(result.values['inductorRmsCurrent']!, 1e-12));
     expect(set.devices[3].metrics.averageCurrent,
         closeTo(result.values['diodeAverageCurrent']!, 1e-12));
-    expect(set.devices[4].metrics.minimumCurrent, -input.outputCurrent);
+    // Buck.java actualValues() and outcapGetLabelsValuesCurrent() use
+    // imin_ccm_buck - iout_calculation for the CCM minimum.
+    expect(set.devices[4].metrics.minimumCurrent,
+        closeTo(minimum - input.outputCurrent, 1e-12));
     expect(set.devices[4].metrics.maximumCurrent,
         closeTo(peak - input.outputCurrent, 1e-12));
 
