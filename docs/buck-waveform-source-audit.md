@@ -134,18 +134,18 @@ Flutter tests now read these fixed Java values directly; expected graph
 samples and time coordinates are not derived from BuckEngine output.
 
 
-The runtime fixture includes a nominal mathematical boundary case, not
-a promise that the binary64 intermediate is exactly equal to the threshold.
-For selected inductance `2.027027027027027e-6 H`, the original Java runtime
-computes `iripple_buck = 10.000000000000002 A` while `2 * Iout = 10 A`;
-therefore the source condition `iripple_buck <= 2 * iout_calculation` is
-false and Java selects DCM. The immediately larger representable inductance
-`2.0270270270270273e-6 H` yields exactly `10.0 A` and selects CCM; the
-immediately smaller `2.0270270270270264e-6 H` yields
-`10.000000000000004 A` and remains DCM. This was verified by invoking the
+The runtime fixture's boundary case uses the first representable
+inductance on the CCM side of the nominal mathematical threshold:
+`2.0270270270270273e-6 H`. The original Java runtime computes exactly
+`10.0 A` for `iripple_buck`, equal to `2 * Iout`, so the source's
+`<=` classifier selects CCM. The immediately smaller nominal-boundary
+literal `2.027027027027027e-6 H` computes
+`10.000000000000002 A` and selects DCM; the next smaller value
+`2.0270270270270264e-6 H` computes `10.000000000000004 A` and also
+selects DCM. These adjacent binary64 values were verified by invoking the
 original PSD5.jar private calculation methods under OpenJDK 21 headless mode,
 preserving the Java operation order. The checked-in boundary graph arrays
-therefore intentionally contain DCM traces and zero inductor valley current.
+therefore intentionally contain CCM traces with zero valley current.
 
 
 The runtime oracle fixture now also records the original Buck Java graph
@@ -158,9 +158,10 @@ and `-Iout` in DCM.
 
 The CCM/DCM classifier and minimum-inductance expression preserve the
 original Java multiplication order (`1/fs * deltaV * duty * 1/L`), rather
-than an algebraically equivalent rearrangement. At nominal boundary inputs,
-binary64 rounding can place the computed ripple slightly above the threshold.
-Flutter retains the original Java classifier result instead of forcing
-mathematical equality after an algebraic rearrangement. The CCM output-capacitor
-minimum-current metric is also checked against Java's `imin_ccm - Iout`
-branch; `-Iout` applies only to DCM.
+than an algebraically equivalent rearrangement. At the nominal decimal
+boundary, binary64 rounding places ripple at `10.000000000000002 A`, just
+above the `10 A` threshold; the adjacent larger inductance used by the graph
+fixture yields exactly `10 A` and remains CCM under the source's `<=`
+condition. Regression tests cover both sides without changing the Java
+inequality. The CCM output-capacitor minimum-current metric is checked against
+Java's `imin_ccm - Iout` branch; `-Iout` applies only to DCM.
