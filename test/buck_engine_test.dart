@@ -132,7 +132,13 @@ void main() {
     expect(lightLoad.values['outputPower'], closeTo(0.6, 1e-12));
     expect(lightLoad.values['inputPower'], closeTo(0.6081081081081082, 1e-12));
     expect(lightLoad.values['inputAverageCurrent'], closeTo(0.03378378378378379, 1e-12));
+    expect(lightLoad.values['mosfetAverageCurrent'], closeTo(0.033783783783783786, 1e-12));
+    expect(lightLoad.values['mosfetRmsCurrent'], closeTo(0.07471278315860119, 1e-12));
+    expect(lightLoad.values['diodeAverageCurrent'], closeTo(0.016216216216216214, 1e-12));
+    expect(lightLoad.values['diodeRmsCurrent'], closeTo(0.05176253456222944, 1e-12));
+    expect(lightLoad.values['inductorAverageCurrent'], closeTo(0.05, 1e-12));
     expect(lightLoad.values['inductorRmsCurrent'], closeTo(0.09089202358628705, 1e-12));
+    expect(lightLoad.values['inputCapacitorRmsCurrent'], closeTo(0.06663824667977625, 1e-12));
     expect(lightLoad.values['outputCapacitorRmsCurrent'], closeTo(0.07590362278317261, 1e-12));
 
     expect(halfSlider.values['isCcm'], 1);
@@ -141,6 +147,9 @@ void main() {
     expect(halfSlider.values['outputPower'], closeTo(30.3, 1e-12));
     expect(halfSlider.values['inputPower'], closeTo(30.709459459459456, 1e-11));
     expect(halfSlider.values['mosfetRmsCurrent'], closeTo(2.0804407387120762, 1e-12));
+    expect(halfSlider.values['diodeAverageCurrent'], closeTo(0.8189189189189189, 1e-12));
+    expect(halfSlider.values['diodeRmsCurrent'], closeTo(1.4413716246341775, 1e-12));
+    expect(halfSlider.values['inputCapacitorRmsCurrent'], closeTo(1.1908413152875912, 1e-12));
     expect(halfSlider.values['inductorRmsCurrent'], closeTo(2.5309653943887533, 1e-12));
 
     // Lmin and the requested ripple target remain tied to rated dIout.
