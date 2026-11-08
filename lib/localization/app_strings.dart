@@ -59,6 +59,12 @@ class AppStrings {
   String get diodeLoss => isArabic ? 'فقد الدايود' : 'Diode loss';
   String get inputPower => isArabic ? 'قدرة الدخل' : 'Input power';
   String get synchronizedWaveforms => isArabic ? 'الأشكال الموجية المتزامنة' : 'Synchronized waveforms';
+  String get deviceWaveforms => isArabic ? 'موجات عناصر دائرة Buck (مطابقة لمصدر TI)' : 'Buck device waveforms (PSD5 source model)';
+  String get voltage => isArabic ? 'الجهد' : 'Voltage';
+  String get current => isArabic ? 'التيار' : 'Current';
+  String get threeSwitchingPeriods => isArabic ? 'ثلاث دورات تبديل • عينات انتقالية 1 ns وفق PSD5' : 'Three switching periods • 1 ns transition samples per PSD5';
+  String get inputCapacitor => isArabic ? 'مكثف الدخل Ci' : 'Input capacitor Ci';
+  String get outputCapacitor => isArabic ? 'مكثف الخرج Co' : 'Output capacitor Co';
   String get buckCcmCurrent => isArabic ? 'تيار ملف Buck في نمط CCM' : 'Buck inductor current (CCM)';
   String get buckDcmCurrent => isArabic ? 'تيار ملف Buck في نمط DCM' : 'Buck inductor current (DCM)';
   String get buckDescription => isArabic ? 'غير معزول • محول DC-DC خافض للجهد' : 'Non-isolated • Step-down DC-DC converter';

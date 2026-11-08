@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/units.dart';
 import '../../core/waveform_chart.dart';
+import 'buck_waveforms.dart';
 import '../../localization/app_strings.dart';
 import 'buck_engine.dart';
 import 'buck_inputs.dart';
@@ -132,6 +133,20 @@ class _BuckScreenState extends State<BuckScreen> {
         ],
       ) : _errors(result.errors, s)),
       if (result.isValid) ...[
+        const SizedBox(height: 14),
+        _panel(s.deviceWaveforms, BuckDeviceWaveformsView(
+          waveforms: BuckWaveformSet.fromCalculation(input: input, values: result.values),
+          voltageLabel: s.voltage,
+          currentLabel: s.current,
+          periodLabel: s.threeSwitchingPeriods,
+          deviceTitles: {
+            'inputCapacitor': s.inputCapacitor,
+            'mosfet': s.mosfet,
+            'inductor': s.inductor,
+            'diode': s.freewheelDiode,
+            'outputCapacitor': s.outputCapacitor,
+          },
+        )),
         const SizedBox(height: 14),
         _panel(s.synchronizedWaveforms, PowerWaveformChart(
           averageCurrent: input.outputCurrent,
