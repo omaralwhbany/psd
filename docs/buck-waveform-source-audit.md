@@ -109,3 +109,15 @@ A violation highlights the ripple input but does not abort the calculation.
 Flutter now preserves the calculated values and reports this as a warning,
 rather than marking the whole result invalid. CCM and DCM regression tests
 cover the warning behavior, and the screen surfaces it in Arabic and English.
+
+
+## GraphPanel axis and plotting geometry
+
+The original GraphPanel source was checked for the plotted coordinate range.
+It includes zero in one-sided Y ranges, places the horizontal axis at zero,
+labels the top/middle/bottom Y values, and marks X positions at point indexes
+0, 6, 12 and 18 plus the final plotted time. The Buck Flutter painter now
+uses the same zero-inclusive range and tick positions, and labels the time
+axis in microseconds. This is a source comparison of the original panel
+geometry; no claim is made that the Flutter and Swing rasterization are pixel
+identical.

@@ -42,9 +42,13 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Use custom inductor value'));
+    final customToggle = find.text('Use custom inductor value');
+    await tester.ensureVisible(customToggle);
+    await tester.tap(customToggle);
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField).last, '5');
+    final inductanceField = find.byType(TextField).last;
+    await tester.ensureVisible(inductanceField);
+    await tester.enterText(inductanceField, '5');
     await tester.pumpAndSettle();
 
     expect(find.text('Actual inductor ripple exceeds the requested ripple target.'), findsOneWidget);
