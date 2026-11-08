@@ -63,10 +63,16 @@ void main() {
     expect(find.textContaining('D = 65.0%'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
-  test('five Buck CCM device traces match PSD5 graph transition levels', () {
-    final input = BuckInputs.defaults();
+  test('five Buck CCM device traces match fixed PSD5 runtime oracle values', () {
+    const input = BuckInputs(
+      inputVoltageMin: 18, inputVoltageMax: 36, outputVoltage: 12,
+      outputCurrent: 5, switchingFrequency: 200e3, rippleFraction: 0.30,
+      diodeForwardVoltage: 0.5, operatingInputVoltage: 18,
+      selectedInductance: 33e-6,
+    );
     final result = const BuckEngine().calculate(input);
     expect(result.isValid, isTrue);
+    expect(result.values['isCcm'], 1);
     final set = BuckWaveformSet.fromCalculation(input: input, values: result.values);
     expect(set.devices.map((d) => d.id).toList(), [
       'inputCapacitor', 'mosfet', 'inductor', 'diode', 'outputCapacitor',
@@ -75,16 +81,26 @@ void main() {
       expect(device.voltage, hasLength(21));
       expect(device.current, hasLength(21));
     }
-    final vin = result.values['operatingInputVoltage']!;
-    final vo = input.outputVoltage;
-    final vf = input.diodeForwardVoltage;
-    final peak = result.values['peakCurrent']!;
-    final minimum = result.values['minimumCurrent']!;
+
+    // These expected numbers are fixed from the independently executed
+    // original PSD5.jar CCM oracle, not calculated by BuckWaveformSet.
+    const vin = 18.0, vo = 12.0, vf = 0.5;
+    const peak = 5.307125307125307;
+    const minimum = 4.692874692874693;
+    const inputAverage = 3.3783783783783785;
+    const fetAverage = 3.3783783783783785;
+    const capCurrentMin = -0.3071253071253071;
+    const capCurrentMax = 0.3071253071253071;
+
     expect(set.devices[0].voltage.first.value, vin);
     expect(set.devices[0].current[0].value,
-        closeTo(result.values['inputAverageCurrent']! - minimum, 1e-12));
+        closeTo(inputAverage - minimum, 1e-12));
+    expect(set.devices[0].current[2].value,
+        closeTo(inputAverage - peak, 1e-12));
+    expect(set.devices[0].current[3].value, fetAverage);
     expect(set.devices[1].voltage[0].value, 0);
     expect(set.devices[1].voltage[3].value, vin + vf);
+    expect(set.devices[1].current[0].value, minimum);
     expect(set.devices[1].current[2].value, peak);
     expect(set.devices[2].voltage[2].value, vin - vo);
     expect(set.devices[2].voltage[3].value, -vo - vf);
@@ -95,14 +111,14 @@ void main() {
     expect(set.devices[3].current[3].value, peak);
     expect(set.devices[3].current[4].value, minimum);
     expect(set.devices[4].voltage.first.value, vo);
-    expect(set.devices[4].current[2].value,
-        closeTo(peak - input.outputCurrent, 1e-12));
-    final periodUs = 1e6 / input.switchingFrequency;
+    expect(set.devices[4].current[2].value, capCurrentMax);
+    expect(set.devices[4].current[4].value, capCurrentMin);
+    const periodUs = 5.0;
     expect(set.devices[2].voltage[7].timeMicroseconds,
         closeTo(periodUs + 0.001, 1e-9));
   });
 
-  test('five Buck DCM device traces include source zero-current intervals', () {
+  test('five Buck DCM device traces match fixed PSD5 runtime oracle values', () {
     const input = BuckInputs(
       inputVoltageMin: 9, inputVoltageMax: 16, outputVoltage: 5,
       outputCurrent: 2, switchingFrequency: 100e3, rippleFraction: 0.30,
@@ -114,15 +130,34 @@ void main() {
     expect(result.values['isCcm'], 0);
     final set = BuckWaveformSet.fromCalculation(input: input, values: result.values);
     expect(set.devices, hasLength(5));
-    expect(set.devices[1].voltage[5].value, 11);
+
+    // Fixed expected values from the independently executed PSD5.jar DCM oracle.
+    const vin = 16.0, vo = 5.0, vf = 0.7, iout = 2.0;
+    const peak = 7.075300717250182;
+    const inputAverage = 0.682634730538922;
+    const fetAverage = 0.682634730538922;
+
+    expect(set.devices[0].voltage.every((p) => p.value == vin), isTrue);
+    expect(set.devices[0].current[0].value, inputAverage);
+    expect(set.devices[0].current[2].value, closeTo(inputAverage - peak, 1e-12));
+    expect(set.devices[0].current[3].value, fetAverage);
+    expect(set.devices[1].voltage[3].value, vin + vf);
+    expect(set.devices[1].voltage[5].value, vin - vo);
+    expect(set.devices[1].current[2].value, peak);
     expect(set.devices[1].current[4].value, 0);
+    expect(set.devices[2].voltage[2].value, vin - vo);
+    expect(set.devices[2].voltage[3].value, -vo - vf);
     expect(set.devices[2].voltage[5].value, 0);
+    expect(set.devices[2].current[2].value, peak);
     expect(set.devices[2].current[4].value, 0);
-    expect(set.devices[3].voltage[5].value, -5);
+    expect(set.devices[3].voltage[0].value, -vin);
+    expect(set.devices[3].voltage[3].value, vf);
+    expect(set.devices[3].voltage[5].value, -vo);
+    expect(set.devices[3].current[3].value, peak);
     expect(set.devices[3].current[4].value, 0);
-    expect(set.devices[4].current[4].value, -2);
-    expect(set.devices.first.voltage.every((p) => p.value == 16), isTrue);
-    expect(set.devices.last.voltage.every((p) => p.value == 5), isTrue);
+    expect(set.devices[4].voltage.every((p) => p.value == vo), isTrue);
+    expect(set.devices[4].current[2].value, closeTo(peak - iout, 1e-12));
+    expect(set.devices[4].current[4].value, -iout);
   });
 
   testWidgets('five Buck device waveform panels render on narrow screens', (tester) async {
