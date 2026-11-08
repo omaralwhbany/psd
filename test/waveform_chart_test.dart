@@ -126,7 +126,9 @@ void main() {
         closeTo(result.values['inductorRmsCurrent']!, 1e-12));
     expect(set.devices[3].metrics.averageCurrent,
         closeTo(result.values['diodeAverageCurrent']!, 1e-12));
-    expect(set.devices[4].metrics.minimumCurrent, -input.outputCurrent);
+    // CCM uses imin_ccm - Iout; -Iout is the DCM-only zero-current interval.
+    expect(set.devices[4].metrics.minimumCurrent,
+        closeTo(capCurrentMin, 1e-12));
     expect(set.devices[4].metrics.maximumCurrent,
         closeTo(peak - input.outputCurrent, 1e-12));
 

@@ -211,6 +211,31 @@ void main() {
     expect(r.values['outputCapacitorRmsCurrent'], closeTo(1.1547005383792515, 1e-12));
   });
 
+  test('Buck classifier matches Java on adjacent boundary inductances', () {
+    BuckInputs atInductance(double inductance) => BuckInputs(
+      inputVoltageMin: 18,
+      inputVoltageMax: 36,
+      outputVoltage: 12,
+      outputCurrent: 5,
+      switchingFrequency: 200e3,
+      rippleFraction: 0.30,
+      diodeForwardVoltage: 0.5,
+      operatingInputVoltage: 18,
+      selectedInductance: inductance,
+    );
+    final justBelow = buck.calculate(atInductance(2.0270270270270264e-6));
+    final justAbove = buck.calculate(atInductance(2.0270270270270273e-6));
+
+    expect(justBelow.isValid, isTrue);
+    expect(justAbove.isValid, isTrue);
+    expect(justBelow.values['designRippleCurrent'], greaterThan(10));
+    expect(justBelow.values['isCcm'], 0);
+    expect(justAbove.values['designRippleCurrent'], 10);
+    expect(justAbove.values['isCcm'], 1);
+    expect(justAbove.values['minimumCurrent'], closeTo(0, 1e-12));
+    expect(justAbove.values['idleTime'], 1e-9);
+  });
+
   test('Buck enforces the original TI PSD input and operating limits', () {
     final d = BuckInputs.defaults();
     BuckInputs changed({
