@@ -85,7 +85,7 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('Discontinuous Conduction (DCM)'), findsOneWidget);
-    expect(find.text('0.050 A'), findsOneWidget);
+    expect(find.text('0.050 A'), findsNWidgets(2));
     expect(tester.takeException(), isNull);
   });
 
