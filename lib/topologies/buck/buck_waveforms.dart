@@ -29,13 +29,19 @@ class BuckDeviceMetrics {
   final double averageCurrent;
   final double acCurrent;
 
-  // Graph.java chooses mV/mA from the complete side-label values, not from
-  // an arbitrary single waveform sample.
-  double get voltageScale =>
-      minimumVoltage.abs() < 1 && maximumVoltage.abs() < 1 ? 1000 : 1;
+  // Graph.java formats side labels with DecimalFormat("#0.00####") and
+  // then applies its 1 V / 1 A threshold to the parsed labels. Mirror the
+  // six fractional-digit rounding before deciding between V/A and mV/mA.
+  static double _graphLabelMagnitude(double value) =>
+      double.parse(value.abs().toStringAsFixed(6));
+
+  double get voltageScale => [
+    minimumVoltage, maximumVoltage,
+  ].every((value) => _graphLabelMagnitude(value) < 1) ? 1000 : 1;
+
   double get currentScale => [
     minimumCurrent, maximumCurrent, rmsCurrent, averageCurrent, acCurrent,
-  ].every((value) => value.abs() < 1) ? 1000 : 1;
+  ].every((value) => _graphLabelMagnitude(value) < 1) ? 1000 : 1;
 }
 
 class BuckDeviceWaveform {

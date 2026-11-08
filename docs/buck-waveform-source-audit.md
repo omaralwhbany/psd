@@ -122,6 +122,13 @@ axis in microseconds. This is a source comparison of the original panel
 geometry; no claim is made that the Flutter and Swing rasterization are pixel
 identical.
 
+The graph's mV/mA selection also follows the original `Graph.java` threshold
+exactly: Java first formats all side-label values with
+`DecimalFormat("#0.00####")`, then checks whether any parsed absolute value is
+at least 1. Flutter now rounds to the same six fractional digits before
+choosing units; regression cases cover values immediately below and above
+that rounded threshold.
+
 
 ## Checked-in original Java runtime graph fixture
 

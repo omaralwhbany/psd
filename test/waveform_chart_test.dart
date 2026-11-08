@@ -189,6 +189,32 @@ void main() {
 
   });
 
+  test('Buck graph unit prefixes round side labels before the one-unit threshold', () {
+    const roundedToOne = BuckDeviceMetrics(
+      minimumVoltage: 0.9999996,
+      maximumVoltage: 0.9999996,
+      minimumCurrent: -0.9999996,
+      maximumCurrent: 0.9999996,
+      rmsCurrent: 0.9999996,
+      averageCurrent: 0,
+      acCurrent: 0.9999996,
+    );
+    expect(roundedToOne.voltageScale, 1);
+    expect(roundedToOne.currentScale, 1);
+
+    const remainsBelowOne = BuckDeviceMetrics(
+      minimumVoltage: 0.9999994,
+      maximumVoltage: 0.9999994,
+      minimumCurrent: -0.9999994,
+      maximumCurrent: 0.9999994,
+      rmsCurrent: 0.9999994,
+      averageCurrent: 0,
+      acCurrent: 0.9999994,
+    );
+    expect(remainsBelowOne.voltageScale, 1000);
+    expect(remainsBelowOne.currentScale, 1000);
+  });
+
   test('Buck graph unit prefixes follow the original Graph.java side-label rule', () {
     const input = BuckInputs(
       inputVoltageMin: 0.9,
