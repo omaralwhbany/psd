@@ -72,3 +72,28 @@ shows the numeric device stresses in the results panel; it does not yet
 recreate the separate Swing graph-window sliders or all of its side-label
 layout. Device-graph data patterns and plotted sample count are covered, but
 visual parity with the complete Swing graph window is not declared complete.
+
+
+## Direct original-JAR graph-method runtime verification
+
+The original PSD5.jar was loaded with OpenJDK 21 in headless mode. A
+Buck instance was configured with the same fixed CCM and DCM test inputs,
+then the private Java point methods for all five devices were invoked through
+reflection. All ten voltage/current methods returned 21 points each. Their
+sample values and time coordinates were compared against the independent
+source transcription; every CCM and DCM trace matched. The original
+Graph constructor and setPoints() were also checked: both copy only
+points.length - 1, so the desktop UI plots 20 of the 21 source points.
+This is an actual Java runtime execution of the private graph methods, not
+merely a source-derived oracle.
+
+The stable runtime comparison called calculate() twice after setting the
+test inputs. This matters: userCalculate() calls actualValues() before
+general(), while general() updates the iin field. Consequently the first
+calculation after changing inputs can build the input-capacitor current
+and RMS values with the previous calculation's iin; a second pass uses
+the current value. Flutter currently uses the current pass's calculated input
+average current. This transient, order-dependent first-pass behavior is
+recorded as a known Java quirk rather than silently described as runtime
+parity. The stable CCM/DCM graph arrays are now asserted point-by-point in
+the Flutter regression suite.
