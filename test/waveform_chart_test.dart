@@ -273,6 +273,7 @@ void main() {
             voltageLabel: 'Voltage',
             currentLabel: 'Current',
             periodLabel: 'Three periods',
+            timeAxisLabel: 'Time Scale (µs)',
             deviceTitles: const {
               'inputCapacitor': 'Input capacitor Ci',
               'mosfet': 'MOSFET Q1',
@@ -296,6 +297,7 @@ void main() {
     ]) {
       expect(find.text(title), findsOneWidget);
     }
+    expect(find.text('Time Scale (µs)'), findsNWidgets(10));
     expect(tester.takeException(), isNull);
   });
 

@@ -159,6 +159,7 @@ class _BuckScreenState extends State<BuckScreen> {
           voltageLabel: s.voltage,
           currentLabel: s.current,
           periodLabel: s.threeSwitchingPeriods,
+          timeAxisLabel: s.timeScale,
           deviceTitles: {
             'inputCapacitor': s.inputCapacitor,
             'mosfet': s.mosfet,

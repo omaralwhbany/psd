@@ -225,6 +225,7 @@ class BuckDeviceWaveformsView extends StatelessWidget {
     required this.voltageLabel,
     required this.currentLabel,
     required this.periodLabel,
+    required this.timeAxisLabel,
     required this.deviceTitles,
     required this.metricLabels,
   });
@@ -232,6 +233,7 @@ class BuckDeviceWaveformsView extends StatelessWidget {
   final String voltageLabel;
   final String currentLabel;
   final String periodLabel;
+  final String timeAxisLabel;
   final Map<String, String> deviceTitles;
   final Map<String, String> metricLabels;
 
@@ -253,11 +255,13 @@ class BuckDeviceWaveformsView extends StatelessWidget {
                     style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 6),
                   _BuckTrace(points: device.voltage, label: voltageLabel,
-                    unit: 'V', scale: device.metrics.voltageScale,
+                    unit: 'V', timeAxisLabel: timeAxisLabel,
+                    scale: device.metrics.voltageScale,
                     color: theme.colorScheme.tertiary),
                   const SizedBox(height: 4),
                   _BuckTrace(points: device.current, label: currentLabel,
-                    unit: 'A', scale: device.metrics.currentScale,
+                    unit: 'A', timeAxisLabel: timeAxisLabel,
+                    scale: device.metrics.currentScale,
                     color: theme.colorScheme.primary),
                   const SizedBox(height: 6),
                   _BuckDeviceMetricsView(metrics: device.metrics, labels: metricLabels),
@@ -276,11 +280,12 @@ class BuckDeviceWaveformsView extends StatelessWidget {
 class _BuckTrace extends StatelessWidget {
   const _BuckTrace({
     required this.points, required this.label, required this.unit,
-    required this.scale, required this.color,
+    required this.timeAxisLabel, required this.scale, required this.color,
   });
   final List<BuckWaveformPoint> points;
   final String label;
   final String unit;
+  final String timeAxisLabel;
   final double scale;
   final Color color;
 
@@ -288,18 +293,21 @@ class _BuckTrace extends StatelessWidget {
   Widget build(BuildContext context) {
     final displayUnit = scale == 1000.0 ? 'm$unit' : unit;
     return SizedBox(
-    height: 76,
-    child: Row(children: [
-      SizedBox(width: 76, child: Text('$label ($displayUnit)',
-        style: Theme.of(context).textTheme.labelSmall)),
-      Expanded(child: CustomPaint(
-        painter: _BuckTracePainter(points: points, scale: scale, color: color,
-          gridColor: Theme.of(context).colorScheme.outlineVariant,
-          textColor: Theme.of(context).colorScheme.onSurfaceVariant),
-        child: const SizedBox.expand(),
-      )),
-    ]),
-  );
+      height: 94,
+      child: Row(children: [
+        SizedBox(width: 76, child: Text('$label ($displayUnit)',
+          style: Theme.of(context).textTheme.labelSmall)),
+        Expanded(child: Column(children: [
+          Expanded(child: CustomPaint(
+            painter: _BuckTracePainter(points: points, scale: scale, color: color,
+              gridColor: Theme.of(context).colorScheme.outlineVariant,
+              textColor: Theme.of(context).colorScheme.onSurfaceVariant),
+            child: const SizedBox.expand(),
+          )),
+          Text(timeAxisLabel, style: Theme.of(context).textTheme.labelSmall),
+        ])),
+      ]),
+    );
   }
 }
 
@@ -349,52 +357,89 @@ class _BuckTracePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (points.length < 2 || size.width <= 0 || size.height <= 0) return;
-    const padX = 5.0, padY = 8.0;
-    final vals = points.map((p) => p.value * scale);
-    var minV = vals.reduce((a, b) => a < b ? a : b);
-    var maxV = vals.reduce((a, b) => a > b ? a : b);
-    if ((maxV - minV).abs() < 1e-9) {
-      final margin = maxV.abs() * 0.1 + 0.1;
-      minV -= margin;
-      maxV += margin;
-    }
-    final minT = points.first.timeMicroseconds;
-    final maxT = points.last.timeMicroseconds;
-    final spanT = (maxT - minT).abs() < 1e-12 ? 1.0 : maxT - minT;
-    final spanV = maxV - minV;
-    double x(double t) => padX + (t - minT) / spanT * (size.width - padX * 2);
-    double y(double v) => size.height - padY -
-      (v - minV) / spanV * (size.height - padY * 2);
+    const left = 31.0, right = 5.0, top = 7.0, bottom = 19.0;
+    final plotRight = size.width - right;
+    final plotBottom = size.height - bottom;
+    if (plotRight <= left || plotBottom <= top) return;
 
-    final grid = Paint()..color = gridColor..strokeWidth = 0.6;
-    for (var i = 0; i <= 2; i++) {
-      final yy = padY + (size.height - padY * 2) * i / 2;
-      canvas.drawLine(Offset(padX, yy), Offset(size.width - padX, yy), grid);
+    final values = points.map((point) => point.value * scale);
+    var minValue = values.reduce((a, b) => a < b ? a : b);
+    var maxValue = values.reduce((a, b) => a > b ? a : b);
+    if (minValue > 0) minValue = 0;
+    if (maxValue < 0) maxValue = 0;
+    final valueSpan = maxValue - minValue;
+    final timeMin = points.first.timeMicroseconds;
+    final timeMax = points.last.timeMicroseconds;
+    final timeSpan = timeMax - timeMin;
+    if (timeSpan <= 0) return;
+
+    double x(double time) =>
+        left + (time - timeMin) / timeSpan * (plotRight - left);
+    double y(double value) => valueSpan == 0
+        ? plotBottom
+        : plotBottom - (value - minValue) / valueSpan * (plotBottom - top);
+    final zeroY = y(0);
+
+    final axis = Paint()..color = gridColor..strokeWidth = 0.7;
+    canvas.drawLine(Offset(left, top), Offset(left, plotBottom), axis);
+    canvas.drawLine(Offset(left, zeroY), Offset(plotRight, zeroY), axis);
+
+    final textStyle = TextStyle(color: textColor, fontSize: 8);
+    void drawRightAligned(String text, double baselineY) {
+      final painter = TextPainter(
+        text: TextSpan(text: text, style: textStyle),
+        textDirection: TextDirection.ltr,
+      )..layout(maxWidth: left - 5);
+      painter.paint(canvas, Offset(left - painter.width - 4, baselineY - painter.height / 2));
     }
-    final path = Path()..moveTo(
-      x(points.first.timeMicroseconds), y(points.first.value * scale));
-    for (final p in points.skip(1)) {
-      path.lineTo(x(p.timeMicroseconds), y(p.value * scale));
+
+    final middleValue = maxValue / 2;
+    final middleY = (zeroY + top) / 2;
+    drawRightAligned(maxValue.toStringAsFixed(2), top);
+    drawRightAligned(middleValue.toStringAsFixed(2), middleY);
+    drawRightAligned(minValue.toStringAsFixed(2), plotBottom);
+    canvas.drawLine(Offset(left - 4, middleY), Offset(left + 4, middleY), axis);
+
+    var lastLabelRight = -1000.0;
+    for (final index in [0, 6, 12, 18]) {
+      if (index >= points.length) continue;
+      final px = x(points[index].timeMicroseconds);
+      canvas.drawLine(Offset(px, zeroY - 4), Offset(px, zeroY + 4), axis);
+      final painter = TextPainter(
+        text: TextSpan(text: points[index].timeMicroseconds.toStringAsFixed(2), style: textStyle),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      final start = px - painter.width / 2;
+      if (start < lastLabelRight) continue;
+      painter.paint(canvas, Offset(start, zeroY + 5));
+      lastLabelRight = start + 30;
+    }
+    final maxPainter = TextPainter(
+      text: TextSpan(text: timeMax.toStringAsFixed(2), style: textStyle),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final maxStart = plotRight - maxPainter.width / 2;
+    if (maxStart >= lastLabelRight) {
+      maxPainter.paint(canvas, Offset(maxStart, zeroY + 5));
+    }
+
+    final path = Path()
+      ..moveTo(x(points.first.timeMicroseconds), y(points.first.value * scale));
+    for (final point in points.skip(1)) {
+      path.lineTo(x(point.timeMicroseconds), y(point.value * scale));
     }
     canvas.drawPath(path, Paint()
-      ..color = color..strokeWidth = 1.8
-      ..style = PaintingStyle.stroke..strokeJoin = StrokeJoin.round);
-
-    final style = TextStyle(color: textColor, fontSize: 9);
-    for (final item in [
-      (minV, size.height - padY - 3),
-      (maxV, padY),
-    ]) {
-      final painter = TextPainter(
-        text: TextSpan(text: item.$1.toStringAsFixed(2), style: style),
-        textDirection: TextDirection.ltr,
-      )..layout(maxWidth: size.width);
-      painter.paint(canvas, Offset(padX + 2, item.$2 - painter.height / 2));
-    }
+      ..color = color
+      ..strokeWidth = 1.8
+      ..style = PaintingStyle.stroke
+      ..strokeJoin = StrokeJoin.round);
   }
 
   @override
   bool shouldRepaint(covariant _BuckTracePainter old) =>
-    old.points != points || old.scale != scale || old.color != color ||
-    old.gridColor != gridColor || old.textColor != textColor;
+      old.points != points ||
+      old.scale != scale ||
+      old.color != color ||
+      old.gridColor != gridColor ||
+      old.textColor != textColor;
 }
