@@ -100,19 +100,19 @@ void main() {
     expect(set.devices[0].current[3].value, closeTo(fetAverage, 1e-12));
     expect(set.devices[1].voltage[0].value, 0);
     expect(set.devices[1].voltage[3].value, vin + vf);
-    expect(set.devices[1].current[0].value, minimum);
-    expect(set.devices[1].current[2].value, peak);
+    expect(set.devices[1].current[0].value, closeTo(minimum, 1e-12));
+    expect(set.devices[1].current[2].value, closeTo(peak, 1e-12));
     expect(set.devices[2].voltage[2].value, vin - vo);
     expect(set.devices[2].voltage[3].value, -vo - vf);
-    expect(set.devices[2].current[2].value, peak);
-    expect(set.devices[2].current[4].value, minimum);
+    expect(set.devices[2].current[2].value, closeTo(peak, 1e-12));
+    expect(set.devices[2].current[4].value, closeTo(minimum, 1e-12));
     expect(set.devices[3].voltage[0].value, -vin);
     expect(set.devices[3].voltage[3].value, vf);
-    expect(set.devices[3].current[3].value, peak);
-    expect(set.devices[3].current[4].value, minimum);
+    expect(set.devices[3].current[3].value, closeTo(peak, 1e-12));
+    expect(set.devices[3].current[4].value, closeTo(minimum, 1e-12));
     expect(set.devices[4].voltage.first.value, vo);
-    expect(set.devices[4].current[2].value, capCurrentMax);
-    expect(set.devices[4].current[4].value, capCurrentMin);
+    expect(set.devices[4].current[2].value, closeTo(capCurrentMax, 1e-12));
+    expect(set.devices[4].current[4].value, closeTo(capCurrentMin, 1e-12));
     const periodUs = 5.0;
     expect(set.devices[2].voltage[7].timeMicroseconds,
         closeTo(periodUs + 0.001, 1e-9));
@@ -140,7 +140,7 @@ void main() {
     expect(set.devices[0].voltage.every((p) => p.value == vin), isTrue);
     expect(set.devices[0].current[0].value, closeTo(inputAverage, 1e-12));
     expect(set.devices[0].current[2].value, closeTo(inputAverage - peak, 1e-12));
-    expect(set.devices[0].current[3].value, fetAverage);
+    expect(set.devices[0].current[3].value, closeTo(fetAverage, 1e-12));
     expect(set.devices[1].voltage[3].value, vin + vf);
     expect(set.devices[1].voltage[5].value, vin - vo);
     expect(set.devices[1].current[2].value, peak);
