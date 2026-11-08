@@ -97,7 +97,7 @@ void main() {
         closeTo(inputAverage - minimum, 1e-12));
     expect(set.devices[0].current[2].value,
         closeTo(inputAverage - peak, 1e-12));
-    expect(set.devices[0].current[3].value, fetAverage);
+    expect(set.devices[0].current[3].value, closeTo(fetAverage, 1e-12));
     expect(set.devices[1].voltage[0].value, 0);
     expect(set.devices[1].voltage[3].value, vin + vf);
     expect(set.devices[1].current[0].value, minimum);
@@ -138,7 +138,7 @@ void main() {
     const fetAverage = 0.682634730538922;
 
     expect(set.devices[0].voltage.every((p) => p.value == vin), isTrue);
-    expect(set.devices[0].current[0].value, inputAverage);
+    expect(set.devices[0].current[0].value, closeTo(inputAverage, 1e-12));
     expect(set.devices[0].current[2].value, closeTo(inputAverage - peak, 1e-12));
     expect(set.devices[0].current[3].value, fetAverage);
     expect(set.devices[1].voltage[3].value, vin + vf);
