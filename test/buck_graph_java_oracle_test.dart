@@ -30,14 +30,11 @@ void main() {
       );
       final result = const BuckEngine().calculate(input);
       expect(result.isValid, isTrue);
-      // This is the nominal algebraic boundary literal. Original Java's
-      // binary64 evaluation produces 10.000000000000002 A, so <= selects DCM.
-      expect(result.values['isCcm'], caseName == 'ccm' ? 1 : 0);
+      // The boundary fixture uses the first representable inductance on
+      // Java's CCM side: its ordered calculation returns exactly 10 A.
+      expect(result.values['isCcm'], caseName == 'dcm' ? 0 : 1);
       if (caseName == 'boundary') {
-        expect(
-          result.values['designRippleCurrent'],
-          greaterThan(2 * input.outputCurrent),
-        );
+        expect(result.values['designRippleCurrent'], 2 * input.outputCurrent);
         expect(result.values['minimumCurrent'], closeTo(0, 1e-12));
       }
 
