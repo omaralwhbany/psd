@@ -140,23 +140,6 @@ void main() {
     final javaTimes = _javaBuckGraphTimes(result.values);
     _expectJavaBuckTrace(set.devices[0], javaTimes,
       voltage: [vin, vin, vin, vin, vin, vin, vin],
-      current: [inputAverage, inputAverage, inputAverage - peak,
-        fetAverage, fetAverage, fetAverage, fetAverage]);
-    _expectJavaBuckTrace(set.devices[1], javaTimes,
-      voltage: [0, 0, 0, vin + vf, vin + vf, vin - vo, vin - vo],
-      current: [0, 0, peak, 0, 0, 0, 0]);
-    _expectJavaBuckTrace(set.devices[2], javaTimes,
-      voltage: [vin - vo, vin - vo, vin - vo, -vo - vf, -vo - vf, 0, 0],
-      current: [0, 0, peak, peak, 0, 0, 0]);
-    _expectJavaBuckTrace(set.devices[3], javaTimes,
-      voltage: [-vin, -vin, -vin, vf, vf, -vo, -vo],
-      current: [0, 0, 0, peak, 0, 0, 0]);
-    _expectJavaBuckTrace(set.devices[4], javaTimes,
-      voltage: [vo, vo, vo, vo, vo, vo, vo],
-      current: [-iout, -iout, peak - iout, peak - iout, -iout, -iout, -iout]);
-    final javaTimes = _javaBuckGraphTimes(result.values);
-    _expectJavaBuckTrace(set.devices[0], javaTimes,
-      voltage: [vin, vin, vin, vin, vin, vin, vin],
       current: [
         inputAverage - minimum, inputAverage - minimum, inputAverage - peak,
         fetAverage, fetAverage, fetAverage, fetAverage,
@@ -235,6 +218,24 @@ void main() {
         closeTo((ton + toff + tidle - 1e-9) * 1e6, 1e-9));
     expect(set.devices[2].voltage[7].timeMicroseconds,
         closeTo((ton + toff + tidle + 1e-9) * 1e6, 1e-9));
+    final javaTimes = _javaBuckGraphTimes(result.values);
+    _expectJavaBuckTrace(set.devices[0], javaTimes,
+      voltage: [vin, vin, vin, vin, vin, vin, vin],
+      current: [inputAverage, inputAverage, inputAverage - peak,
+        fetAverage, fetAverage, fetAverage, fetAverage]);
+    _expectJavaBuckTrace(set.devices[1], javaTimes,
+      voltage: [0, 0, 0, vin + vf, vin + vf, vin - vo, vin - vo],
+      current: [0, 0, peak, 0, 0, 0, 0]);
+    _expectJavaBuckTrace(set.devices[2], javaTimes,
+      voltage: [vin - vo, vin - vo, vin - vo, -vo - vf, -vo - vf, 0, 0],
+      current: [0, 0, peak, peak, 0, 0, 0]);
+    _expectJavaBuckTrace(set.devices[3], javaTimes,
+      voltage: [-vin, -vin, -vin, vf, vf, -vo, -vo],
+      current: [0, 0, 0, peak, 0, 0, 0]);
+    _expectJavaBuckTrace(set.devices[4], javaTimes,
+      voltage: [vo, vo, vo, vo, vo, vo, vo],
+      current: [-iout, -iout, peak - iout, peak - iout, -iout, -iout, -iout]);
+
   });
 
   test('Buck graph unit prefixes follow the original Graph.java side-label rule', () {
