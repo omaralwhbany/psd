@@ -67,10 +67,7 @@ class AppStrings {
   String get outputCapacitor => isArabic ? 'مكثف الخرج Co' : 'Output capacitor Co';
   String get minimumVoltage => isArabic ? 'أدنى جهد' : 'Min V';
   String get maximumVoltage => isArabic ? 'أعلى جهد' : 'Max V';
-  String get minimumCurrent => isArabic ? 'أدنى تيار' : 'Min I';
   String get maximumCurrent => isArabic ? 'أعلى تيار' : 'Max I';
-  String get rmsCurrent => isArabic ? 'تيار RMS' : 'RMS I';
-  String get averageCurrent => isArabic ? 'متوسط التيار' : 'Avg I';
   String get acCurrent => isArabic ? 'تيار AC' : 'AC I';
   String get buckCcmCurrent => isArabic ? 'تيار ملف Buck في نمط CCM' : 'Buck inductor current (CCM)';
   String get buckDcmCurrent => isArabic ? 'تيار ملف Buck في نمط DCM' : 'Buck inductor current (DCM)';
