@@ -32,4 +32,24 @@ void main() {
     expect(find.text('قدرة الدخل'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('Buck screen shows the TI ripple-limit warning without hiding results',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      locale: Locale('en'),
+      supportedLocales: [Locale('en'), Locale('ar')],
+      home: Scaffold(body: BuckScreen()),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Use custom inductor value'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, '5');
+    await tester.pumpAndSettle();
+
+    expect(find.text('$warning'), findsOneWidget);
+    expect(find.text('Operating point'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
 }

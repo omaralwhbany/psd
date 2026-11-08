@@ -156,6 +156,13 @@ class BuckEngine {
     final outputCapRms = math.sqrt(math.max(0, capOutRmsSquared));
 
     final duty = ton * fs;
+    // Buck.java checkCurrentRipple() flags the ripple input when
+    // !(iripple * 0.99 < Iout * rippleFraction). The original still
+    // calculates and displays results, so preserve it as a warning.
+    final warnings = <String>[];
+    if (!(ripple * 0.99 < rippleTarget)) {
+      warnings.add('$warning');
+    }
     return CalculationResult(values: {
       'operatingInputVoltage': vin,
       'inputAverageCurrent': inputAverage,
@@ -203,6 +210,6 @@ class BuckEngine {
       'outputCapacitorRmsCurrent': outputCapRms,
       'inductorVoltageMin': -vo - vf,
       'inductorVoltageMax': vin - vo,
-    });
+    }, warnings: warnings);
   }
 }

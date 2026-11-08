@@ -84,6 +84,26 @@ class _BuckScreenState extends State<BuckScreen> {
       _panel(s.results, result.isValid ? Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          for (final warning in result.warnings)
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.tertiaryContainer,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.warning_amber_rounded,
+                    color: Theme.of(context).colorScheme.onTertiaryContainer),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(s.localizeBuckWarning(warning),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onTertiaryContainer))),
+                ],
+              ),
+            ),
           _sectionTitle(s.operatingPoint),
           _result(s.operatingMode, result.values['isCcm'] == 1 ? s.ccm : s.dcm, emphasize: true),
           _result(s.dutyCycle, '${(result.values['dutyCycle']! * 100).toStringAsFixed(2)} %'),

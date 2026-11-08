@@ -18,6 +18,7 @@ void main() {
     expect(result.values['peakCurrent'], greaterThan(5));
     expect(result.values['inputPower'], closeTo(
       result.values['outputPower']! + result.values['diodeLosses']!, 1e-9));
+    expect(result.warnings, isEmpty);
   });
 
   test('Buck CCM RMS and device stresses match closed-form TI integrals', () {
@@ -81,6 +82,7 @@ void main() {
     final r = buck.calculate(input);
     expect(r.isValid, isTrue);
     expect(r.values['isCcm'], 0);
+    expect(r.warnings, contains('$warning'));
     final peak = r.values['peakCurrent']!;
     final on = r.values['onFraction']!;
     final off = r.values['offFraction']!;
@@ -91,6 +93,28 @@ void main() {
     expect(r.values['diodeAverageCurrent'], closeTo(peak * off / 2, 1e-10));
     expect(on + off + r.values['idleFraction']!, closeTo(1, 1e-10));
     expect(r.values['inductorAverageCurrent'], closeTo(input.outputCurrent, 1e-9));
+  });
+
+
+  test('Buck warns when a custom CCM inductor violates the original ripple check', () {
+    const input = BuckInputs(
+      inputVoltageMin: 18,
+      inputVoltageMax: 36,
+      outputVoltage: 12,
+      outputCurrent: 5,
+      switchingFrequency: 200e3,
+      rippleFraction: 0.30,
+      diodeForwardVoltage: 0.5,
+      operatingInputVoltage: 18,
+      selectedInductance: 5e-6,
+    );
+    final result = buck.calculate(input);
+    expect(result.isValid, isTrue);
+    expect(result.values['isCcm'], 1);
+    expect(result.values['rippleCurrent']! * 0.99,
+        greaterThan(input.outputCurrent * input.rippleFraction));
+    expect(result.warnings, contains('$warning'));
+    expect(result.values['peakCurrent'], greaterThan(0));
   });
 
   // Expected values below were captured by executing the original

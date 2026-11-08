@@ -97,3 +97,15 @@ average current. This transient, order-dependent first-pass behavior is
 recorded as a known Java quirk rather than silently described as runtime
 parity. The stable CCM/DCM graph arrays are now asserted point-by-point in
 the Flutter regression suite.
+
+
+## Buck current-ripple input validation
+
+The Java source and JAR bytecode for `checkCurrentRipple()` were compared.
+The original test is the strict condition
+`iripple * 0.99 < dIout * dcurrent_ripple`; `iripple` is the actual
+inductor current excursion (peak-to-valley in CCM, zero-to-peak in DCM).
+A violation highlights the ripple input but does not abort the calculation.
+Flutter now preserves the calculated values and reports this as a warning,
+rather than marking the whole result invalid. CCM and DCM regression tests
+cover the warning behavior, and the screen surfaces it in Arabic and English.
