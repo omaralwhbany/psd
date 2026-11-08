@@ -50,10 +50,12 @@ void main() {
 
       for (final device in actual.devices) {
         final expected = expectedGraphs[device.id] as Map<String, dynamic>;
-        final expectedVoltage = expected['voltage'] as List<dynamic>;
-        final expectedCurrent = expected['current'] as List<dynamic>;
-        expect(expectedVoltage, hasLength(20));
-        expect(expectedCurrent, hasLength(20));
+        final sourceVoltageSamples = expected['voltage'] as List<dynamic>;
+        final sourceCurrentSamples = expected['current'] as List<dynamic>;
+        expect(sourceVoltageSamples, hasLength(7));
+        expect(sourceCurrentSamples, hasLength(7));
+        final expectedVoltage = _expandJavaBuckSamples(sourceVoltageSamples);
+        final expectedCurrent = _expandJavaBuckSamples(sourceCurrentSamples);
         expect(device.voltage, hasLength(20));
         expect(device.current, hasLength(20));
 
@@ -83,4 +85,17 @@ void main() {
       }
     });
   }
+}
+
+
+/// Expands the seven original Java per-cycle samples into Graph.java's
+/// first 20 plotted points; the final 21st source point is intentionally cut.
+List<double> _expandJavaBuckSamples(List<dynamic> sourceSamples) {
+  final p = sourceSamples.map((value) => (value as num).toDouble()).toList();
+  return [
+    ...p,
+    p[0], p[2], p[3], p[4], p[5], p[6],
+    p[0], p[2], p[3], p[4], p[5], p[6],
+    p[0], p[2],
+  ].take(20).toList();
 }
