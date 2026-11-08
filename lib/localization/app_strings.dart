@@ -37,6 +37,11 @@ class AppStrings {
   String get dcm => isArabic ? 'تيار متقطع DCM' : 'Discontinuous Conduction (DCM)';
 
   String get operatingInputVoltage => isArabic ? 'جهد الدخل أثناء التشغيل' : 'Operating input voltage';
+  String get loadLevel => isArabic ? 'مستوى الحمل' : 'Load level';
+  String get operatingOutputCurrent => isArabic ? 'تيار الحمل الفعلي' : 'Operating load current';
+  String get loadControlNote => isArabic
+      ? 'وفق سلوك PSD5 الأصلي: موضع 0% يعادل 1% من تيار الخرج المقنن.'
+      : 'Matches PSD5: the 0% slider position is 1% of rated output current.';
   String get operatingPoint => isArabic ? 'نقطة التشغيل' : 'Operating point';
   String get switchingPeriod => isArabic ? 'زمن الدورة' : 'Switching period';
   String get onTime => isArabic ? 'زمن التوصيل ON' : 'ON time';
@@ -89,6 +94,7 @@ class AppStrings {
   String localizeBuckError(String error) {
     if (!isArabic) return error;
     const translations = <String, String>{
+      'Operating load percentage must be between 0 and 100.': 'يجب أن تكون نسبة الحمل بين 0 و100%.' ,
       'Input voltage minimum must be a finite value greater than zero.': 'يجب أن يكون أقل جهد دخل رقماً محدوداً وأكبر من صفر.',
       'Input voltage maximum must be a finite value greater than zero.': 'يجب أن يكون أعلى جهد دخل رقماً محدوداً وأكبر من صفر.',
       'Output voltage must be a finite value greater than zero.': 'يجب أن يكون جهد الخرج رقماً محدوداً وأكبر من صفر.',

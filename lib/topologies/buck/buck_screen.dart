@@ -17,6 +17,7 @@ class _BuckScreenState extends State<BuckScreen> {
   final _controllers = <String, TextEditingController>{};
   final _engine = const BuckEngine();
   bool _customInductance = false;
+  double _operatingLoadPercent = 100;
 
   @override
   void initState() {
@@ -49,6 +50,7 @@ class _BuckScreenState extends State<BuckScreen> {
     switchingFrequency: Units.kiloToBase(_v('fsw')),
     rippleFraction: _v('ripple') / 100, diodeForwardVoltage: _v('vf'),
     operatingInputVoltage: _v('vinOperating'),
+    operatingLoadPercent: _operatingLoadPercent,
     selectedInductance: _customInductance ? Units.microToBase(_v('inductance')) : null,
   );
 
@@ -73,6 +75,21 @@ class _BuckScreenState extends State<BuckScreen> {
         _field(s.switchingFrequency, 'fsw', 'kHz'),
         _field(s.ripplePercent, 'ripple', '%'),
         _field(s.diodeDrop, 'vf', 'V'),
+        Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Row(children: [
+            Expanded(child: Text(s.loadLevel)),
+            Text('${_operatingLoadPercent.toStringAsFixed(0)} %'),
+          ]),
+          Slider(
+            value: _operatingLoadPercent,
+            min: 0,
+            max: 100,
+            divisions: 100,
+            label: '${_operatingLoadPercent.toStringAsFixed(0)} %',
+            onChanged: (value) => setState(() => _operatingLoadPercent = value),
+          ),
+          Text(s.loadControlNote, style: Theme.of(context).textTheme.bodySmall),
+        ]),
         SwitchListTile(contentPadding: EdgeInsets.zero, title: Text(s.customInductor),
           subtitle: Text(s.automaticInductor), value: _customInductance,
           onChanged: (v) => setState(() => _customInductance = v)),
@@ -106,6 +123,7 @@ class _BuckScreenState extends State<BuckScreen> {
             ),
           _sectionTitle(s.operatingPoint),
           _result(s.operatingMode, result.values['isCcm'] == 1 ? s.ccm : s.dcm, emphasize: true),
+          _result(s.operatingOutputCurrent, '${result.values['operatingOutputCurrent']!.toStringAsFixed(3)} A'),
           _result(s.dutyCycle, '${(result.values['dutyCycle']! * 100).toStringAsFixed(2)} %'),
           _result(s.switchingPeriod, '${Units.baseToMicro(1 / input.switchingFrequency).toStringAsFixed(3)} µs'),
           _result(s.onTime, '${Units.baseToMicro(result.values['onTime']!).toStringAsFixed(3)} µs'),
@@ -179,7 +197,7 @@ class _BuckScreenState extends State<BuckScreen> {
         )),
         const SizedBox(height: 14),
         _panel(s.synchronizedWaveforms, PowerWaveformChart(
-          averageCurrent: input.outputCurrent,
+          averageCurrent: result.values['operatingOutputCurrent']!,
           rippleCurrent: result.values['rippleCurrent']!,
           dutyCycle: result.values['dutyCycle']!,
           currentLabel: result.values['isCcm'] == 0 ? s.buckDcmCurrent : s.buckCcmCurrent,

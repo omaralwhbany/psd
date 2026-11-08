@@ -28,6 +28,10 @@ class BuckEngine {
     if (input.outputCurrent > 1000) errors.add('Output current must not exceed 1000 A.');
     if (input.switchingFrequency > 1e7) errors.add('Switching frequency must not exceed 10 MHz.');
     if (input.rippleFraction > 1) errors.add('Ripple fraction must not exceed 1 (100%).');
+    if (!input.operatingLoadPercent.isFinite ||
+        input.operatingLoadPercent < 0 || input.operatingLoadPercent > 100) {
+      errors.add('Operating load percentage must be between 0 and 100.');
+    }
     if (input.outputVoltage > input.inputVoltageMin) errors.add('Buck output voltage must be below minimum input voltage.');
     if (input.diodeForwardVoltage < 0 || input.diodeForwardVoltage > 5 || !input.diodeForwardVoltage.isFinite) {
       errors.add('Diode forward voltage must be between 0 and 5 V.');
@@ -42,9 +46,15 @@ class BuckEngine {
     final vo = input.outputVoltage;
     final vf = input.diodeForwardVoltage;
     final fs = input.switchingFrequency;
-    final iout = input.outputCurrent;
+    // Buck.java maps its 0..100% load slider onto ioutmin=1%..ioutmax=100%
+    // of rated dIout. The rated current still defines Lmin and the ripple target.
+    final ratedOutputCurrent = input.outputCurrent;
+    final minimumLoadCurrent = 0.01 * ratedOutputCurrent;
+    final iout = input.operatingLoadPercent / 100.0 *
+            (ratedOutputCurrent - minimumLoadCurrent) +
+        minimumLoadCurrent;
     final period = 1 / fs;
-    final rippleTarget = iout * input.rippleFraction;
+    final rippleTarget = ratedOutputCurrent * input.rippleFraction;
     final vinDesign = input.inputVoltageMax;
 
     // Matches PSD Buck.calcMinInductance(): design at maximum input voltage.
@@ -79,9 +89,9 @@ class BuckEngine {
       ripple = rippleCcm;
     } else {
       // Exact closed-form DCM timing used by PSD Buck.onofftimes().
-      ton = math.sqrt(2 * iout * inductance * (vo + vf) /
-          (fs * (vin - vo) * (vin + vf)));
-      toff = ton * (vin - vo) / (vo + vf);
+      ton = math.sqrt(2 * iout * inductance *
+          ((vo + vf) / (fs * (vin - vo) * (vin + vf))));
+      toff = ton * ((vin + vf) / (vo + vf)) - ton;
       tidle = period - ton - toff;
       if (!ton.isFinite || !toff.isFinite || tidle < -1e-12) {
         return const CalculationResult(values: {}, errors: [
@@ -89,7 +99,7 @@ class BuckEngine {
         ]);
       }
       tidle = math.max(0, tidle);
-      peak = (vin - vo) * ton / inductance;
+      peak = (1 / inductance) * (vin - vo) * ton;
       minimum = 0;
       ripple = peak;
     }
@@ -107,23 +117,31 @@ class BuckEngine {
     final onIntegralFraction = ton / integrationPeriod;
     final offIntegralFraction = toff / integrationPeriod;
     final activeIntegralFraction = (ton + toff) / integrationPeriod;
-    final currentIntegral = isCcm
-        ? (peak * minimum + (peak - minimum) * (peak - minimum) / 3)
-        : peak * peak / 3;
+    final deviceCurrentIntegral = peak * minimum +
+        0.3333333333333333 * ((peak - minimum) * (peak - minimum));
+    final inductorCurrentIntegral = peak * minimum +
+        (peak - minimum) * (peak - minimum) / 3.0;
 
-    // TI PSD Java actualValues(): average currents use t*fs; RMS currents
-    // use the exact t1+t2+t3 integration denominator.
-    final fetAverage = isCcm ? iout * ton * fs : peak * ton * fs / 2;
-    final fetRms = math.sqrt(onIntegralFraction * currentIntegral);
-    final diodeAverage = isCcm ? iout * toff * fs : peak * toff * fs / 2;
-    final diodeRms = math.sqrt(offIntegralFraction * currentIntegral);
+    // Preserve Buck.java actualValues() operation order for average/RMS values.
+    final fetAverage = isCcm
+        ? (minimum + peak) / 2.0 * ton * fs
+        : peak / 2.0 * ton * fs;
+    final fetRms = isCcm
+        ? math.sqrt(onIntegralFraction * deviceCurrentIntegral)
+        : peak * math.sqrt(onIntegralFraction * 0.3333333333333333);
+    final diodeAverage = isCcm
+        ? (minimum + peak) / 2.0 * toff * fs
+        : peak / 2.0 * toff * fs;
+    final diodeRms = isCcm
+        ? math.sqrt(offIntegralFraction * deviceCurrentIntegral)
+        : peak * math.sqrt(offIntegralFraction * 0.3333333333333333);
 
     final inductorAverage = isCcm
-        ? (minimum + peak) / 2
-        : peak * (ton + toff) / (2 * period);
+        ? (minimum + peak) / 2.0
+        : peak / 2.0 * (ton + toff) * fs;
     final inductorRms = isCcm
-        ? math.sqrt(activeIntegralFraction * currentIntegral)
-        : peak * math.sqrt((ton + toff) / (3 * period));
+        ? math.sqrt(activeIntegralFraction * inductorCurrentIntegral)
+        : peak * math.sqrt((ton + toff) / (3.0 / fs));
 
     // PSD Buck.java sets the input-capacitor off-interval current to
     // the MOSFET average current (iincap_off_buck = ifet_avg_buck).
@@ -166,6 +184,8 @@ class BuckEngine {
     }
     return CalculationResult(values: {
       'operatingInputVoltage': vin,
+      'operatingLoadPercent': input.operatingLoadPercent,
+      'operatingOutputCurrent': iout,
       'inputAverageCurrent': inputAverage,
       'inputPower': inputPower,
       'outputPower': outputPower,

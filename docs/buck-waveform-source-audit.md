@@ -65,13 +65,14 @@ Java graph methods were not executed at runtime in this audit.
 
 ## Remaining graph parity work
 
-The Swing `Graph` window also includes slider controls for input voltage and
-load current, and side labels for min/max, RMS, average and AC current. Flutter
-currently keeps operating-point controls in the main Buck input panel and
-shows the numeric device stresses in the results panel; it does not yet
-recreate the separate Swing graph-window sliders or all of its side-label
-layout. Device-graph data patterns and plotted sample count are covered, but
-visual parity with the complete Swing graph window is not declared complete.
+The Swing `Graph` window includes sliders for input voltage and load current,
+plus side labels for min/max, RMS, average and AC current. Flutter now exposes
+a shared operating-input-voltage field and a shared 0..100% load slider in the
+main Buck panel; these update all five device traces together rather than
+creating five separate Swing graph windows. Numeric device metrics remain
+shown beneath each trace instead of in the original side-label columns.
+Device-graph data patterns and plotted sample count are covered, but visual
+parity with the complete Swing graph window is not declared complete.
 
 
 ## Direct original-JAR graph-method runtime verification
@@ -165,3 +166,18 @@ fixture yields exactly `10 A` and remains CCM under the source's `<=`
 condition. Regression tests cover both sides without changing the Java
 inequality. The CCM output-capacitor minimum-current metric is checked against
 Java's `imin_ccm - Iout` branch; `-Iout` applies only to DCM.
+
+
+## Operating-load slider parity and Java runtime fixture
+
+The original WorkingSheet source initializes `currentInputVoltage=0` and `currentLoadCurrent=100`. Its `setLoadCurrent()` method stores the slider percentage and calls `calculate()` twice. In `Buck.getUserValues()`, the rated output current `dIout` defines `ioutmin=0.01*dIout` and `ioutmax=dIout`. `Buck.checkForCCMDCCM()` then evaluates `currentLoadCurrent/100 * (ioutmax-ioutmin) + ioutmin`. Therefore slider positions 0%, 50%, and 100% mean 1%, 50.5%, and 100% of rated current, not 0%, 50%, and 100%.
+
+This path was checked in both the extracted Java source and the original JAR bytecode (`WorkingSheet.setLoadCurrent`, `Buck.checkForCCMDCCM`, and `Graph.jSliderLoadCurrentStateChanged`). A headless OpenJDK 21 harness invoked the actual `Buck` class from `PSD5.jar`, set the same design inputs and slider positions, and called `calculate()` twice after each change. Fixed runtime values for the 18 V operating point, 12 V output, 5 A rated output, 200 kHz, 0.5 V diode drop, and 33 µH selected inductor were:
+
+| Load slider | Actual load current | Mode | On time | Off time | Output power | Input power |
+|---:|---:|---|---:|---:|---:|---:|
+| 0% | 0.05 A | DCM | 1.3631243920156768 µs | 0.6542997081675247 µs | 0.60 W | 0.6081081081081082 W |
+| 50% | 2.525 A | CCM | 3.3783783783783788 µs | 1.6216216216216216 µs | 30.30 W | 30.709459459459456 W |
+| 100% | 5.00 A | CCM | 3.3783783783783788 µs | 1.6216216216216216 µs | 60.00 W | 60.810810810810814 W |
+
+Flutter now carries `operatingLoadPercent` separately from rated `outputCurrent`. The minimum-inductance design and requested ripple limit continue to use the rated current, while CCM/DCM classification, power, device RMS/average values, and all five device waveforms use the interpolated operating load current. The new fixed-value regression test uses the values above from the actual Java runtime; the graph-shape regression is explicitly source-derived and is not described as an additional Java graph-method runtime comparison.

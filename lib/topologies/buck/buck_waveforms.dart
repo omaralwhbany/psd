@@ -73,7 +73,7 @@ class BuckWaveformSet {
     final cycleDuration = ton + toff + tidle;
     final minimum = values['minimumCurrent']!;
     final peak = values['peakCurrent']!;
-    final iout = input.outputCurrent;
+    final iout = values['operatingOutputCurrent']!;
     final iin = values['inputAverageCurrent']!;
     final fetAverage = values['mosfetAverageCurrent']!;
     final dcm = values['isCcm'] == 0;

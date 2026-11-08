@@ -8,6 +8,7 @@ class BuckInputs {
     required this.rippleFraction,
     required this.diodeForwardVoltage,
     this.operatingInputVoltage,
+    this.operatingLoadPercent = 100,
     this.selectedInductance,
   });
 
@@ -19,6 +20,7 @@ class BuckInputs {
   final double rippleFraction;
   final double diodeForwardVoltage;
   final double? operatingInputVoltage;
+  final double operatingLoadPercent;
   final double? selectedInductance;
 
   factory BuckInputs.defaults() => const BuckInputs(

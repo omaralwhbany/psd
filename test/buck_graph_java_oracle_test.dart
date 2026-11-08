@@ -131,6 +131,35 @@ void main() {
       }
     });
   }
+  test('Buck source-derived device graphs follow the operating load slider', () {
+    const input = BuckInputs(
+      inputVoltageMin: 18,
+      inputVoltageMax: 36,
+      outputVoltage: 12,
+      outputCurrent: 5,
+      switchingFrequency: 200e3,
+      rippleFraction: 0.30,
+      diodeForwardVoltage: 0.5,
+      operatingInputVoltage: 18,
+      operatingLoadPercent: 0,
+      selectedInductance: 33e-6,
+    );
+    final result = const BuckEngine().calculate(input);
+    expect(result.isValid, isTrue);
+    expect(result.values['operatingOutputCurrent'], closeTo(0.05, 1e-14));
+    expect(result.values['isCcm'], 0);
+
+    final graphs = BuckWaveformSet.fromCalculation(input: input, values: result.values);
+    final inductor = graphs.devices.firstWhere((device) => device.id == 'inductor');
+    final outputCapacitor = graphs.devices.firstWhere((device) => device.id == 'outputCapacitor');
+    expect(inductor.metrics.averageCurrent, closeTo(0.05, 1e-12));
+    expect(outputCapacitor.current.first.value, closeTo(-0.05, 1e-12));
+    expect(
+      outputCapacitor.current[2].value,
+      closeTo(result.values['peakCurrent']! - 0.05, 1e-12),
+    );
+  });
+
 }
 
 
