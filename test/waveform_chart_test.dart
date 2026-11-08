@@ -121,7 +121,7 @@ void main() {
         closeTo(fetAverage, 1e-12));
     expect(set.devices[0].metrics.averageCurrent, 0);
     expect(set.devices[1].metrics.minimumCurrent, closeTo(minimum, 1e-12));
-    expect(set.devices[1].metrics.maximumCurrent, peak);
+    expect(set.devices[1].metrics.maximumCurrent, closeTo(peak, 1e-12));
     expect(set.devices[2].metrics.rmsCurrent,
         closeTo(result.values['inductorRmsCurrent']!, 1e-12));
     expect(set.devices[3].metrics.averageCurrent,

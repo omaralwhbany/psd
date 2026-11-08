@@ -79,7 +79,7 @@ visual parity with the complete Swing graph window is not declared complete.
 The original PSD5.jar was loaded with OpenJDK 21 in headless mode. A
 Buck instance was configured with the same fixed CCM and DCM test inputs,
 then the private Java point methods for all five devices were invoked through
-reflection. All ten voltage/current methods returned 21 points each. Their
+reflection. All 20 point-method executions (10 per operating mode: five voltage and five current) returned 21 points each. Their
 sample values and time coordinates were compared against the independent
 source transcription; every CCM and DCM trace matched. The original
 Graph constructor and setPoints() were also checked: both copy only
