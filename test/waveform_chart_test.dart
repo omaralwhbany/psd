@@ -78,8 +78,9 @@ void main() {
       'inputCapacitor', 'mosfet', 'inductor', 'diode', 'outputCapacitor',
     ]);
     for (final device in set.devices) {
-      expect(device.voltage, hasLength(21));
-      expect(device.current, hasLength(21));
+      // Buck.java creates 21 samples; Graph.java plots only the first 20.
+      expect(device.voltage, hasLength(20));
+      expect(device.current, hasLength(20));
     }
 
     // These expected numbers are fixed from the independently executed
@@ -186,6 +187,7 @@ void main() {
         ),
       ),
     ));
+    expect(find.text('Current (mA)'), findsOneWidget);
     for (final title in [
       'Input capacitor Ci', 'MOSFET Q1', 'Inductor L1',
       'Freewheel diode D1', 'Output capacitor Co',

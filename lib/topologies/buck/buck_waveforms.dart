@@ -68,8 +68,10 @@ class BuckWaveformSet {
         samples[0], samples[2], samples[3], samples[4], samples[5], samples[6], samples[0],
         samples[2], samples[3], samples[4], samples[5], samples[6], samples[0], samples[2],
       ];
+      // Graph.java's constructor and setPoints() discard the final array
+      // element, so the original GUI actually plots the first 20 of 21.
       return List.unmodifiable(List.generate(
-        21,
+        20,
         (i) => BuckWaveformPoint(times[i] * 1e6, sampleValues[i]),
       ));
     }
@@ -187,27 +189,33 @@ class _BuckTrace extends StatelessWidget {
   final Color color;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
+  Widget build(BuildContext context) {
+    final peakMagnitude = points.map((p) => p.value.abs()).reduce((a, b) => a > b ? a : b);
+    final scale = peakMagnitude < 1.0 ? 1000.0 : 1.0;
+    final displayUnit = scale == 1000.0 ? 'm$unit' : unit;
+    return SizedBox(
     height: 76,
     child: Row(children: [
-      SizedBox(width: 76, child: Text('$label ($unit)',
+      SizedBox(width: 76, child: Text('$label ($displayUnit)',
         style: Theme.of(context).textTheme.labelSmall)),
       Expanded(child: CustomPaint(
-        painter: _BuckTracePainter(points: points, color: color,
+        painter: _BuckTracePainter(points: points, scale: scale, color: color,
           gridColor: Theme.of(context).colorScheme.outlineVariant,
           textColor: Theme.of(context).colorScheme.onSurfaceVariant),
         child: const SizedBox.expand(),
       )),
     ]),
   );
+  }
 }
 
 class _BuckTracePainter extends CustomPainter {
   const _BuckTracePainter({
-    required this.points, required this.color,
+    required this.points, required this.scale, required this.color,
     required this.gridColor, required this.textColor,
   });
   final List<BuckWaveformPoint> points;
+  final double scale;
   final Color color;
   final Color gridColor;
   final Color textColor;
@@ -216,7 +224,7 @@ class _BuckTracePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (points.length < 2 || size.width <= 0 || size.height <= 0) return;
     const padX = 5.0, padY = 8.0;
-    final vals = points.map((p) => p.value);
+    final vals = points.map((p) => p.value * scale);
     var minV = vals.reduce((a, b) => a < b ? a : b);
     var maxV = vals.reduce((a, b) => a > b ? a : b);
     if ((maxV - minV).abs() < 1e-9) {
@@ -239,7 +247,7 @@ class _BuckTracePainter extends CustomPainter {
     }
     final path = Path()..moveTo(x(points.first.timeMicroseconds), y(points.first.value));
     for (final p in points.skip(1)) {
-      path.lineTo(x(p.timeMicroseconds), y(p.value));
+      path.lineTo(x(p.timeMicroseconds), y(p.value * scale));
     }
     canvas.drawPath(path, Paint()
       ..color = color..strokeWidth = 1.8
@@ -260,6 +268,6 @@ class _BuckTracePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _BuckTracePainter old) =>
-    old.points != points || old.color != color ||
+    old.points != points || old.scale != scale || old.color != color ||
     old.gridColor != gridColor || old.textColor != textColor;
 }
