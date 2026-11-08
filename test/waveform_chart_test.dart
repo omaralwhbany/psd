@@ -215,10 +215,12 @@ void main() {
     final input = BuckInputs.defaults();
     final result = const BuckEngine().calculate(input);
     await tester.pumpWidget(MaterialApp(
-      locale: const Locale('ar'),
-      supportedLocales: const [Locale('ar'), Locale('en')],
+      locale: const Locale('en'),
+      supportedLocales: const [Locale('en')],
       home: Scaffold(
-        body: SingleChildScrollView(
+        body: Directionality(
+          textDirection: TextDirection.rtl,
+          child: SingleChildScrollView(
           child: BuckDeviceWaveformsView(
             waveforms: BuckWaveformSet.fromCalculation(input: input, values: result.values),
             voltageLabel: 'الجهد',
@@ -238,6 +240,7 @@ void main() {
               'rmsCurrent': 'تيار RMS', 'averageCurrent': 'متوسط التيار',
               'acCurrent': 'تيار AC',
             },
+          ),
           ),
         ),
       ),

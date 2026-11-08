@@ -48,8 +48,8 @@ class BuckEngine {
     final vinDesign = input.inputVoltageMax;
 
     // Matches PSD Buck.calcMinInductance(): design at maximum input voltage.
-    final minimumInductance = (vinDesign - vo) * (vo + vf) /
-        (fs * (vinDesign + vf) * rippleTarget);
+    final minimumInductance = (1 / fs) * (vinDesign - vo) *
+        ((vo + vf) / (vinDesign + vf)) * (1 / rippleTarget);
     final inductance = selected ?? minimumInductance;
 
     final dutyCcm = (vo + vf) / (vin + vf);
@@ -59,7 +59,8 @@ class BuckEngine {
         'Buck duty cycle must not exceed 100% at the selected operating point.',
       ]);
     }
-    final rippleCcm = (vin - vo) * dutyCcm / (inductance * fs);
+    final rippleCcm = (1 / fs) * (vin - vo) *
+        ((vo + vf) / (vin + vf)) * (1 / inductance);
     final isCcm = rippleCcm <= 2 * iout;
 
     late double ton;

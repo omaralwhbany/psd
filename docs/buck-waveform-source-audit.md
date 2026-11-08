@@ -147,3 +147,10 @@ values for each device. The regression suite compares every displayed
 metric to those original Java values. A CCM-only output-capacitor minimum
 current label mismatch was corrected: Java uses `imin_ccm - Iout` in CCM
 and `-Iout` in DCM.
+
+
+The CCM/DCM classifier and minimum-inductance expression now preserve the
+original Java multiplication order (`1/fs * deltaV * duty * 1/L)), rather
+than an algebraically equivalent rearrangement. This removes a floating
+point edge discrepancy at the exact CCM boundary, where Buck.java uses
+`iripple_buck <= 2 * iout_calculation`.
