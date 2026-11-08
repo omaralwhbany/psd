@@ -114,9 +114,14 @@ void main() {
     expect(set.devices[4].voltage.first.value, vo);
     expect(set.devices[4].current[2].value, closeTo(capCurrentMax, 1e-12));
     expect(set.devices[4].current[4].value, closeTo(capCurrentMin, 1e-12));
-    const periodUs = 5.0;
+    final ton = result.values['onTime']!;
+    final toff = result.values['offTime']!;
+    final tidle = result.values['idleTime']!;
+    // Buck.java fillTimeScaleArrays() uses t1+t2+t3; CCM t3 is 1 ns.
+    expect(set.devices[2].voltage[6].timeMicroseconds,
+        closeTo((ton + toff + tidle - 1e-9) * 1e6, 1e-9));
     expect(set.devices[2].voltage[7].timeMicroseconds,
-        closeTo(periodUs + 0.001, 1e-9));
+        closeTo((ton + toff + tidle + 1e-9) * 1e6, 1e-9));
   });
 
   test('five Buck DCM device traces match fixed PSD5 runtime oracle values', () {
@@ -159,6 +164,13 @@ void main() {
     expect(set.devices[4].voltage.every((p) => p.value == vo), isTrue);
     expect(set.devices[4].current[2].value, closeTo(peak - iout, 1e-12));
     expect(set.devices[4].current[4].value, -iout);
+    final ton = result.values['onTime']!;
+    final toff = result.values['offTime']!;
+    final tidle = result.values['idleTime']!;
+    expect(set.devices[2].voltage[6].timeMicroseconds,
+        closeTo((ton + toff + tidle - 1e-9) * 1e6, 1e-9));
+    expect(set.devices[2].voltage[7].timeMicroseconds,
+        closeTo((ton + toff + tidle + 1e-9) * 1e6, 1e-9));
   });
 
   testWidgets('five Buck device waveform panels render on narrow screens', (tester) async {

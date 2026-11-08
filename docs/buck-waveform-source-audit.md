@@ -19,9 +19,11 @@ graph arrays are not claimed to be runtime output from Java graph methods.
 
 ## Timing and sample count
 
-`fillTimeScaleArrays()` builds 21 time samples across three switching periods.
-It inserts a 1 ns offset on either side of switching transitions and converts
-seconds to microseconds. `Graph` then copies arrays with length minus one in
+`fillTimeScaleArrays()` builds 21 time samples using the exact `t1 + t2 + t3` cycle sum from
+`fillTimeScaleArrays()`. It inserts a 1 ns offset on either side of switching
+transitions and converts seconds to microseconds. In CCM, `t3` is itself the
+1 ns numerical epsilon, so each plotted cycle is 1 ns longer than `1/fs`; in
+DCM, `t1 + t2 + t3` sums to the switching period. `Graph` then copies arrays with length minus one in
 both its constructor and `setPoints()`; therefore the original Swing graph
 plots the first 20 points, not all 21. Flutter now preserves the source
 21-point time base but renders the same first 20 samples.

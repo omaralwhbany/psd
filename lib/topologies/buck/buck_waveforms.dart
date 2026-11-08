@@ -34,9 +34,12 @@ class BuckWaveformSet {
     final vin = values['operatingInputVoltage']!;
     final vo = input.outputVoltage;
     final vf = input.diodeForwardVoltage;
-    final period = 1 / input.switchingFrequency;
     final ton = values['onTime']!;
     final toff = values['offTime']!;
+    final tidle = values['idleTime']!;
+    // Buck.java time_scale_raw uses t1+t2+t3, not 1/fs. In CCM t3=1 ns,
+    // so its graph time base is one nanosecond longer than the nominal period.
+    final cycleDuration = ton + toff + tidle;
     final minimum = values['minimumCurrent']!;
     final peak = values['peakCurrent']!;
     final iout = input.outputCurrent;
@@ -48,13 +51,13 @@ class BuckWaveformSet {
     // Exact 21-point time_scale_raw sequence in Buck.java lines 437-457.
     final times = <double>[
       0.0, edge, ton - edge, ton + edge,
-      ton + toff - edge, ton + toff + edge, period - edge,
-      period + edge, period + ton - edge, period + ton + edge,
-      period + ton + toff - edge, period + ton + toff + edge,
-      2 * period - edge, 2 * period + edge,
-      2 * period + ton - edge, 2 * period + ton + edge,
-      2 * period + ton + toff - edge, 2 * period + ton + toff + edge,
-      3 * period - edge, 3 * period + edge, 3 * period + ton - edge,
+      ton + toff - edge, ton + toff + edge, cycleDuration - edge,
+      cycleDuration + edge, cycleDuration + ton - edge, cycleDuration + ton + edge,
+      cycleDuration + ton + toff - edge, cycleDuration + ton + toff + edge,
+      2 * cycleDuration - edge, 2 * cycleDuration + edge,
+      2 * cycleDuration + ton - edge, 2 * cycleDuration + ton + edge,
+      2 * cycleDuration + ton + toff - edge, 2 * cycleDuration + ton + toff + edge,
+      3 * cycleDuration - edge, 3 * cycleDuration + edge, 3 * cycleDuration + ton - edge,
     ];
 
     List<BuckWaveformPoint> trace(List<double> samples) {
@@ -245,7 +248,8 @@ class _BuckTracePainter extends CustomPainter {
       final yy = padY + (size.height - padY * 2) * i / 2;
       canvas.drawLine(Offset(padX, yy), Offset(size.width - padX, yy), grid);
     }
-    final path = Path()..moveTo(x(points.first.timeMicroseconds), y(points.first.value));
+    final path = Path()..moveTo(
+      x(points.first.timeMicroseconds), y(points.first.value * scale));
     for (final p in points.skip(1)) {
       path.lineTo(x(p.timeMicroseconds), y(p.value * scale));
     }
