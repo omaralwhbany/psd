@@ -241,6 +241,10 @@ void main() {
       buck.calculate(changed(vinMin: 5, vinMax: 8, vo: 5, vf: 5)).isValid,
       isTrue,
     );
+    expect(
+      buck.calculate(changed(vinMin: 5, vinMax: 8, vo: 5.000001, vf: 5)).errors,
+      contains('Buck output voltage must not exceed minimum input voltage.'),
+    );
   });
 
   test('Buck rejects invalid operating input voltage', () {

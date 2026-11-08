@@ -32,6 +32,14 @@ void main() {
       expect(result.isValid, isTrue);
       expect(result.values['isCcm'], caseName == 'dcm' ? 0 : 1);
       if (caseName == 'boundary') {
+        final javaInductanceMicroHenries =
+            (scenario['javaInductanceFieldMicroHenries'] as num).toDouble();
+        // Buck.getUserModifiedValues() parses µH and divides by 1,000,000.
+        expect(
+          number('selectedInductance'),
+          javaInductanceMicroHenries / 1e6,
+          reason: 'boundary fixture must preserve the original Java UI conversion',
+        );
         expect(result.values['minimumCurrent'], closeTo(0, 1e-12));
       }
 

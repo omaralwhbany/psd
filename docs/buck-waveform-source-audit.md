@@ -122,6 +122,13 @@ axis in microseconds. This is a source comparison of the original panel
 geometry; no claim is made that the Flutter and Swing rasterization are pixel
 identical.
 
+The graph's mV/mA selection also follows the original `Graph.java` threshold
+exactly: Java first formats all side-label values with
+`DecimalFormat("#0.00####")`, then checks whether any parsed absolute value is
+at least 1. Flutter now rounds to the same six fractional digits before
+choosing units; regression cases cover values immediately below and above
+that rounded threshold.
+
 
 ## Checked-in original Java runtime graph fixture
 
@@ -133,6 +140,18 @@ calculation passes with each input set, under OpenJDK 21 headless mode.
 Flutter tests now read these fixed Java values directly; expected graph
 samples and time coordinates are not derived from BuckEngine output.
 
+
+The boundary fixture preserves the exact Java UI conversion rather than
+an idealized decimal threshold: `getUserModifiedValues()` parses the
+inductance text in microhenries and divides by 1,000,000. The Buck screen's custom-inductance conversion now mirrors the Java UI
+operation (`parse µH / 1,000,000`) rather than multiplying by `1e-6`.
+A UI-level boundary regression uses an input where those two IEEE-754
+operations produce adjacent doubles and therefore different CCM/DCM results.
+
+The field text
+`2.027027027027027` µH therefore becomes
+`2.0270270270270273e-6` H on OpenJDK 21. The fixture records both values so
+the source's `iripple_buck <= 2 * iout_calculation` equality is reproducible.
 
 The runtime fixture also includes the exact CCM/DCM boundary. Buck.java uses
 `iripple_buck <= 2 * iout_calculation`, so equality remains CCM. The

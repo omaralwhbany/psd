@@ -101,7 +101,7 @@ class AppStrings {
       'Output current must not exceed 1000 A.': 'يجب ألا يتجاوز تيار الخرج 1000 أمبير.',
       'Switching frequency must not exceed 10 MHz.': 'يجب ألا يتجاوز تردد التبديل 10 ميجاهرتز.',
       'Ripple fraction must not exceed 1 (100%).': 'يجب ألا تتجاوز نسبة التموج 100%.',
-      'Buck output voltage must be below minimum input voltage.': 'يجب أن يكون جهد خرج المحول الخافض أقل من أقل جهد دخل.',
+      'Buck output voltage must not exceed minimum input voltage.': 'يجب ألا يتجاوز جهد الخرج أدنى جهد دخل.',
       'Diode forward voltage must be between 0 and 5 V.': 'يجب أن يكون هبوط جهد الدايود بين 0 و5 فولت.',
       'Operating input voltage must be within the input voltage range.': 'يجب أن يقع جهد الدخل التشغيلي ضمن مجال جهد الدخل المحدد.',
       'Selected inductance must be greater than zero.': 'يجب أن تكون قيمة المحاثة المختارة أكبر من صفر.',

@@ -28,7 +28,7 @@ class BuckEngine {
     if (input.outputCurrent > 1000) errors.add('Output current must not exceed 1000 A.');
     if (input.switchingFrequency > 1e7) errors.add('Switching frequency must not exceed 10 MHz.');
     if (input.rippleFraction > 1) errors.add('Ripple fraction must not exceed 1 (100%).');
-    if (input.outputVoltage > input.inputVoltageMin) errors.add('Buck output voltage must be below minimum input voltage.');
+    if (input.outputVoltage > input.inputVoltageMin) errors.add('Buck output voltage must not exceed minimum input voltage.');
     if (input.diodeForwardVoltage < 0 || input.diodeForwardVoltage > 5 || !input.diodeForwardVoltage.isFinite) {
       errors.add('Diode forward voltage must be between 0 and 5 V.');
     }

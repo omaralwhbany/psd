@@ -49,7 +49,8 @@ class _BuckScreenState extends State<BuckScreen> {
     switchingFrequency: Units.kiloToBase(_v('fsw')),
     rippleFraction: _v('ripple') / 100, diodeForwardVoltage: _v('vf'),
     operatingInputVoltage: _v('vinOperating'),
-    selectedInductance: _customInductance ? Units.microToBase(_v('inductance')) : null,
+    // Buck.java getUserModifiedValues() parses µH and divides by 1,000,000.
+    selectedInductance: _customInductance ? _v('inductance') / 1e6 : null,
   );
 
   @override

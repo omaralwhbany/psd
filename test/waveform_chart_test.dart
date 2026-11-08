@@ -126,7 +126,10 @@ void main() {
         closeTo(result.values['inductorRmsCurrent']!, 1e-12));
     expect(set.devices[3].metrics.averageCurrent,
         closeTo(result.values['diodeAverageCurrent']!, 1e-12));
-    expect(set.devices[4].metrics.minimumCurrent, -input.outputCurrent);
+    // Buck.java actualValues() and outcapGetLabelsValuesCurrent() use
+    // imin_ccm_buck - iout_calculation for the CCM minimum.
+    expect(set.devices[4].metrics.minimumCurrent,
+        closeTo(minimum - input.outputCurrent, 1e-12));
     expect(set.devices[4].metrics.maximumCurrent,
         closeTo(peak - input.outputCurrent, 1e-12));
 
@@ -184,6 +187,32 @@ void main() {
     expect(set.devices[4].metrics.maximumCurrent, closeTo(peak - iout, 1e-12));
 
 
+  });
+
+  test('Buck graph unit prefixes round side labels before the one-unit threshold', () {
+    const roundedToOne = BuckDeviceMetrics(
+      minimumVoltage: 0.9999996,
+      maximumVoltage: 0.9999996,
+      minimumCurrent: -0.9999996,
+      maximumCurrent: 0.9999996,
+      rmsCurrent: 0.9999996,
+      averageCurrent: 0,
+      acCurrent: 0.9999996,
+    );
+    expect(roundedToOne.voltageScale, 1);
+    expect(roundedToOne.currentScale, 1);
+
+    const remainsBelowOne = BuckDeviceMetrics(
+      minimumVoltage: 0.9999994,
+      maximumVoltage: 0.9999994,
+      minimumCurrent: -0.9999994,
+      maximumCurrent: 0.9999994,
+      rmsCurrent: 0.9999994,
+      averageCurrent: 0,
+      acCurrent: 0.9999994,
+    );
+    expect(remainsBelowOne.voltageScale, 1000);
+    expect(remainsBelowOne.currentScale, 1000);
   });
 
   test('Buck graph unit prefixes follow the original Graph.java side-label rule', () {
