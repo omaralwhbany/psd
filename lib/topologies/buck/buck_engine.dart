@@ -161,7 +161,7 @@ class BuckEngine {
     // calculates and displays results, so preserve it as a warning.
     final warnings = <String>[];
     if (!(ripple * 0.99 < rippleTarget)) {
-      warnings.add('$warning');
+      warnings.add('Actual inductor ripple exceeds the requested ripple target.');
     }
     return CalculationResult(values: {
       'operatingInputVoltage': vin,

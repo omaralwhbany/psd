@@ -47,7 +47,7 @@ void main() {
     await tester.enterText(find.byType(TextField).last, '5');
     await tester.pumpAndSettle();
 
-    expect(find.text('$warning'), findsOneWidget);
+    expect(find.text('Actual inductor ripple exceeds the requested ripple target.'), findsOneWidget);
     expect(find.text('Operating point'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

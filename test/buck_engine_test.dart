@@ -82,7 +82,7 @@ void main() {
     final r = buck.calculate(input);
     expect(r.isValid, isTrue);
     expect(r.values['isCcm'], 0);
-    expect(r.warnings, contains('$warning'));
+    expect(r.warnings, contains('Actual inductor ripple exceeds the requested ripple target.'));
     final peak = r.values['peakCurrent']!;
     final on = r.values['onFraction']!;
     final off = r.values['offFraction']!;
@@ -113,7 +113,7 @@ void main() {
     expect(result.values['isCcm'], 1);
     expect(result.values['rippleCurrent']! * 0.99,
         greaterThan(input.outputCurrent * input.rippleFraction));
-    expect(result.warnings, contains('$warning'));
+    expect(result.warnings, contains('Actual inductor ripple exceeds the requested ripple target.'));
     expect(result.values['peakCurrent'], greaterThan(0));
   });
 
