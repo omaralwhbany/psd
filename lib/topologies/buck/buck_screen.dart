@@ -146,6 +146,15 @@ class _BuckScreenState extends State<BuckScreen> {
             'diode': s.freewheelDiode,
             'outputCapacitor': s.outputCapacitor,
           },
+          metricLabels: {
+            'minimumVoltage': s.minimumVoltage,
+            'maximumVoltage': s.maximumVoltage,
+            'minimumCurrent': s.minimumCurrent,
+            'maximumCurrent': s.maximumCurrent,
+            'rmsCurrent': s.rmsCurrent,
+            'averageCurrent': s.averageCurrent,
+            'acCurrent': s.acCurrent,
+          },
         )),
         const SizedBox(height: 14),
         _panel(s.synchronizedWaveforms, PowerWaveformChart(

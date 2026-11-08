@@ -65,6 +65,13 @@ class AppStrings {
   String get threeSwitchingPeriods => isArabic ? 'ثلاث دورات تبديل • عينات انتقالية 1 ns وفق PSD5' : 'Three switching periods • 1 ns transition samples per PSD5';
   String get inputCapacitor => isArabic ? 'مكثف الدخل Ci' : 'Input capacitor Ci';
   String get outputCapacitor => isArabic ? 'مكثف الخرج Co' : 'Output capacitor Co';
+  String get minimumVoltage => isArabic ? 'أدنى جهد' : 'Min V';
+  String get maximumVoltage => isArabic ? 'أعلى جهد' : 'Max V';
+  String get minimumCurrent => isArabic ? 'أدنى تيار' : 'Min I';
+  String get maximumCurrent => isArabic ? 'أعلى تيار' : 'Max I';
+  String get rmsCurrent => isArabic ? 'تيار RMS' : 'RMS I';
+  String get averageCurrent => isArabic ? 'متوسط التيار' : 'Avg I';
+  String get acCurrent => isArabic ? 'تيار AC' : 'AC I';
   String get buckCcmCurrent => isArabic ? 'تيار ملف Buck في نمط CCM' : 'Buck inductor current (CCM)';
   String get buckDcmCurrent => isArabic ? 'تيار ملف Buck في نمط DCM' : 'Buck inductor current (DCM)';
   String get buckDescription => isArabic ? 'غير معزول • محول DC-DC خافض للجهد' : 'Non-isolated • Step-down DC-DC converter';

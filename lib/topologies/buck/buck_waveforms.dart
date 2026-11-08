@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import 'buck_inputs.dart';
@@ -9,17 +11,46 @@ class BuckWaveformPoint {
   final double value;
 }
 
+class BuckDeviceMetrics {
+  const BuckDeviceMetrics({
+    required this.minimumVoltage,
+    required this.maximumVoltage,
+    required this.minimumCurrent,
+    required this.maximumCurrent,
+    required this.rmsCurrent,
+    required this.averageCurrent,
+    required this.acCurrent,
+  });
+  final double minimumVoltage;
+  final double maximumVoltage;
+  final double minimumCurrent;
+  final double maximumCurrent;
+  final double rmsCurrent;
+  final double averageCurrent;
+  final double acCurrent;
+
+  // Graph.java chooses mV/mA from the complete side-label values, not from
+  // an arbitrary single waveform sample.
+  double get voltageScale =>
+      minimumVoltage.abs() < 1 && maximumVoltage.abs() < 1 ? 1000 : 1;
+  double get currentScale => [
+    minimumCurrent, maximumCurrent, rmsCurrent, averageCurrent, acCurrent,
+  ].every((value) => value.abs() < 1) ? 1000 : 1;
+}
+
 class BuckDeviceWaveform {
   const BuckDeviceWaveform({
     required this.id,
     required this.title,
     required this.voltage,
     required this.current,
+    required this.metrics,
   });
   final String id;
   final String title;
   final List<BuckWaveformPoint> voltage;
   final List<BuckWaveformPoint> current;
+  final BuckDeviceMetrics metrics;
 }
 
 /// Source-derived reconstruction of Buck.java's five paint* graph methods.
@@ -108,26 +139,80 @@ class BuckWaveformSet {
         : [minimum - iout, minimum - iout, peak - iout, peak - iout,
             minimum - iout, minimum - iout, minimum - iout];
 
+    double acCurrent(double rms, double average, {bool clampBelowAverage = false}) {
+      if (clampBelowAverage && rms < average) return 0;
+      return math.sqrt(rms * rms - average * average);
+    }
+
+    BuckDeviceMetrics metrics({
+      required double minV, required double maxV,
+      required double minI, required double maxI,
+      required double rmsI, required double averageI,
+      bool clampAc = false,
+    }) => BuckDeviceMetrics(
+      minimumVoltage: minV, maximumVoltage: maxV,
+      minimumCurrent: minI, maximumCurrent: maxI,
+      rmsCurrent: rmsI, averageCurrent: averageI,
+      acCurrent: acCurrent(rmsI, averageI, clampBelowAverage: clampAc),
+    );
+
+    final inputCapMetrics = metrics(
+      minV: values['inputCapacitorVoltageMin']!,
+      maxV: values['inputCapacitorVoltageMax']!,
+      minI: iin - peak,
+      maxI: fetAverage,
+      rmsI: values['inputCapacitorRmsCurrent']!,
+      averageI: values['inputCapacitorAverageCurrent']!,
+    );
+    final fetMetrics = metrics(
+      minV: values['mosfetVoltageMin']!, maxV: values['mosfetVoltageMax']!,
+      minI: minimum, maxI: peak,
+      rmsI: values['mosfetRmsCurrent']!, averageI: values['mosfetAverageCurrent']!,
+    );
+    final inductorMetrics = metrics(
+      minV: values['inductorVoltageMin']!, maxV: values['inductorVoltageMax']!,
+      minI: minimum, maxI: peak,
+      rmsI: values['inductorRmsCurrent']!, averageI: values['inductorAverageCurrent']!,
+      clampAc: true,
+    );
+    final diodeMetrics = metrics(
+      minV: values['diodeVoltageMin']!, maxV: values['diodeVoltageMax']!,
+      minI: minimum, maxI: peak,
+      rmsI: values['diodeRmsCurrent']!, averageI: values['diodeAverageCurrent']!,
+    );
+    final outputCapMetrics = metrics(
+      minV: values['outputCapacitorVoltageMin']!,
+      maxV: values['outputCapacitorVoltageMax']!,
+      minI: -iout, maxI: peak - iout,
+      rmsI: values['outputCapacitorRmsCurrent']!,
+      averageI: values['outputCapacitorAverageCurrent']!,
+    );
+
     return BuckWaveformSet(List.unmodifiable([
       BuckDeviceWaveform(
         id: 'inputCapacitor', title: 'Input capacitor Ci',
         voltage: trace(List.filled(7, vin)), current: trace(inputCapCurrent),
+        metrics: inputCapMetrics,
       ),
       BuckDeviceWaveform(
         id: 'mosfet', title: 'MOSFET Q1',
         voltage: trace(fetVoltage), current: trace(fetCurrent),
+        metrics: fetMetrics,
       ),
       BuckDeviceWaveform(
         id: 'inductor', title: 'Inductor L1',
         voltage: trace(inductorVoltage), current: trace(inductorCurrent),
+        metrics: inductorMetrics,
       ),
       BuckDeviceWaveform(
         id: 'diode', title: 'Freewheel diode D1',
         voltage: trace(diodeVoltage), current: trace(diodeCurrent),
+        metrics: diodeMetrics,
       ),
       BuckDeviceWaveform(
         id: 'outputCapacitor', title: 'Output capacitor Co',
         voltage: trace(List.filled(7, vo)), current: trace(outputCapCurrent),
+        metrics: outputCapMetrics,
       ),
     ]));
   }
@@ -141,12 +226,14 @@ class BuckDeviceWaveformsView extends StatelessWidget {
     required this.currentLabel,
     required this.periodLabel,
     required this.deviceTitles,
+    required this.metricLabels,
   });
   final BuckWaveformSet waveforms;
   final String voltageLabel;
   final String currentLabel;
   final String periodLabel;
   final Map<String, String> deviceTitles;
+  final Map<String, String> metricLabels;
 
   @override
   Widget build(BuildContext context) {
@@ -166,10 +253,14 @@ class BuckDeviceWaveformsView extends StatelessWidget {
                     style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 6),
                   _BuckTrace(points: device.voltage, label: voltageLabel,
-                    unit: 'V', color: theme.colorScheme.tertiary),
+                    unit: 'V', scale: device.metrics.voltageScale,
+                    color: theme.colorScheme.tertiary),
                   const SizedBox(height: 4),
                   _BuckTrace(points: device.current, label: currentLabel,
-                    unit: 'A', color: theme.colorScheme.primary),
+                    unit: 'A', scale: device.metrics.currentScale,
+                    color: theme.colorScheme.primary),
+                  const SizedBox(height: 6),
+                  _BuckDeviceMetricsView(metrics: device.metrics, labels: metricLabels),
                   const SizedBox(height: 2),
                   Text(periodLabel, style: theme.textTheme.labelSmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant)),
@@ -184,17 +275,17 @@ class BuckDeviceWaveformsView extends StatelessWidget {
 
 class _BuckTrace extends StatelessWidget {
   const _BuckTrace({
-    required this.points, required this.label, required this.unit, required this.color,
+    required this.points, required this.label, required this.unit,
+    required this.scale, required this.color,
   });
   final List<BuckWaveformPoint> points;
   final String label;
   final String unit;
+  final double scale;
   final Color color;
 
   @override
   Widget build(BuildContext context) {
-    final peakMagnitude = points.map((p) => p.value.abs()).reduce((a, b) => a > b ? a : b);
-    final scale = peakMagnitude < 1.0 ? 1000.0 : 1.0;
     final displayUnit = scale == 1000.0 ? 'm$unit' : unit;
     return SizedBox(
     height: 76,
@@ -209,6 +300,38 @@ class _BuckTrace extends StatelessWidget {
       )),
     ]),
   );
+  }
+}
+
+class _BuckDeviceMetricsView extends StatelessWidget {
+  const _BuckDeviceMetricsView({required this.metrics, required this.labels});
+  final BuckDeviceMetrics metrics;
+  final Map<String, String> labels;
+
+  @override
+  Widget build(BuildContext context) {
+    final voltageScale = metrics.voltageScale;
+    final currentScale = metrics.currentScale;
+    final voltageUnit = voltageScale == 1000 ? 'mV' : 'V';
+    final currentUnit = currentScale == 1000 ? 'mA' : 'A';
+    final entries = <(String, String)>[
+      ('minimumVoltage', '${(metrics.minimumVoltage * voltageScale).toStringAsFixed(2)} $voltageUnit'),
+      ('maximumVoltage', '${(metrics.maximumVoltage * voltageScale).toStringAsFixed(2)} $voltageUnit'),
+      ('minimumCurrent', '${(metrics.minimumCurrent * currentScale).toStringAsFixed(2)} $currentUnit'),
+      ('maximumCurrent', '${(metrics.maximumCurrent * currentScale).toStringAsFixed(2)} $currentUnit'),
+      ('rmsCurrent', '${(metrics.rmsCurrent * currentScale).toStringAsFixed(2)} $currentUnit'),
+      ('averageCurrent', '${(metrics.averageCurrent * currentScale).toStringAsFixed(2)} $currentUnit'),
+      ('acCurrent', '${(metrics.acCurrent * currentScale).toStringAsFixed(2)} $currentUnit'),
+    ];
+    final style = Theme.of(context).textTheme.labelSmall;
+    return Wrap(
+      spacing: 12,
+      runSpacing: 4,
+      children: [
+        for (final entry in entries)
+          Text('${labels[entry.$1] ?? entry.$1}: ${entry.$2}', style: style),
+      ],
+    );
   }
 }
 

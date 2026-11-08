@@ -114,6 +114,21 @@ void main() {
     expect(set.devices[4].voltage.first.value, vo);
     expect(set.devices[4].current[2].value, closeTo(capCurrentMax, 1e-12));
     expect(set.devices[4].current[4].value, closeTo(capCurrentMin, 1e-12));
+    // Graph.java side labels use min/max, RMS, average and AC current.
+    expect(set.devices[0].metrics.minimumCurrent,
+        closeTo(inputAverage - peak, 1e-12));
+    expect(set.devices[0].metrics.maximumCurrent,
+        closeTo(fetAverage, 1e-12));
+    expect(set.devices[0].metrics.averageCurrent, 0);
+    expect(set.devices[1].metrics.minimumCurrent, minimum);
+    expect(set.devices[1].metrics.maximumCurrent, peak);
+    expect(set.devices[2].metrics.rmsCurrent,
+        closeTo(result.values['inductorRmsCurrent']!, 1e-12));
+    expect(set.devices[3].metrics.averageCurrent,
+        closeTo(result.values['diodeAverageCurrent']!, 1e-12));
+    expect(set.devices[4].metrics.minimumCurrent, -input.outputCurrent);
+    expect(set.devices[4].metrics.maximumCurrent,
+        closeTo(peak - input.outputCurrent, 1e-12));
     final ton = result.values['onTime']!;
     final toff = result.values['offTime']!;
     final tidle = result.values['idleTime']!;
@@ -164,6 +179,16 @@ void main() {
     expect(set.devices[4].voltage.every((p) => p.value == vo), isTrue);
     expect(set.devices[4].current[2].value, closeTo(peak - iout, 1e-12));
     expect(set.devices[4].current[4].value, -iout);
+    expect(set.devices[0].metrics.minimumCurrent, closeTo(inputAverage - peak, 1e-12));
+    expect(set.devices[0].metrics.maximumCurrent, closeTo(fetAverage, 1e-12));
+    expect(set.devices[1].metrics.minimumCurrent, 0);
+    expect(set.devices[1].metrics.maximumCurrent, closeTo(peak, 1e-12));
+    expect(set.devices[2].metrics.minimumCurrent, 0);
+    expect(set.devices[2].metrics.maximumCurrent, closeTo(peak, 1e-12));
+    expect(set.devices[3].metrics.minimumCurrent, 0);
+    expect(set.devices[3].metrics.maximumCurrent, closeTo(peak, 1e-12));
+    expect(set.devices[4].metrics.minimumCurrent, -iout);
+    expect(set.devices[4].metrics.maximumCurrent, closeTo(peak - iout, 1e-12));
     final ton = result.values['onTime']!;
     final toff = result.values['offTime']!;
     final tidle = result.values['idleTime']!;
@@ -194,6 +219,11 @@ void main() {
               'inductor': 'Inductor L1',
               'diode': 'Freewheel diode D1',
               'outputCapacitor': 'Output capacitor Co',
+            },
+            metricLabels: const {
+              'minimumVoltage': 'Min V', 'maximumVoltage': 'Max V',
+              'minimumCurrent': 'Min I', 'maximumCurrent': 'Max I',
+              'rmsCurrent': 'RMS I', 'averageCurrent': 'Avg I', 'acCurrent': 'AC I',
             },
           ),
         ),
