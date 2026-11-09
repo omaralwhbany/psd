@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 
 import 'buck_inputs.dart';
 
+/// Mirrors Buck.java's six-decimal side-label rounding before Graph.java's
+/// absolute-value threshold check.
+bool _javaGraphLabelBelowOne(double value) => value.abs() < 0.9999995;
+
 /// One sample from the original PSD5 Buck graph time base (microseconds).
 class BuckWaveformPoint {
   const BuckWaveformPoint(this.timeMicroseconds, this.value);
@@ -29,13 +33,22 @@ class BuckDeviceMetrics {
   final double averageCurrent;
   final double acCurrent;
 
-  // Graph.java chooses mV/mA from the complete side-label values, not from
-  // an arbitrary single waveform sample.
+  // Buck.java formats side-label values with DecimalFormat("#0.00####")
+  // before Graph.java checks whether their absolute value is at least 1.
+  // Six fractional digits mean 0.9999995 rounds to 1.00, so it uses V/A.
   double get voltageScale =>
-      minimumVoltage.abs() < 1 && maximumVoltage.abs() < 1 ? 1000 : 1;
+      [minimumVoltage, maximumVoltage].every(_javaGraphLabelBelowOne)
+          ? 1000
+          : 1;
   double get currentScale => [
-    minimumCurrent, maximumCurrent, rmsCurrent, averageCurrent, acCurrent,
-  ].every((value) => value.abs() < 1) ? 1000 : 1;
+        minimumCurrent,
+        maximumCurrent,
+        rmsCurrent,
+        averageCurrent,
+        acCurrent,
+      ].every(_javaGraphLabelBelowOne)
+          ? 1000
+          : 1;
 }
 
 class BuckDeviceWaveform {

@@ -12,6 +12,35 @@ void main() {
   ) as Map<String, dynamic>;
   final cases = fixture['cases'] as Map<String, dynamic>;
 
+  test('Buck graph SI prefixes match Java formatted-label rounding', () {
+    BuckDeviceMetrics metrics({
+      double minimumVoltage = 0.2,
+      double maximumVoltage = 0.3,
+      double minimumCurrent = 0.2,
+      double maximumCurrent = 0.3,
+      double rmsCurrent = 0.4,
+      double averageCurrent = 0.3,
+      double acCurrent = 0.2,
+    }) =>
+        BuckDeviceMetrics(
+          minimumVoltage: minimumVoltage,
+          maximumVoltage: maximumVoltage,
+          minimumCurrent: minimumCurrent,
+          maximumCurrent: maximumCurrent,
+          rmsCurrent: rmsCurrent,
+          averageCurrent: averageCurrent,
+          acCurrent: acCurrent,
+        );
+
+    // Buck.java formats these labels with DecimalFormat("#0.00####"):
+    // 0.9999994 -> 0.999999, while 0.9999996 -> 1.00.
+    // Graph.java selects mV/mA only when every parsed label remains < 1.
+    expect(metrics(minimumVoltage: 0.9999994).voltageScale, 1000);
+    expect(metrics(minimumVoltage: 0.9999996).voltageScale, 1);
+    expect(metrics(minimumCurrent: -0.9999994).currentScale, 1000);
+    expect(metrics(minimumCurrent: -0.9999996).currentScale, 1);
+  });
+
   for (final caseName in ['ccm', 'dcm', 'boundary']) {
     test('all five Buck $caseName graph traces match original PSD5.jar runtime', () {
       final scenario = cases[caseName] as Map<String, dynamic>;

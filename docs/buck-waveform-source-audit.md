@@ -54,9 +54,12 @@ definition are retained even where a more detailed physical model might differ.
 `buck_waveforms.dart` now builds the five paired voltage/current traces from
 the Buck calculation output, using the source's CCM/DCM point patterns and
 21-point time base. The UI shows all five device graphs and localizes device
-names and voltage/current labels. Voltage/current axes use mV/mA when the
-largest plotted magnitude is below 1, matching the unit selection in
-`Graph.java`.
+names and voltage/current labels. Voltage/current axes use mV/mA only when
+every corresponding side-label value remains below 1 after the original
+`DecimalFormat("#0.00####")` rounding in `Buck.java`. `Graph.java` parses those
+formatted labels and switches to V/A when any absolute value is at least 1;
+for example, 0.9999996 formats as 1.00. Flutter now preserves that boundary
+instead of checking unrounded doubles.
 
 Regression tests use fixed numerical CCM/DCM oracle values captured from
 previous actual executions of the original `PSD5.jar` calculation class.
