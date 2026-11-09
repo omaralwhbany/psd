@@ -39,6 +39,10 @@ void main() {
     expect(metrics(minimumVoltage: 0.9999996).voltageScale, 1);
     expect(metrics(minimumCurrent: -0.9999994).currentScale, 1000);
     expect(metrics(minimumCurrent: -0.9999996).currentScale, 1);
+    // Java formats NaN as "NaN"; Double.parseDouble accepts it, and
+    // Graph.java's NaN >= 1 comparison is false, leaving the milli prefix.
+    expect(metrics(minimumVoltage: double.nan).voltageScale, 1000);
+    expect(metrics(acCurrent: double.nan).currentScale, 1000);
   });
 
   for (final caseName in ['ccm', 'dcm', 'boundary']) {

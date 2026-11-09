@@ -58,8 +58,9 @@ names and voltage/current labels. Voltage/current axes use mV/mA only when
 every corresponding side-label value remains below 1 after the original
 `DecimalFormat("#0.00####")` rounding in `Buck.java`. `Graph.java` parses those
 formatted labels and switches to V/A when any absolute value is at least 1;
-for example, 0.9999996 formats as 1.00. Flutter now preserves that boundary
-instead of checking unrounded doubles.
+for example, 0.9999996 formats as 1.00. A NaN label also does not trigger
+the switch because Java's `>= 1.0` comparison is false for NaN. Flutter now
+preserves both cases instead of checking unrounded doubles.
 
 Regression tests use fixed numerical CCM/DCM oracle values captured from
 previous actual executions of the original `PSD5.jar` calculation class.
