@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 
 class BuckSchematic extends StatelessWidget {
   const BuckSchematic({super.key});
+
+  // In an asynchronous Buck, the freewheel diode anode is at ground and
+  // its cathode faces the switch node.
+  static const double diodeCathodeBarY = 112;
+  static const double diodeTriangleApexY = 114;
+  static const double diodeAnodeBaseY = 132;
   @override
   Widget build(BuildContext context) => SizedBox(height: 190, width: double.infinity, child: CustomPaint(painter: _BuckPainter(Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.onSurface)));
 }
@@ -40,11 +46,23 @@ class _BuckPainter extends CustomPainter {
     canvas.drawLine(const Offset(16, 145), const Offset(344, 145), wire);
     canvas.drawLine(const Offset(16, 70), const Offset(16, 145), wire);
     canvas.drawLine(const Offset(344, 70), const Offset(344, 145), wire);
-    canvas.drawLine(const Offset(82, 85), const Offset(82, 112), wire);
-    final diode = Path()..moveTo(70, 112)..lineTo(94, 112)..lineTo(82, 130)..close();
+    canvas.drawLine(const Offset(82, 85), Offset(82, BuckSchematic.diodeCathodeBarY), wire);
+    final diode = Path()
+      ..moveTo(70, BuckSchematic.diodeAnodeBaseY)
+      ..lineTo(94, BuckSchematic.diodeAnodeBaseY)
+      ..lineTo(82, BuckSchematic.diodeTriangleApexY)
+      ..close();
     canvas.drawPath(diode, part);
-    canvas.drawLine(const Offset(70, 132), const Offset(94, 132), part);
-    canvas.drawLine(const Offset(82, 132), const Offset(82, 145), wire);
+    canvas.drawLine(
+      Offset(70, BuckSchematic.diodeCathodeBarY),
+      Offset(94, BuckSchematic.diodeCathodeBarY),
+      part,
+    );
+    canvas.drawLine(
+      Offset(82, BuckSchematic.diodeAnodeBaseY),
+      const Offset(82, 145),
+      wire,
+    );
     label('VIN', 16, 42); label('SWITCH', 57, 30); label('D1', 99, 111);
     label('L1', 157, 40); label('COUT', 295, 108); label('VOUT', 310, 42); label('GND', 18, 151);
     canvas.restore();
