@@ -336,6 +336,21 @@ void main() {
     );
   });
 
+  test('Buck error text matches the original strict output/minimum-input comparison', () {
+    // Buck.java checkOutputVolt() rejects only dVout > dVin_min; equality is valid.
+    const input = BuckInputs(
+      inputVoltageMin: 5,
+      inputVoltageMax: 8,
+      outputVoltage: 5.01,
+      outputCurrent: 2,
+      switchingFrequency: 100e3,
+      rippleFraction: 0.3,
+      diodeForwardVoltage: 0.5,
+    );
+    final result = buck.calculate(input);
+    expect(result.errors, contains('Buck output voltage must not exceed minimum input voltage.'));
+  });
+
   test('Buck rejects invalid operating input voltage', () {
     final d = BuckInputs.defaults();
     final invalid = BuckInputs(

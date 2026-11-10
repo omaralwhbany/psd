@@ -32,7 +32,7 @@ class BuckEngine {
         input.operatingLoadPercent < 0 || input.operatingLoadPercent > 100) {
       errors.add('Operating load percentage must be between 0 and 100.');
     }
-    if (input.outputVoltage > input.inputVoltageMin) errors.add('Buck output voltage must be below minimum input voltage.');
+    if (input.outputVoltage > input.inputVoltageMin) errors.add('Buck output voltage must not exceed minimum input voltage.');
     if (input.diodeForwardVoltage < 0 || input.diodeForwardVoltage > 5 || !input.diodeForwardVoltage.isFinite) {
       errors.add('Diode forward voltage must be between 0 and 5 V.');
     }
