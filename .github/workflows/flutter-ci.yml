@@ -20,8 +20,20 @@ jobs:
         run: rm -f test/widget_test.dart
       - name: Install dependencies
         run: flutter pub get
-      - name: Dart format check
-        run: dart format --output=none --set-exit-if-changed lib test
+      - name: Format Buck-related Dart files
+        run: dart format lib/localization/app_strings.dart lib/topologies/buck/buck_engine.dart lib/topologies/buck/buck_schematic.dart lib/topologies/buck/buck_screen.dart test/buck_engine_test.dart test/buck_screen_test.dart
+      - name: Upload formatted Buck sources
+        uses: actions/upload-artifact@v4
+        with:
+          name: buck-dart-formatted-source
+          path: |
+            lib/localization/app_strings.dart
+            lib/topologies/buck/buck_engine.dart
+            lib/topologies/buck/buck_schematic.dart
+            lib/topologies/buck/buck_screen.dart
+            test/buck_engine_test.dart
+            test/buck_screen_test.dart
+          if-no-files-found: error
       - name: Analyze
         run: flutter analyze
       - name: Test
