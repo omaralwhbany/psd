@@ -202,3 +202,35 @@ passes per input: 0% load slider = 495.68159709660966%; 50% = 24.326757000024323
 100% = 12.2850122850123%; and the fixed DCM case (9–16 V, 5 V, 2 A,
 100 kHz, 0.7 V diode, 3 µH) = 353.76503586250914%. The engine tests use
 these constants as independent runtime-oracle expectations.
+
+
+## Remaining source-parity decisions (not silently changed)
+
+The original `Buck.initComponents()` defaults are 7 V minimum input,
+30 V maximum input, 3.3 V output, 2 A rated output, 1600 kHz switching,
+50% inductor ripple, 0.7 V diode drop, and 2.2 µH selected inductance.
+`WorkingSheet` initializes the operating-input slider to 0% (minimum
+input) and load slider to 100%. The current Flutter defaults are 18/36/12 V,
+5 A, 200 kHz, 30%, and 0.5 V, with automatic `Lmin` selected unless
+the user enables a custom inductor. The Java values were confirmed from the
+original `Buck.java` UI initialization and `PSD5.jar` runtime:
+for the original defaults with 2.2 µH, the settled run is CCM, `Pout=6.6 W`,
+`Pin=7.2727272727272725 W`, and actual ripple is
+`0.5460448642266824 A (27.302243211334122%)`. This default-profile
+difference is intentionally left unchanged pending a product-level choice;
+it is not a calculation-equation uncertainty.
+
+There is also a source-side single-pass state quirk. `Buck.calculate()`
+calls `getUserValues()` and then `userCalculate()`; within
+`userCalculate()`, `actualValues()` reads the previous
+`iin` before `general()` refreshes it. The constructor and
+`WorkingSheet` slider setters call `calculate()` twice,
+but the text-field focus-lost handlers call it once. A real one-pass Java
+execution after changing to the 18 V / 12 V / 5 A / 200 kHz / 0.5 V / 33 µH
+case produced input-capacitor RMS current `3.784345775445198 A`;
+a second pass settled it to `2.344908588716427 A`. The other
+steady-state results are unchanged. Flutter currently uses the settled
+`inputAverage` value in its pure calculation, rather than reproducing
+the stale one-pass Java value. This intentional non-reproduction of an
+original transient bug remains documented and must be decided before claiming
+event-sequence-level runtime identity.
