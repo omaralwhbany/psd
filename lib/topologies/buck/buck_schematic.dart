@@ -46,7 +46,7 @@ class _BuckPainter extends CustomPainter {
     canvas.drawLine(const Offset(16, 145), const Offset(344, 145), wire);
     canvas.drawLine(const Offset(16, 70), const Offset(16, 145), wire);
     canvas.drawLine(const Offset(344, 70), const Offset(344, 145), wire);
-    canvas.drawLine(const Offset(82, 85), Offset(82, BuckSchematic.diodeCathodeBarY), wire);
+    canvas.drawLine(const Offset(82, 85), const Offset(82, BuckSchematic.diodeCathodeBarY), wire);
     final diode = Path()
       ..moveTo(70, BuckSchematic.diodeAnodeBaseY)
       ..lineTo(94, BuckSchematic.diodeAnodeBaseY)
@@ -54,12 +54,12 @@ class _BuckPainter extends CustomPainter {
       ..close();
     canvas.drawPath(diode, part);
     canvas.drawLine(
-      Offset(70, BuckSchematic.diodeCathodeBarY),
-      Offset(94, BuckSchematic.diodeCathodeBarY),
+      const Offset(70, BuckSchematic.diodeCathodeBarY),
+      const Offset(94, BuckSchematic.diodeCathodeBarY),
       part,
     );
     canvas.drawLine(
-      Offset(82, BuckSchematic.diodeAnodeBaseY),
+      const Offset(82, BuckSchematic.diodeAnodeBaseY),
       const Offset(82, 145),
       wire,
     );
