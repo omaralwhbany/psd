@@ -137,6 +137,8 @@ class _BuckScreenState extends State<BuckScreen> {
             _result(s.designRippleCurrent, '${result.values['designRippleCurrent']!.toStringAsFixed(3)} A'),
           _result(result.values['isCcm'] == 0 ? s.actualCurrentExcursion : s.rippleCurrent,
             '${result.values['rippleCurrent']!.toStringAsFixed(3)} A'),
+          _result(s.actualRipplePercent,
+            '${result.values['actualRipplePercent']!.toStringAsFixed(2)} %'),
           _result(s.graphAverageCurrent, '${result.values['inductorAverageCurrent']!.toStringAsFixed(3)} A'),
           _result(s.graphRmsCurrent, '${result.values['inductorRmsCurrent']!.toStringAsFixed(3)} A'),
           _result(s.peakCurrent, '${result.values['inductorPeakCurrent']!.toStringAsFixed(3)} A'),

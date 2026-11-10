@@ -90,4 +90,28 @@ void main() {
   });
 
 
+  testWidgets('Buck screen displays the Java current-ripple percentage', (tester) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(const MaterialApp(
+      locale: Locale('en'),
+      supportedLocales: [Locale('en'), Locale('ar')],
+      home: Scaffold(body: BuckScreen()),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('Actual ripple percentage'),
+      260,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Actual ripple percentage'), findsOneWidget);
+    expect(find.text('12.29 %'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+
 }

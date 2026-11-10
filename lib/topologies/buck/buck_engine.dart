@@ -78,7 +78,6 @@ class BuckEngine {
     late double tidle;
     late double peak;
     late double minimum;
-    late double ripple;
     if (isCcm) {
       ton = dutyCcm * period;
       toff = period - ton;
@@ -86,7 +85,6 @@ class BuckEngine {
       tidle = 1e-9;
       peak = iout + rippleCcm / 2;
       minimum = iout - rippleCcm / 2;
-      ripple = rippleCcm;
     } else {
       // Exact closed-form DCM timing used by PSD Buck.onofftimes().
       ton = math.sqrt(2 * iout * inductance *
@@ -101,8 +99,11 @@ class BuckEngine {
       tidle = math.max(0, tidle);
       peak = (1 / inductance) * (vin - vo) * ton;
       minimum = 0;
-      ripple = peak;
     }
+
+    // Java general() computes iripple as iind_max - iind_min after singleValues().
+    // Keep that subtraction order instead of reusing the CCM design-ripple term.
+    final ripple = peak - minimum;
 
     // Java actualValues() normalizes device RMS integrals by t1+t2+t3.
     // In CCM t3 is the source's 1 ns numerical epsilon; in DCM the
@@ -151,28 +152,39 @@ class BuckEngine {
     final inputPower = outputPower + diodeLoss;
     final inputAverage = inputPower / vin;
     final inputCapOffCurrent = fetAverage;
+    // Preserve the exact current offsets and subtraction order from
+    // Buck.java actualValues() for the input-capacitor RMS integral.
+    final inputCapMaxOn = isCcm ? -minimum + inputAverage : inputAverage;
+    final inputCapMinOn = -peak + inputAverage;
+    final inputCapOnDelta = inputCapMaxOn - inputCapMinOn;
+    final inputCapOnIntegral = inputCapMaxOn * inputCapMinOn +
+        inputCapOnDelta * inputCapOnDelta / 3.0;
     final capInRmsSquared = isCcm
-        ? onIntegralFraction * ((inputAverage - minimum) * (inputAverage - peak) +
-                (peak - minimum) * (peak - minimum) / 3) +
+        ? onIntegralFraction * inputCapOnIntegral +
             offIntegralFraction * inputCapOffCurrent * inputCapOffCurrent
-        : onIntegralFraction * (inputAverage * (inputAverage - peak) +
-                peak * peak / 3) +
+        : onIntegralFraction * inputCapOnIntegral +
             ((toff + tidle) / integrationPeriod) *
                 inputCapOffCurrent * inputCapOffCurrent;
-    final inputCapRms = math.sqrt(math.max(0, capInRmsSquared));
+    final inputCapRms = math.sqrt(capInRmsSquared);
 
-    // Output capacitor current iC = iL - Iout, integrated over each
-    // linear interval. This reproduces the original PSD Java expression.
+    // Preserve the exact output-capacitor offsets and interval integrals
+    // from Buck.java actualValues(), including its DCM zero-current interval.
+    final outputCapMaxOn = peak - iout;
+    final outputCapMinOn = isCcm ? minimum - iout : -iout;
+    final outputCapMaxOff = peak - iout;
+    final outputCapMinOff = isCcm ? minimum - iout : -iout;
+    final outputCapOnDelta = outputCapMaxOn - outputCapMinOn;
+    final outputCapOffDelta = outputCapMaxOff - outputCapMinOff;
+    final outputCapOnIntegral = outputCapMaxOn * outputCapMinOn +
+        outputCapOnDelta * outputCapOnDelta / 3.0;
+    final outputCapOffIntegral = outputCapMaxOff * outputCapMinOff +
+        outputCapOffDelta * outputCapOffDelta / 3.0;
     final capOutRmsSquared = isCcm
-        ? (ton + toff) * fs *
-            ((ripple / 2) * (-ripple / 2) +
-                ripple * ripple / 3)
-        : ton * fs *
-                ((peak - iout) * (-iout) + peak * peak / 3) +
-            toff * fs *
-                ((peak - iout) * (-iout) + peak * peak / 3) +
-            tidle * fs * iout * iout;
-    final outputCapRms = math.sqrt(math.max(0, capOutRmsSquared));
+        ? (ton + toff) * fs * outputCapOnIntegral
+        : ton * fs * outputCapOnIntegral +
+            toff * fs * outputCapOffIntegral +
+            tidle * fs * outputCapMinOff * outputCapMinOff;
+    final outputCapRms = math.sqrt(capOutRmsSquared);
 
     final duty = ton * fs;
     // Buck.java checkCurrentRipple() flags the ripple input when
@@ -197,6 +209,7 @@ class BuckEngine {
       'designRippleCurrent': rippleCcm,
       // Physical excursion: peak-to-valley in CCM, zero-to-peak in DCM.
       'rippleCurrent': ripple,
+      'actualRipplePercent': ripple / iout * 100.0,
       'peakCurrent': peak,
       'minimumCurrent': minimum,
       'isCcm': isCcm ? 1 : 0,

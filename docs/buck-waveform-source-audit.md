@@ -185,3 +185,20 @@ This path was checked in both the extracted Java source and the original JAR byt
 | 100% | 5.00 A | CCM | 3.3783783783783788 µs | 1.6216216216216216 µs | 60.00 W | 60.810810810810814 W |
 
 Flutter now carries `operatingLoadPercent` separately from rated `outputCurrent`. The minimum-inductance design and requested ripple limit continue to use the rated current, while CCM/DCM classification, power, device RMS/average values, and all five device waveforms use the interpolated operating load current. The new fixed-value regression test uses the values above from the actual Java runtime; the graph-shape regression is explicitly source-derived and is not described as an additional Java graph-method runtime comparison.
+
+
+## Original Buck current-ripple percentage output
+
+`Buck.general()` sets the displayed ripple to `iind_max - iind_min` and then computes
+`iripple / iout_calculation * 100.0`. The same assignments are present in the
+`PSD5.jar` bytecode. Flutter now preserves that post-`singleValues()` subtraction
+rather than reusing the earlier CCM design-ripple estimate, exposes the
+percentage beside the actual ripple in the Buck results, and localizes its
+label in Arabic and English.
+
+The regression values below were captured by executing the original `Buck`
+class from `PSD5.jar` under OpenJDK 21 headless mode after two `calculate()`
+passes per input: 0% load slider = 495.68159709660966%; 50% = 24.326757000024323%;
+100% = 12.2850122850123%; and the fixed DCM case (9–16 V, 5 V, 2 A,
+100 kHz, 0.7 V diode, 3 µH) = 353.76503586250914%. The engine tests use
+these constants as independent runtime-oracle expectations.

@@ -162,6 +162,47 @@ void main() {
     expect(buck.calculate(atLoad(100.01)).isValid, isFalse);
   });
 
+  test('Buck actual ripple percentage matches original PSD5.jar general()', () {
+    BuckInputs atLoad(double percent) => BuckInputs(
+      inputVoltageMin: 18,
+      inputVoltageMax: 36,
+      outputVoltage: 12,
+      outputCurrent: 5,
+      switchingFrequency: 200e3,
+      rippleFraction: 0.30,
+      diodeForwardVoltage: 0.5,
+      operatingInputVoltage: 18,
+      operatingLoadPercent: percent,
+      selectedInductance: 33e-6,
+    );
+
+    final lightLoad = buck.calculate(atLoad(0));
+    final halfLoad = buck.calculate(atLoad(50));
+    final fullLoad = buck.calculate(atLoad(100));
+    expect(lightLoad.values['rippleCurrent'], closeTo(0.24784079854830485, 1e-14));
+    expect(lightLoad.values['actualRipplePercent'], closeTo(495.68159709660966, 1e-10));
+    expect(halfLoad.values['rippleCurrent'], closeTo(0.6142506142506141, 1e-14));
+    expect(halfLoad.values['actualRipplePercent'], closeTo(24.326757000024323, 1e-10));
+    expect(fullLoad.values['rippleCurrent'], closeTo(0.614250614250615, 1e-14));
+    expect(fullLoad.values['actualRipplePercent'], closeTo(12.2850122850123, 1e-10));
+
+    const dcmInput = BuckInputs(
+      inputVoltageMin: 9,
+      inputVoltageMax: 16,
+      outputVoltage: 5,
+      outputCurrent: 2,
+      switchingFrequency: 100e3,
+      rippleFraction: 0.30,
+      diodeForwardVoltage: 0.7,
+      operatingInputVoltage: 16,
+      selectedInductance: 3e-6,
+    );
+    final dcm = buck.calculate(dcmInput);
+    expect(dcm.values['isCcm'], 0);
+    expect(dcm.values['rippleCurrent'], closeTo(7.075300717250182, 1e-12));
+    expect(dcm.values['actualRipplePercent'], closeTo(353.76503586250914, 1e-10));
+  });
+
   test('Buck warns when a custom CCM inductor violates the original ripple check', () {
     const input = BuckInputs(
       inputVoltageMin: 18,
