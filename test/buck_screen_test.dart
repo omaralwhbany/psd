@@ -103,6 +103,17 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
+    // The source runtime case uses the 33 µH selected inductor, not the
+    // screen's automatic minimum-inductance mode.
+    final customToggle = find.text('Use custom inductor value');
+    await tester.ensureVisible(customToggle);
+    await tester.tap(customToggle);
+    await tester.pumpAndSettle();
+    final inductanceField = find.byType(TextField).last;
+    await tester.ensureVisible(inductanceField);
+    await tester.enterText(inductanceField, '33');
+    await tester.pumpAndSettle();
+
     await tester.scrollUntilVisible(
       find.text('Actual ripple percentage'),
       260,
