@@ -44,6 +44,11 @@ class _BuckScreenState extends State<BuckScreen> {
 
   double _v(String key) => double.tryParse(_controllers[key]!.text.trim()) ?? double.nan;
 
+  // Buck.java displays ON/OFF times in ns below 100 ns, otherwise in µs.
+  String _formatTiTime(double seconds) => seconds < 1e-7
+      ? '${(seconds * 1e9).toStringAsFixed(2)} ns'
+      : '${Units.baseToMicro(seconds).toStringAsFixed(2)} µs';
+
   BuckInputs get _input => BuckInputs(
     inputVoltageMin: _v('vinMin'), inputVoltageMax: _v('vinMax'),
     outputVoltage: _v('vout'), outputCurrent: _v('iout'),
@@ -125,10 +130,10 @@ class _BuckScreenState extends State<BuckScreen> {
           _result(s.operatingMode, result.values['isCcm'] == 1 ? s.ccm : s.dcm, emphasize: true),
           _result(s.operatingOutputCurrent, '${result.values['operatingOutputCurrent']!.toStringAsFixed(3)} A'),
           _result(s.dutyCycle, '${(result.values['dutyCycle']! * 100).toStringAsFixed(2)} %'),
-          _result(s.switchingPeriod, '${Units.baseToMicro(1 / input.switchingFrequency).toStringAsFixed(3)} µs'),
-          _result(s.onTime, '${Units.baseToMicro(result.values['onTime']!).toStringAsFixed(3)} µs'),
-          _result(s.offTime, '${Units.baseToMicro(result.values['offTime']!).toStringAsFixed(3)} µs'),
-          _result(s.zeroCurrentTime, '${Units.baseToMicro(result.values['idleTime']!).toStringAsFixed(3)} µs'),
+          _result(s.switchingPeriod, '${Units.baseToMicro(1 / input.switchingFrequency).toStringAsFixed(2)} µs'),
+          _result(s.onTime, _formatTiTime(result.values['onTime']!)),
+          _result(s.offTime, _formatTiTime(result.values['offTime']!)),
+          _result(s.zeroCurrentTime, '${Units.baseToMicro(result.values['idleTime']!).toStringAsFixed(2)} µs'),
           const Divider(height: 22),
           _sectionTitle(s.inductor),
           _result(s.minimumInductance, '${Units.baseToMicro(result.values['minimumInductance']!).toStringAsFixed(2)} µH'),
