@@ -83,6 +83,7 @@ class AppStrings {
   String get buckDescription => isArabic ? 'غير معزول • محول DC-DC خافض للجهد' : 'Non-isolated • Step-down DC-DC converter';
   String get designRippleCurrent => isArabic ? 'تموج التيار التصميمي (حسب نموذج TI)' : 'TI design ripple estimate';
   String get actualCurrentExcursion => isArabic ? 'تغير التيار الفعلي من صفر إلى الذروة' : 'Actual current excursion (zero to peak)';
+  String get actualRipplePercent => isArabic ? 'نسبة تموج التيار الفعلية' : 'Actual ripple percentage';
   String localizeBuckWarning(String warning) {
     if (!isArabic) return warning;
     const translations = <String, String>{

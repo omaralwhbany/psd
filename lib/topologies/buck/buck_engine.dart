@@ -197,6 +197,7 @@ class BuckEngine {
       'designRippleCurrent': rippleCcm,
       // Physical excursion: peak-to-valley in CCM, zero-to-peak in DCM.
       'rippleCurrent': ripple,
+      'ripplePercent': ripple / iout * 100,
       'peakCurrent': peak,
       'minimumCurrent': minimum,
       'isCcm': isCcm ? 1 : 0,
