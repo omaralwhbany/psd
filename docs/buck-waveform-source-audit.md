@@ -185,3 +185,8 @@ This path was checked in both the extracted Java source and the original JAR byt
 | 100% | 5.00 A | CCM | 3.3783783783783788 µs | 1.6216216216216216 µs | 60.00 W | 60.810810810810814 W |
 
 Flutter now carries `operatingLoadPercent` separately from rated `outputCurrent`. The minimum-inductance design and requested ripple limit continue to use the rated current, while CCM/DCM classification, power, device RMS/average values, and all five device waveforms use the interpolated operating load current. The new fixed-value regression test uses the values above from the actual Java runtime; the graph-shape regression is explicitly source-derived and is not described as an additional Java graph-method runtime comparison.
+
+
+## ON/OFF time display units
+
+The original `Buck.updateImportantOutput()` uses a strict `time < 1.0E-7` seconds test independently for ON and OFF time. Values below 100 ns are formatted as nanoseconds; values at or above 100 ns are formatted as microseconds. Both paths use two decimal places. Switching period and zero-current time always use microseconds with two decimals. This behavior was checked in the extracted `Buck.java` source (around line 865) and the `javap -p -c` bytecode for `updateImportantOutput()`. Flutter now follows the same threshold and precision; a widget regression covers 8.11 ns, 91.89 ns, and the exact 100 ns boundary.
