@@ -134,7 +134,8 @@ void main() {
       280,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text('495.68 %'), findsOneWidget);
+    // The screen defaults to Lmin = 27.397260273972603 µH, not the 33 µH oracle above.
+    expect(find.text('544.01 %'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
