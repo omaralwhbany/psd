@@ -76,7 +76,9 @@ void main() {
     await tester.pumpAndSettle();
 
     final fields = find.byType(TextField);
+    await tester.ensureVisible(fields.at(3));
     await tester.enterText(fields.at(3), '1');
+    await tester.ensureVisible(fields.at(5));
     await tester.enterText(fields.at(5), '10000');
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
@@ -127,6 +129,12 @@ void main() {
     );
     expect(find.text('Discontinuous Conduction (DCM)'), findsOneWidget);
     expect(find.text('0.050 A'), findsNWidgets(2));
+    await tester.scrollUntilVisible(
+      find.text('Actual ripple percentage'),
+      280,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('495.68 %'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
