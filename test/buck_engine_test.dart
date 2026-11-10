@@ -203,6 +203,45 @@ void main() {
     expect(dcm.values['actualRipplePercent'], closeTo(353.76503586250914, 1e-10));
   });
 
+  test('Buck preserves the original tiny negative DCM idle interval', () {
+    const input = BuckInputs(
+      inputVoltageMin: 1234.828745840055,
+      inputVoltageMax: 1234.828745840055,
+      outputVoltage: 64.85314923063801,
+      outputCurrent: 0.2691222643063725,
+      switchingFrequency: 1066525.6129373105,
+      rippleFraction: 0.30,
+      diodeForwardVoltage: 4.997580342410744,
+      operatingInputVoltage: 1234.828745840055,
+      operatingLoadPercent: 100,
+      selectedInductance: 0.00011482487534775702,
+    );
+
+    final result = buck.calculate(input);
+    expect(result.isValid, isTrue);
+    expect(result.values['isCcm'], 0);
+    expect(
+      result.values['idleTime'],
+      closeTo(-1.0587911840678754e-22, 1e-35),
+    );
+    expect(
+      result.values['onTime'],
+      closeTo(5.282491453982283e-8, 1e-20),
+    );
+    expect(
+      result.values['offTime'],
+      closeTo(8.847990748605887e-7, 1e-20),
+    );
+    expect(
+      result.values['inputCapacitorRmsCurrent'],
+      closeTo(0.07218536194501951, 1e-13),
+    );
+    expect(
+      result.values['outputCapacitorRmsCurrent'],
+      closeTo(0.15537781174220577, 1e-13),
+    );
+  });
+
   test('Buck warns when a custom CCM inductor violates the original ripple check', () {
     const input = BuckInputs(
       inputVoltageMin: 18,

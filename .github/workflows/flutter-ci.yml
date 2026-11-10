@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -21,19 +24,18 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
       - name: Format Buck-related Dart files
-        run: dart format lib/localization/app_strings.dart lib/topologies/buck/buck_engine.dart lib/topologies/buck/buck_schematic.dart lib/topologies/buck/buck_screen.dart test/buck_engine_test.dart test/buck_screen_test.dart
-      - name: Upload formatted Buck sources
-        uses: actions/upload-artifact@v4
-        with:
-          name: buck-dart-formatted-source
-          path: |
-            lib/localization/app_strings.dart
-            lib/topologies/buck/buck_engine.dart
-            lib/topologies/buck/buck_schematic.dart
-            lib/topologies/buck/buck_screen.dart
-            test/buck_engine_test.dart
-            test/buck_screen_test.dart
-          if-no-files-found: error
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          dart format lib/localization/app_strings.dart lib/topologies/buck/buck_engine.dart lib/topologies/buck/buck_schematic.dart lib/topologies/buck/buck_screen.dart test/buck_engine_test.dart test/buck_screen_test.dart
+          git add lib/localization/app_strings.dart lib/topologies/buck/buck_engine.dart lib/topologies/buck/buck_schematic.dart lib/topologies/buck/buck_screen.dart test/buck_engine_test.dart test/buck_screen_test.dart
+          if ! git diff --cached --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Format Buck Dart files"
+            git push origin "HEAD:${GITHUB_HEAD_REF}"
+          fi
+      - name: Dart format check
+        run: dart format --output=none --set-exit-if-changed lib/localization/app_strings.dart lib/topologies/buck/buck_engine.dart lib/topologies/buck/buck_schematic.dart lib/topologies/buck/buck_screen.dart test/buck_engine_test.dart test/buck_screen_test.dart
       - name: Analyze
         run: flutter analyze
       - name: Test

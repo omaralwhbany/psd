@@ -234,3 +234,10 @@ steady-state results are unchanged. Flutter currently uses the settled
 the stale one-pass Java value. This intentional non-reproduction of an
 original transient bug remains documented and must be decided before claiming
 event-sequence-level runtime identity.
+
+
+## DCM negative idle-time binary64 boundary
+
+The original PSD5.jar was executed headlessly with this direct Buck state: Vin=1234.828745840055 V, Vout=64.85314923063801 V, Vf=4.997580342410744 V, fs=1066525.6129373105 Hz, Iout=0.2691222643063725 A, and L=0.00011482487534775702 H. The actual Java checkForCCMDCCM() and onofftimes() methods classify this case as DCM and return t1=5.282491453982283e-8 s, t2=8.847990748605887e-7 s, and t3=-1.0587911840678754e-22 s. The tiny negative t3 is a floating-point result of the original un-clamped expression 1/fs - ton - toff; the source does not clamp it or report a zero-time validation error.
+
+Flutter previously clamped this value to zero after a -1e-12 s tolerance check. That changed the source interval and RMS normalization by a tiny amount. Buck now preserves the raw finite Java interval, and a regression test uses additional actual-runtime Java expectations for input/output capacitor RMS currents (0.07218536194501951 A and 0.15537781174220577 A). The finite ton/toff guard remains a defensive Flutter error path; it is not a formula copied from Java.
