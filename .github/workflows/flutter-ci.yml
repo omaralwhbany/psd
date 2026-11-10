@@ -20,6 +20,8 @@ jobs:
         run: rm -f test/widget_test.dart
       - name: Install dependencies
         run: flutter pub get
+      - name: Dart format check
+        run: dart format --output=none --set-exit-if-changed lib test
       - name: Analyze
         run: flutter analyze
       - name: Test
