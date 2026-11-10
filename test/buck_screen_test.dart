@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:psd/topologies/buck/buck_screen.dart';
+import 'package:psd/topologies/buck/buck_schematic.dart';
 
 void main() {
   testWidgets('Buck results fit a narrow Arabic screen without overflow',
@@ -122,6 +123,18 @@ void main() {
     expect(find.text('Actual ripple percentage'), findsOneWidget);
     expect(find.text('12.29 %'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+
+  test('Buck freewheel diode cathode faces the switch node', () {
+    expect(
+      BuckSchematic.diodeCathodeBarY,
+      lessThan(BuckSchematic.diodeTriangleApexY),
+    );
+    expect(
+      BuckSchematic.diodeTriangleApexY,
+      lessThan(BuckSchematic.diodeAnodeBaseY),
+    );
   });
 
 
