@@ -185,3 +185,59 @@ This path was checked in both the extracted Java source and the original JAR byt
 | 100% | 5.00 A | CCM | 3.3783783783783788 µs | 1.6216216216216216 µs | 60.00 W | 60.810810810810814 W |
 
 Flutter now carries `operatingLoadPercent` separately from rated `outputCurrent`. The minimum-inductance design and requested ripple limit continue to use the rated current, while CCM/DCM classification, power, device RMS/average values, and all five device waveforms use the interpolated operating load current. The new fixed-value regression test uses the values above from the actual Java runtime; the graph-shape regression is explicitly source-derived and is not described as an additional Java graph-method runtime comparison.
+
+
+## Original Buck current-ripple percentage output
+
+`Buck.general()` sets the displayed ripple to `iind_max - iind_min` and then computes
+`iripple / iout_calculation * 100.0`. The same assignments are present in the
+`PSD5.jar` bytecode. Flutter now preserves that post-`singleValues()` subtraction
+rather than reusing the earlier CCM design-ripple estimate, exposes the
+percentage beside the actual ripple in the Buck results, and localizes its
+label in Arabic and English.
+
+The regression values below were captured by executing the original `Buck`
+class from `PSD5.jar` under OpenJDK 21 headless mode after two `calculate()`
+passes per input: 0% load slider = 495.68159709660966%; 50% = 24.326757000024323%;
+100% = 12.2850122850123%; and the fixed DCM case (9–16 V, 5 V, 2 A,
+100 kHz, 0.7 V diode, 3 µH) = 353.76503586250914%. The engine tests use
+these constants as independent runtime-oracle expectations.
+
+
+## Remaining source-parity decisions (not silently changed)
+
+The original `Buck.initComponents()` defaults are 7 V minimum input,
+30 V maximum input, 3.3 V output, 2 A rated output, 1600 kHz switching,
+50% inductor ripple, 0.7 V diode drop, and 2.2 µH selected inductance.
+`WorkingSheet` initializes the operating-input slider to 0% (minimum
+input) and load slider to 100%. The current Flutter defaults are 18/36/12 V,
+5 A, 200 kHz, 30%, and 0.5 V, with automatic `Lmin` selected unless
+the user enables a custom inductor. The Java values were confirmed from the
+original `Buck.java` UI initialization and `PSD5.jar` runtime:
+for the original defaults with 2.2 µH, the settled run is CCM, `Pout=6.6 W`,
+`Pin=7.2727272727272725 W`, and actual ripple is
+`0.5460448642266824 A (27.302243211334122%)`. This default-profile
+difference is intentionally left unchanged pending a product-level choice;
+it is not a calculation-equation uncertainty.
+
+There is also a source-side single-pass state quirk. `Buck.calculate()`
+calls `getUserValues()` and then `userCalculate()`; within
+`userCalculate()`, `actualValues()` reads the previous
+`iin` before `general()` refreshes it. The constructor and
+`WorkingSheet` slider setters call `calculate()` twice,
+but the text-field focus-lost handlers call it once. A real one-pass Java
+execution after changing to the 18 V / 12 V / 5 A / 200 kHz / 0.5 V / 33 µH
+case produced input-capacitor RMS current `3.784345775445198 A`;
+a second pass settled it to `2.344908588716427 A`. The other
+steady-state results are unchanged. Flutter currently uses the settled
+`inputAverage` value in its pure calculation, rather than reproducing
+the stale one-pass Java value. This intentional non-reproduction of an
+original transient bug remains documented and must be decided before claiming
+event-sequence-level runtime identity.
+
+
+## DCM negative idle-time binary64 boundary
+
+The original PSD5.jar was executed headlessly with this direct Buck state: Vin=1234.828745840055 V, Vout=64.85314923063801 V, Vf=4.997580342410744 V, fs=1066525.6129373105 Hz, Iout=0.2691222643063725 A, and L=0.00011482487534775702 H. The actual Java checkForCCMDCCM() and onofftimes() methods classify this case as DCM and return t1=5.282491453982283e-8 s, t2=8.847990748605887e-7 s, and t3=-1.0587911840678754e-22 s. The tiny negative t3 is a floating-point result of the original un-clamped expression 1/fs - ton - toff; the source does not clamp it or report a zero-time validation error.
+
+Flutter previously clamped this value to zero after a -1e-12 s tolerance check. That changed the source interval and RMS normalization by a tiny amount. Buck now preserves the raw finite Java interval, and a regression test uses additional actual-runtime Java expectations for input/output capacitor RMS currents (0.07218536194501951 A and 0.15537781174220577 A). The finite ton/toff guard remains a defensive Flutter error path; it is not a formula copied from Java.
