@@ -34,7 +34,8 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Buck screen shows the TI ripple-limit warning without hiding results',
+  testWidgets(
+      'Buck screen shows the TI ripple-limit warning without hiding results',
       (tester) async {
     tester.view.physicalSize = const Size(800, 1400);
     tester.view.devicePixelRatio = 1;
@@ -56,13 +57,16 @@ void main() {
     await tester.enterText(inductanceField, '5');
     await tester.pumpAndSettle();
 
-    expect(find.text('Actual inductor ripple exceeds the requested ripple target.'), findsOneWidget);
+    expect(
+        find.text(
+            'Actual inductor ripple exceeds the requested ripple target.'),
+        findsOneWidget);
     expect(find.text('Operating point'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-
-  testWidgets('Buck load slider applies the original 1%-to-100% operating range',
+  testWidgets(
+      'Buck load slider applies the original 1%-to-100% operating range',
       (tester) async {
     tester.view.physicalSize = const Size(800, 1400);
     tester.view.devicePixelRatio = 1;
@@ -90,8 +94,8 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-
-  testWidgets('Buck screen displays the Java current-ripple percentage', (tester) async {
+  testWidgets('Buck screen displays the Java current-ripple percentage',
+      (tester) async {
     tester.view.physicalSize = const Size(800, 1400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -125,7 +129,6 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-
   test('Buck freewheel diode cathode faces the switch node', () {
     expect(
       BuckSchematic.diodeCathodeBarY,
@@ -136,6 +139,4 @@ void main() {
       lessThan(BuckSchematic.diodeAnodeBaseY),
     );
   });
-
-
 }
