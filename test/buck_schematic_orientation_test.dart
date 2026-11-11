@@ -9,18 +9,17 @@ void main() {
   testWidgets(
     'Buck freewheel diode is filled and cathode faces the switch node like PSD5',
     (tester) async {
-      const width = 360.0;
       final theme = ThemeData();
 
       await tester.pumpWidget(
         MaterialApp(
           theme: theme,
-          home: Scaffold(
+          home: const Scaffold(
             body: Center(
               child: RepaintBoundary(
                 child: SizedBox(
-                  width: width,
-                  child: const BuckSchematic(),
+                  width: 360,
+                  child: BuckSchematic(),
                 ),
               ),
             ),
