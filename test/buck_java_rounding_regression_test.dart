@@ -5,7 +5,9 @@ import 'package:psd/topologies/buck/buck_inputs.dart';
 void main() {
   const buck = BuckEngine();
 
-  test('Buck ripple follows PSD5 general peak-minus-valley subtraction order', () {
+  test(
+    'Buck ripple follows PSD5 general peak-minus-valley subtraction order',
+    () {
     const input = BuckInputs(
       inputVoltageMin: 809.4736305932962,
       inputVoltageMax: 809.4736305932962,
