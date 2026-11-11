@@ -5,13 +5,14 @@ void main() {
   test(
     'Buck freewheel diode cathode faces the switch node like the PSD5 image',
     () {
-    expect(
-      BuckSchematic.diodeCathodeBarY,
-      lessThan(BuckSchematic.diodeTriangleApexY),
-    );
-    expect(
-      BuckSchematic.diodeTriangleApexY,
-      lessThan(BuckSchematic.diodeAnodeBaseY),
-    );
-  });
+      expect(
+        BuckSchematic.diodeCathodeBarY,
+        lessThan(BuckSchematic.diodeTriangleApexY),
+      );
+      expect(
+        BuckSchematic.diodeTriangleApexY,
+        lessThan(BuckSchematic.diodeAnodeBaseY),
+      );
+    },
+  );
 }

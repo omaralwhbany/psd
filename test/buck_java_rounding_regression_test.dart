@@ -8,37 +8,38 @@ void main() {
   test(
     'Buck ripple follows PSD5 general peak-minus-valley subtraction order',
     () {
-    const input = BuckInputs(
-      inputVoltageMin: 809.4736305932962,
-      inputVoltageMax: 809.4736305932962,
-      outputVoltage: 330.114238451388,
-      outputCurrent: 92.48939803523659,
-      switchingFrequency: 831605.2019290418,
-      rippleFraction: 0.30,
-      diodeForwardVoltage: 1.7138706798677177,
-      operatingInputVoltage: 809.4736305932962,
-      selectedInductance: 2.9741331803770024e-4,
-    );
+      const input = BuckInputs(
+        inputVoltageMin: 809.4736305932962,
+        inputVoltageMax: 809.4736305932962,
+        outputVoltage: 330.114238451388,
+        outputCurrent: 92.48939803523659,
+        switchingFrequency: 831605.2019290418,
+        rippleFraction: 0.30,
+        diodeForwardVoltage: 1.7138706798677177,
+        operatingInputVoltage: 809.4736305932962,
+        selectedInductance: 2.9741331803770024e-4,
+      );
 
-    final result = buck.calculate(input);
-    expect(result.isValid, isTrue);
-    expect(result.values['isCcm'], 1);
+      final result = buck.calculate(input);
+      expect(result.isValid, isTrue);
+      expect(result.values['isCcm'], 1);
 
-    // Actual two-pass execution of Buck.calculate() from PSD5.jar/OpenJDK 21.
-    // general() reports iind_max - iind_min, not iripple_buck.
-    expect(
-      result.values['designRippleCurrent'],
-      closeTo(0.7928217453261514, 1e-15),
-    );
-    expect(
-      result.values['rippleCurrent'],
-      closeTo(0.7928217453261652, 1e-15),
-    );
-    expect(
-      result.values['ripplePercent'],
-      closeTo(0.8572028385611463, 1e-15),
-    );
-  });
+      // Actual two-pass execution of Buck.calculate() from PSD5.jar/OpenJDK 21.
+      // general() reports iind_max - iind_min, not iripple_buck.
+      expect(
+        result.values['designRippleCurrent'],
+        closeTo(0.7928217453261514, 1e-15),
+      );
+      expect(
+        result.values['rippleCurrent'],
+        closeTo(0.7928217453261652, 1e-15),
+      );
+      expect(
+        result.values['ripplePercent'],
+        closeTo(0.8572028385611463, 1e-15),
+      );
+    },
+  );
 
   test('Buck preserves raw tiny negative DCM idle time from PSD5.jar', () {
     const input = BuckInputs(
