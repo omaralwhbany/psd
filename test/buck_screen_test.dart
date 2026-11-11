@@ -140,4 +140,43 @@ void main() {
   });
 
 
+  testWidgets(
+    'Buck shows the original low-frequency time warning in English and Arabic',
+    (tester) async {
+      tester.view.physicalSize = const Size(800, 1400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      for (final locale in [const Locale('en'), const Locale('ar')]) {
+        await tester.pumpWidget(MaterialApp(
+          locale: locale,
+          supportedLocales: const [Locale('en'), Locale('ar')],
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: const Scaffold(body: BuckScreen()),
+        ));
+        await tester.pumpAndSettle();
+
+        final frequencyField = find.byType(TextField).at(5);
+        await tester.ensureVisible(frequencyField);
+        await tester.enterText(frequencyField, '0.000001');
+        await tester.pumpAndSettle();
+
+        final expectedWarning = locale.languageCode == 'ar'
+            ? 'وفق فحص PSD5 الأصلي، يتم تمييز زمن التوصيل وزمن الدورة عندما يكون التردد أقل من زمن التوصيل.'
+            : 'PSD5 flags ON time and switching period when switching frequency is below ON time.';
+        final operatingPoint = locale.languageCode == 'ar'
+            ? 'نقطة التشغيل'
+            : 'Operating point';
+        expect(find.text(expectedWarning), findsOneWidget);
+        expect(find.text(operatingPoint), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      }
+    },
+  );
+
 }

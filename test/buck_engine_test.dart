@@ -363,6 +363,32 @@ void main() {
     expect(buck.calculate(invalid).isValid, isFalse);
   });
 
+
+  test('Buck preserves PSD5 checktontoff low-frequency time flags', () {
+    const input = BuckInputs(
+      inputVoltageMin: 18,
+      inputVoltageMax: 18,
+      outputVoltage: 12,
+      outputCurrent: 5,
+      switchingFrequency: 0.001,
+      rippleFraction: 0.30,
+      diodeForwardVoltage: 0.5,
+      operatingInputVoltage: 18,
+      selectedInductance: 33e-6,
+    );
+    final result = buck.calculate(input);
+    expect(result.isValid, isTrue);
+
+    // Actual one-pass calculate() execution of the original PSD5.jar Buck
+    // class under OpenJDK 21: checktontoff() flags ON time and period because
+    // its source condition compares 0.001 Hz directly with 0.19277 seconds.
+    expect(result.values['onTime'], closeTo(0.19277490023901492, 1e-14));
+    expect(result.values['offTime'], closeTo(0.09253195211472717, 1e-14));
+    expect(result.values['dutyCycle'], closeTo(0.00019277490023901492, 1e-16));
+    expect(result.warnings, contains(BuckEngine.psdOnTimeWarning));
+    expect(result.warnings, isNot(contains(BuckEngine.psdOffTimeWarning)));
+  });
+
   test('Boost calculates its inductor automatically by default', () {
     final result = boost.calculate(BoostInputs.defaults());
     expect(result.isValid, isTrue);

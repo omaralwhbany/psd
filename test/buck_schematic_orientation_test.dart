@@ -62,7 +62,10 @@ void main() {
       final fitted = tester.widget<FittedBox>(find.byType(FittedBox));
       expect(fitted.fit, BoxFit.contain);
       expect(
-        tester.getSize(find.byType(CustomPaint)),
+        tester.getSize(find.descendant(
+          of: find.byType(BuckSchematic),
+          matching: find.byType(CustomPaint),
+        )),
         const Size(
           BuckSchematic.designWidth,
           BuckSchematic.designHeight,

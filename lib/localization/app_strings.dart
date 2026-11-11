@@ -88,6 +88,8 @@ class AppStrings {
     if (!isArabic) return warning;
     const translations = <String, String>{
       'Actual inductor ripple exceeds the requested ripple target.': 'تموج تيار الملف الفعلي يتجاوز حد التموج المطلوب.',
+      'PSD5 flags OFF time and selected inductance when OFF time is negative.': 'وفق فحص PSD5 الأصلي، يتم تمييز زمن الفصل والمحاثة المختارة عندما يكون زمن الفصل سالباً.',
+      'PSD5 flags ON time and switching period when switching frequency is below ON time.': 'وفق فحص PSD5 الأصلي، يتم تمييز زمن التوصيل وزمن الدورة عندما يكون التردد أقل من زمن التوصيل.',
     };
     return translations[warning] ?? warning;
   }

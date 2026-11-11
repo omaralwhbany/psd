@@ -8,6 +8,11 @@ import 'buck_inputs.dart';
 /// Diode forward drop is included; parasitic losses and switching transients
 /// are intentionally excluded.
 class BuckEngine {
+  static const String psdOffTimeWarning =
+      'PSD5 flags OFF time and selected inductance when OFF time is negative.';
+  static const String psdOnTimeWarning =
+      'PSD5 flags ON time and switching period when switching frequency is below ON time.';
+
   const BuckEngine();
 
   CalculationResult calculate(BuckInputs input) {
@@ -220,6 +225,11 @@ class BuckEngine {
     // !(iripple * 0.99 < Iout * rippleFraction). The original still
     // calculates and displays results, so preserve it as a warning.
     final warnings = <String>[];
+    // Preserve Buck.java checktontoff() exactly. Its second condition compares
+    // switching frequency in Hz directly with ON time in seconds; this is a
+    // dimensionally inconsistent source quirk, but it marks ON time and period.
+    if (toff < 0) warnings.add(psdOffTimeWarning);
+    if (fs < ton) warnings.add(psdOnTimeWarning);
     if (!(ripple * 0.99 < rippleTarget)) {
       warnings
           .add('Actual inductor ripple exceeds the requested ripple target.');

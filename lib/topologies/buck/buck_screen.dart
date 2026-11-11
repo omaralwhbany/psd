@@ -64,6 +64,9 @@ class _BuckScreenState extends State<BuckScreen> {
     final s = AppStrings(Localizations.localeOf(context));
     final input = _input;
     final result = _engine.calculate(input);
+    final onTimeWarning = result.warnings.contains(BuckEngine.psdOnTimeWarning);
+    final offTimeWarning = result.warnings.contains(BuckEngine.psdOffTimeWarning);
+    final inductanceWarning = onTimeWarning || offTimeWarning;
     return ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 28), children: [
       Text(s.buckConverter, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
       const SizedBox(height: 4),
@@ -98,7 +101,8 @@ class _BuckScreenState extends State<BuckScreen> {
         SwitchListTile(contentPadding: EdgeInsets.zero, title: Text(s.customInductor),
           subtitle: Text(s.automaticInductor), value: _customInductance,
           onChanged: (v) => setState(() => _customInductance = v)),
-        if (_customInductance) _field(s.inductance, 'inductance', 'µH'),
+        if (_customInductance)
+          _field(s.inductance, 'inductance', 'µH', warning: inductanceWarning),
         SizedBox(width: double.infinity, child: FilledButton.icon(
           onPressed: () => setState(() {}), icon: const Icon(Icons.calculate), label: Text(s.results))),
       ])),
@@ -130,14 +134,18 @@ class _BuckScreenState extends State<BuckScreen> {
           _result(s.operatingMode, result.values['isCcm'] == 1 ? s.ccm : s.dcm, emphasize: true),
           _result(s.operatingOutputCurrent, '${result.values['operatingOutputCurrent']!.toStringAsFixed(3)} A'),
           _result(s.dutyCycle, '${(result.values['dutyCycle']! * 100).toStringAsFixed(2)} %'),
-          _result(s.switchingPeriod, '${Units.baseToMicro(1 / input.switchingFrequency).toStringAsFixed(2)} µs'),
-          _result(s.onTime, _formatTiTime(result.values['onTime']!)),
-          _result(s.offTime, _formatTiTime(result.values['offTime']!)),
+          _result(s.switchingPeriod, '${Units.baseToMicro(1 / input.switchingFrequency).toStringAsFixed(2)} µs',
+            warning: onTimeWarning),
+          _result(s.onTime, _formatTiTime(result.values['onTime']!),
+            warning: onTimeWarning),
+          _result(s.offTime, _formatTiTime(result.values['offTime']!),
+            warning: offTimeWarning),
           _result(s.zeroCurrentTime, '${Units.baseToMicro(result.values['idleTime']!).toStringAsFixed(2)} µs'),
           const Divider(height: 22),
           _sectionTitle(s.inductor),
           _result(s.minimumInductance, '${Units.baseToMicro(result.values['minimumInductance']!).toStringAsFixed(2)} µH'),
-          _result(s.inductanceUsed, '${Units.baseToMicro(result.values['inductanceUsed']!).toStringAsFixed(2)} µH'),
+          _result(s.inductanceUsed, '${Units.baseToMicro(result.values['inductanceUsed']!).toStringAsFixed(2)} µH',
+            warning: inductanceWarning),
           if (result.values['isCcm'] == 0)
             _result(s.designRippleCurrent, '${result.values['designRippleCurrent']!.toStringAsFixed(3)} A'),
           _result(result.values['isCcm'] == 0 ? s.actualCurrentExcursion : s.rippleCurrent,
@@ -227,21 +235,42 @@ class _BuckScreenState extends State<BuckScreen> {
     children: errors.map((e) => Padding(padding: const EdgeInsets.only(bottom: 6),
       child: Text(strings.localizeBuckError(e), style: const TextStyle(color: Colors.red)))).toList());
 
-  Widget _field(String label, String key, String unit) => Padding(
-    padding: const EdgeInsets.only(bottom: 12),
-    child: LayoutBuilder(builder: (context, constraints) {
-      final input = TextField(controller: _controllers[key],
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        textAlign: TextAlign.end, decoration: InputDecoration(suffixText: unit, isDense: true),
-        onChanged: (_) => setState(() {}));
-      if (constraints.maxWidth < 380) {
-        return Column(crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [Text(label), const SizedBox(height: 5), input]);
-      }
-      return Row(children: [Expanded(flex: 5, child: Text(label)), const SizedBox(width: 12),
-        Expanded(flex: 4, child: input)]);
-    }),
-  );
+  Widget _field(String label, String key, String unit, {bool warning = false}) =>
+      Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: LayoutBuilder(builder: (context, constraints) {
+          final theme = Theme.of(context);
+          final input = TextField(
+            controller: _controllers[key],
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textAlign: TextAlign.end,
+            style: warning
+                ? TextStyle(color: theme.colorScheme.onError)
+                : null,
+            decoration: InputDecoration(
+              suffixText: unit,
+              isDense: true,
+              filled: warning,
+              fillColor: warning ? theme.colorScheme.error : null,
+              suffixStyle: warning
+                  ? TextStyle(color: theme.colorScheme.onError)
+                  : null,
+            ),
+            onChanged: (_) => setState(() {}),
+          );
+          if (constraints.maxWidth < 380) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [Text(label), const SizedBox(height: 5), input],
+            );
+          }
+          return Row(children: [
+            Expanded(flex: 5, child: Text(label)),
+            const SizedBox(width: 12),
+            Expanded(flex: 4, child: input),
+          ]);
+        }),
+      );
 
   Widget _panel(String title, Widget child) => Card(child: Padding(padding: const EdgeInsets.all(16),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -255,25 +284,47 @@ class _BuckScreenState extends State<BuckScreen> {
       fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
   );
 
-  Widget _result(String label, String value, {bool emphasize = false}) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8),
-    child: LayoutBuilder(builder: (context, constraints) {
-      final valueText = Text(value, textAlign: TextAlign.end,
-        softWrap: true,
-        style: TextStyle(fontWeight: FontWeight.bold,
-          color: emphasize ? Theme.of(context).colorScheme.primary : null));
-      if (constraints.maxWidth < 340) {
-        return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text(label),
-          const SizedBox(height: 3),
-          Align(alignment: AlignmentDirectional.centerEnd, child: valueText),
-        ]);
-      }
-      return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Expanded(flex: 5, child: Text(label, softWrap: true)),
-        const SizedBox(width: 10),
-        Expanded(flex: 4, child: valueText),
-      ]);
-    }),
-  );
+  Widget _result(
+    String label,
+    String value, {
+    bool emphasize = false,
+    bool warning = false,
+  }) =>
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: LayoutBuilder(builder: (context, constraints) {
+          final colors = Theme.of(context).colorScheme;
+          final valueText = Text(
+            value,
+            textAlign: TextAlign.end,
+            softWrap: true,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: warning
+                  ? colors.error
+                  : emphasize
+                      ? colors.primary
+                      : null,
+            ),
+          );
+          if (constraints.maxWidth < 340) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(label),
+                const SizedBox(height: 3),
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: valueText,
+                ),
+              ],
+            );
+          }
+          return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(flex: 5, child: Text(label, softWrap: true)),
+            const SizedBox(width: 10),
+            Expanded(flex: 4, child: valueText),
+          ]);
+        }),
+      );
 }

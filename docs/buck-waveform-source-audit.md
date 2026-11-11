@@ -280,3 +280,26 @@ The schematic regression now checks the component order, diode polarity and
 switch-node connection, plus narrow/wide fit behavior. This is a visual
 comparison against the original embedded schematic resource, not a
 calculation change or a claim of pixel-identical rendering.
+
+
+## 2026-11-11: original checktontoff low-frequency warning
+
+The extracted `Buck.java` and `javap -p -c` bytecode both confirm that
+`checktontoff()` first flags a negative OFF time, then compares
+`dFSwitch < ton` directly. `dFSwitch` is stored in hertz while `ton` is
+stored in seconds; this is a dimensionally inconsistent check in the original
+program, but it is observable UI behavior and is preserved as a warning rather
+than used to reject the calculation.
+
+This was verified by executing the original `Buck` class from
+`PSD5.jar` under OpenJDK 21 headless mode. With
+`Vin=18 V`, `Vo=12 V`, `Iout=5 A`, `fs=0.001 Hz`,
+`Vf=0.5 V`, and `L=33 µH`, Java returned
+`ton=0.19277490023901492 s`,
+`toff=0.09253195211472717 s`, and
+`duty=0.00019277490023901492`. The original Swing labels for ON time and
+switching period were red; OFF time was not. Flutter now emits the same
+source-condition warning, keeps the computed results visible, localizes the
+warning in Arabic and English, and highlights the affected result values.
+The regression values are fixed from this original-JAR runtime probe, not
+from BuckEngine output.

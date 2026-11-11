@@ -95,7 +95,7 @@ class _BuckPainter extends CustomPainter {
     const bottom = BuckSchematic.railBottomY;
     const inputCap = BuckSchematic.inputCapacitorX;
     const outputCap = BuckSchematic.outputCapacitorX;
-    const switchNode = BuckSchematic.switchNodeX;
+    const switchNode = BuckSchematic.diodeConnectionX;
 
     // Input and return rails remain separate at their open terminals.
     canvas.drawLine(
