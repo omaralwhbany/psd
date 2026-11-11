@@ -158,29 +158,14 @@ class _BuckPainter extends CustomPainter {
       wire,
     );
     canvas.drawLine(
-      Offset(
-        switchNode - 12,
-        BuckSchematic.diodeCathodeBarY,
-      ),
-      Offset(
-        switchNode + 12,
-        BuckSchematic.diodeCathodeBarY,
-      ),
+      Offset(switchNode - 12, BuckSchematic.diodeCathodeBarY),
+      Offset(switchNode + 12, BuckSchematic.diodeCathodeBarY),
       part,
     );
     final diode = Path()
-      ..moveTo(
-        switchNode - 12,
-        BuckSchematic.diodeAnodeBaseY,
-      )
-      ..lineTo(
-        switchNode + 12,
-        BuckSchematic.diodeAnodeBaseY,
-      )
-      ..lineTo(
-        switchNode,
-        BuckSchematic.diodeTriangleApexY,
-      )
+      ..moveTo(switchNode - 12, BuckSchematic.diodeAnodeBaseY)
+      ..lineTo(switchNode + 12, BuckSchematic.diodeAnodeBaseY)
+      ..lineTo(switchNode, BuckSchematic.diodeTriangleApexY)
       ..close();
     canvas.drawPath(diode, diodeFill);
     canvas.drawPath(diode, part);
@@ -191,8 +176,7 @@ class _BuckPainter extends CustomPainter {
     );
 
     // L1 is in series after the switch node.
-    final coil = Path()
-      ..moveTo(BuckSchematic.inductorStartX, top);
+    final coil = Path()..moveTo(BuckSchematic.inductorStartX, top);
     for (var i = 0; i < 4; i++) {
       coil.arcToPoint(
         Offset(BuckSchematic.inductorStartX + 20 + i * 20, top),
@@ -224,10 +208,7 @@ class _BuckPainter extends CustomPainter {
       wire,
     );
 
-    for (final x in [
-      BuckSchematic.railLeftX,
-      BuckSchematic.railRightX,
-    ]) {
+    for (final x in [BuckSchematic.railLeftX, BuckSchematic.railRightX]) {
       canvas.drawCircle(Offset(x, top), 2.5, node);
       canvas.drawCircle(Offset(x, bottom), 2.5, node);
     }
