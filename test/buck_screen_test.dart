@@ -2,8 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:psd/topologies/buck/buck_screen.dart';
+import 'package:psd/topologies/buck/buck_schematic.dart';
 
 void main() {
+  test('Buck freewheel diode cathode faces the switch node like the PSD5 image', () {
+    expect(
+      BuckSchematic.diodeCathodeBarY,
+      lessThan(BuckSchematic.diodeTriangleApexY),
+    );
+    expect(
+      BuckSchematic.diodeTriangleApexY,
+      lessThan(BuckSchematic.diodeAnodeBaseY),
+    );
+  });
+
   testWidgets('Buck results fit a narrow Arabic screen without overflow',
       (tester) async {
     tester.view.physicalSize = const Size(320, 720);
