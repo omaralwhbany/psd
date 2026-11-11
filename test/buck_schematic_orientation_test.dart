@@ -1,18 +1,73 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:psd/topologies/buck/buck_schematic.dart';
 
 void main() {
-  test(
-    'Buck freewheel diode cathode faces the switch node like the PSD5 image',
-    () {
-      expect(
-        BuckSchematic.diodeCathodeBarY,
-        lessThan(BuckSchematic.diodeTriangleApexY),
+  test('Buck schematic follows the original non-synchronous power path', () {
+    expect(
+      BuckSchematic.inputCapacitorX,
+      lessThan(BuckSchematic.mosfetLeftX),
+    );
+    expect(
+      BuckSchematic.mosfetRightX,
+      lessThan(BuckSchematic.switchNodeX),
+    );
+    expect(BuckSchematic.diodeConnectionX, BuckSchematic.switchNodeX);
+    expect(
+      BuckSchematic.switchNodeX,
+      lessThan(BuckSchematic.inductorStartX),
+    );
+    expect(
+      BuckSchematic.inductorStartX,
+      lessThan(BuckSchematic.inductorEndX),
+    );
+    expect(
+      BuckSchematic.inductorEndX,
+      lessThan(BuckSchematic.outputCapacitorX),
+    );
+    expect(
+      BuckSchematic.outputCapacitorX,
+      lessThan(BuckSchematic.railRightX),
+    );
+    expect(
+      BuckSchematic.diodeCathodeBarY,
+      lessThan(BuckSchematic.diodeTriangleApexY),
+    );
+    expect(
+      BuckSchematic.diodeTriangleApexY,
+      lessThan(BuckSchematic.diodeAnodeBaseY),
+    );
+    expect(
+      BuckSchematic.diodeAnodeBaseY,
+      lessThan(BuckSchematic.railBottomY),
+    );
+  });
+
+  testWidgets('Buck schematic fits narrow and wide layouts without clipping', (
+    tester,
+  ) async {
+    for (final width in [320.0, 720.0]) {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: width,
+              height: BuckSchematic.designHeight,
+              child: const BuckSchematic(),
+            ),
+          ),
+        ),
       );
+
+      final fitted = tester.widget<FittedBox>(find.byType(FittedBox));
+      expect(fitted.fit, BoxFit.contain);
       expect(
-        BuckSchematic.diodeTriangleApexY,
-        lessThan(BuckSchematic.diodeAnodeBaseY),
+        tester.getSize(find.byType(CustomPaint)),
+        const Size(
+          BuckSchematic.designWidth,
+          BuckSchematic.designHeight,
+        ),
       );
-    },
-  );
+    }
+  });
 }
