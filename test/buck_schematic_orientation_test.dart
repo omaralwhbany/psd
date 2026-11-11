@@ -17,6 +17,7 @@ void main() {
           home: const Scaffold(
             body: Center(
               child: RepaintBoundary(
+                key: const ValueKey('buck-schematic-capture'),
                 child: SizedBox(
                   width: 360,
                   child: BuckSchematic(),
@@ -38,7 +39,7 @@ void main() {
       );
 
       final boundary = tester.renderObject<RenderRepaintBoundary>(
-        find.byType(RepaintBoundary),
+        find.byKey(const ValueKey('buck-schematic-capture')),
       );
       final image = await boundary.toImage(pixelRatio: 1);
       final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
