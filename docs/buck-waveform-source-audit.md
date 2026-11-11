@@ -223,9 +223,7 @@ Two source-order differences were found in the Flutter engine:
 
 2. `Buck.onofftimes()` stores the raw DCM result
    `tzero_dccm_buck = 1/fs - ton_dccm_buck - toff_dccm_buck`. The bytecode
-   contains no clamp of this value. `checktontoff()` checks negative OFF time
-   and ON-time/period conditions; it does not clamp or reject the zero-current
-   interval. A two-pass execution of the original `Buck.calculate()` with
+   contains no clamp of this value. `checktontoff()` checks `toff < 0` and the literal source condition `dFSwitch < ton`; it does not clamp or reject the zero-current interval. A two-pass execution of the original `Buck.calculate()` with
    `Vin=318.08966531879963 V`, `Vo=98.24616678566447 V`,
    `Iout=651.0248847976459 A`, `fs=2524.911090771719 Hz`,
    `Vf=1.7531008550235228 V`, and
