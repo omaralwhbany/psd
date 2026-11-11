@@ -19,29 +19,45 @@ class BuckEngine {
       'Switching frequency': input.switchingFrequency,
       'Ripple fraction': input.rippleFraction,
     });
-    if (input.inputVoltageMin > input.inputVoltageMax) errors.add('Input voltage minimum cannot exceed maximum.');
+    if (input.inputVoltageMin > input.inputVoltageMax)
+      errors.add('Input voltage minimum cannot exceed maximum.');
     // Match the input limits enforced by the original PSD5 Buck.java checks.
     if (input.inputVoltageMin > 10000 || input.inputVoltageMax > 10000) {
       errors.add('Input voltage must not exceed 10000 V.');
     }
-    if (input.outputVoltage > 10000) errors.add('Output voltage must not exceed 10000 V.');
-    if (input.outputCurrent > 1000) errors.add('Output current must not exceed 1000 A.');
-    if (input.switchingFrequency > 1e7) errors.add('Switching frequency must not exceed 10 MHz.');
-    if (input.rippleFraction > 1) errors.add('Ripple fraction must not exceed 1 (100%).');
+    if (input.outputVoltage > 10000)
+      errors.add('Output voltage must not exceed 10000 V.');
+    if (input.outputCurrent > 1000)
+      errors.add('Output current must not exceed 1000 A.');
+    if (input.switchingFrequency > 1e7)
+      errors.add('Switching frequency must not exceed 10 MHz.');
+    if (input.rippleFraction > 1)
+      errors.add('Ripple fraction must not exceed 1 (100%).');
     if (!input.operatingLoadPercent.isFinite ||
-        input.operatingLoadPercent < 0 || input.operatingLoadPercent > 100) {
+        input.operatingLoadPercent < 0 ||
+        input.operatingLoadPercent > 100) {
       errors.add('Operating load percentage must be between 0 and 100.');
     }
-    if (input.outputVoltage > input.inputVoltageMin) errors.add('Buck output voltage must not exceed minimum input voltage.');
-    if (input.diodeForwardVoltage < 0 || input.diodeForwardVoltage > 5 || !input.diodeForwardVoltage.isFinite) {
+    if (input.outputVoltage > input.inputVoltageMin)
+      errors.add('Buck output voltage must not exceed minimum input voltage.');
+    if (input.diodeForwardVoltage < 0 ||
+        input.diodeForwardVoltage > 5 ||
+        !input.diodeForwardVoltage.isFinite) {
       errors.add('Diode forward voltage must be between 0 and 5 V.');
     }
     final vin = input.operatingInputVoltage ?? input.inputVoltageMin;
-    if (!vin.isFinite || vin < input.inputVoltageMin || vin > input.inputVoltageMax) errors.add('Operating input voltage must be within the input voltage range.');
+    if (!vin.isFinite ||
+        vin < input.inputVoltageMin ||
+        vin > input.inputVoltageMax)
+      errors.add(
+          'Operating input voltage must be within the input voltage range.');
     final selected = input.selectedInductance;
-    if (selected != null && (!selected.isFinite || selected <= 0)) errors.add('Selected inductance must be greater than zero.');
-    if (selected != null && selected > 0.0022) errors.add('Selected inductance must not exceed 2200 µH.');
-    if (errors.isNotEmpty) return CalculationResult(values: const {}, errors: errors);
+    if (selected != null && (!selected.isFinite || selected <= 0))
+      errors.add('Selected inductance must be greater than zero.');
+    if (selected != null && selected > 0.0022)
+      errors.add('Selected inductance must not exceed 2200 µH.');
+    if (errors.isNotEmpty)
+      return CalculationResult(values: const {}, errors: errors);
 
     final vo = input.outputVoltage;
     final vf = input.diodeForwardVoltage;
@@ -50,7 +66,8 @@ class BuckEngine {
     // of rated dIout. The rated current still defines Lmin and the ripple target.
     final ratedOutputCurrent = input.outputCurrent;
     final minimumLoadCurrent = 0.01 * ratedOutputCurrent;
-    final iout = input.operatingLoadPercent / 100.0 *
+    final iout = input.operatingLoadPercent /
+            100.0 *
             (ratedOutputCurrent - minimumLoadCurrent) +
         minimumLoadCurrent;
     final period = 1 / fs;
@@ -58,8 +75,10 @@ class BuckEngine {
     final vinDesign = input.inputVoltageMax;
 
     // Matches PSD Buck.calcMinInductance(): design at maximum input voltage.
-    final minimumInductance = (1 / fs) * (vinDesign - vo) *
-        ((vo + vf) / (vinDesign + vf)) * (1 / rippleTarget);
+    final minimumInductance = (1 / fs) *
+        (vinDesign - vo) *
+        ((vo + vf) / (vinDesign + vf)) *
+        (1 / rippleTarget);
     final inductance = selected ?? minimumInductance;
 
     final dutyCcm = (vo + vf) / (vin + vf);
@@ -69,8 +88,8 @@ class BuckEngine {
         'Buck duty cycle must not exceed 100% at the selected operating point.',
       ]);
     }
-    final rippleCcm = (1 / fs) * (vin - vo) *
-        ((vo + vf) / (vin + vf)) * (1 / inductance);
+    final rippleCcm =
+        (1 / fs) * (vin - vo) * ((vo + vf) / (vin + vf)) * (1 / inductance);
     final isCcm = rippleCcm <= 2 * iout;
 
     late double ton;
@@ -87,8 +106,8 @@ class BuckEngine {
       minimum = iout - rippleCcm / 2;
     } else {
       // Exact closed-form DCM timing used by PSD Buck.onofftimes().
-      ton = math.sqrt(2 * iout * inductance *
-          ((vo + vf) / (fs * (vin - vo) * (vin + vf))));
+      ton = math.sqrt(
+          2 * iout * inductance * ((vo + vf) / (fs * (vin - vo) * (vin + vf))));
       toff = ton * ((vin + vf) / (vo + vf)) - ton;
       tidle = period - ton - toff;
       if (!ton.isFinite || !toff.isFinite) {
@@ -121,26 +140,23 @@ class BuckEngine {
     final activeIntegralFraction = (ton + toff) / integrationPeriod;
     final deviceCurrentIntegral = peak * minimum +
         0.3333333333333333 * ((peak - minimum) * (peak - minimum));
-    final inductorCurrentIntegral = peak * minimum +
-        (peak - minimum) * (peak - minimum) / 3.0;
+    final inductorCurrentIntegral =
+        peak * minimum + (peak - minimum) * (peak - minimum) / 3.0;
 
     // Preserve Buck.java actualValues() operation order for average/RMS values.
-    final fetAverage = isCcm
-        ? (minimum + peak) / 2.0 * ton * fs
-        : peak / 2.0 * ton * fs;
+    final fetAverage =
+        isCcm ? (minimum + peak) / 2.0 * ton * fs : peak / 2.0 * ton * fs;
     final fetRms = isCcm
         ? math.sqrt(onIntegralFraction * deviceCurrentIntegral)
         : peak * math.sqrt(onIntegralFraction * 0.3333333333333333);
-    final diodeAverage = isCcm
-        ? (minimum + peak) / 2.0 * toff * fs
-        : peak / 2.0 * toff * fs;
+    final diodeAverage =
+        isCcm ? (minimum + peak) / 2.0 * toff * fs : peak / 2.0 * toff * fs;
     final diodeRms = isCcm
         ? math.sqrt(offIntegralFraction * deviceCurrentIntegral)
         : peak * math.sqrt(offIntegralFraction * 0.3333333333333333);
 
-    final inductorAverage = isCcm
-        ? (minimum + peak) / 2.0
-        : peak / 2.0 * (ton + toff) * fs;
+    final inductorAverage =
+        isCcm ? (minimum + peak) / 2.0 : peak / 2.0 * (ton + toff) * fs;
     final inductorRms = isCcm
         ? math.sqrt(activeIntegralFraction * inductorCurrentIntegral)
         : peak * math.sqrt((ton + toff) / (3.0 / fs));
@@ -158,14 +174,15 @@ class BuckEngine {
     final inputCapMaxOn = isCcm ? -minimum + inputAverage : inputAverage;
     final inputCapMinOn = -peak + inputAverage;
     final inputCapOnDelta = inputCapMaxOn - inputCapMinOn;
-    final inputCapOnIntegral = inputCapMaxOn * inputCapMinOn +
-        inputCapOnDelta * inputCapOnDelta / 3.0;
+    final inputCapOnIntegral =
+        inputCapMaxOn * inputCapMinOn + inputCapOnDelta * inputCapOnDelta / 3.0;
     final capInRmsSquared = isCcm
         ? onIntegralFraction * inputCapOnIntegral +
             offIntegralFraction * inputCapOffCurrent * inputCapOffCurrent
         : onIntegralFraction * inputCapOnIntegral +
             ((toff + tidle) / integrationPeriod) *
-                inputCapOffCurrent * inputCapOffCurrent;
+                inputCapOffCurrent *
+                inputCapOffCurrent;
     final inputCapRms = math.sqrt(capInRmsSquared);
 
     // Match Buck.actualValues()'s separate ON/OFF linear current integrals
@@ -193,7 +210,8 @@ class BuckEngine {
     // calculates and displays results, so preserve it as a warning.
     final warnings = <String>[];
     if (!(ripple * 0.99 < rippleTarget)) {
-      warnings.add('Actual inductor ripple exceeds the requested ripple target.');
+      warnings
+          .add('Actual inductor ripple exceeds the requested ripple target.');
     }
     return CalculationResult(values: {
       'operatingInputVoltage': vin,
