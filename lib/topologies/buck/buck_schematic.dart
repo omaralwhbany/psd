@@ -126,13 +126,13 @@ class _BuckPainter extends CustomPainter {
       wire,
     );
     canvas.drawLine(
-      Offset(inputCap - 12, BuckSchematic.capacitorUpperPlateY),
-      Offset(inputCap + 12, BuckSchematic.capacitorUpperPlateY),
+      const Offset(inputCap - 12, BuckSchematic.capacitorUpperPlateY),
+      const Offset(inputCap + 12, BuckSchematic.capacitorUpperPlateY),
       part,
     );
     canvas.drawLine(
-      Offset(inputCap - 12, BuckSchematic.capacitorLowerPlateY),
-      Offset(inputCap + 12, BuckSchematic.capacitorLowerPlateY),
+      const Offset(inputCap - 12, BuckSchematic.capacitorLowerPlateY),
+      const Offset(inputCap + 12, BuckSchematic.capacitorLowerPlateY),
       part,
     );
     canvas.drawLine(
@@ -142,7 +142,7 @@ class _BuckPainter extends CustomPainter {
     );
 
     // Q1 is in series between VIN and the switch node.
-    final mosfet = Rect.fromLTRB(
+    const mosfet = Rect.fromLTRB(
       BuckSchematic.mosfetLeftX,
       55,
       BuckSchematic.mosfetRightX,
@@ -158,8 +158,8 @@ class _BuckPainter extends CustomPainter {
       wire,
     );
     canvas.drawLine(
-      Offset(switchNode - 12, BuckSchematic.diodeCathodeBarY),
-      Offset(switchNode + 12, BuckSchematic.diodeCathodeBarY),
+      const Offset(switchNode - 12, BuckSchematic.diodeCathodeBarY),
+      const Offset(switchNode + 12, BuckSchematic.diodeCathodeBarY),
       part,
     );
     final diode = Path()
@@ -170,7 +170,7 @@ class _BuckPainter extends CustomPainter {
     canvas.drawPath(diode, diodeFill);
     canvas.drawPath(diode, part);
     canvas.drawLine(
-      Offset(switchNode, BuckSchematic.diodeAnodeBaseY),
+      const Offset(switchNode, BuckSchematic.diodeAnodeBaseY),
       const Offset(switchNode, bottom),
       wire,
     );
@@ -193,13 +193,13 @@ class _BuckPainter extends CustomPainter {
       wire,
     );
     canvas.drawLine(
-      Offset(outputCap - 12, BuckSchematic.capacitorUpperPlateY),
-      Offset(outputCap + 12, BuckSchematic.capacitorUpperPlateY),
+      const Offset(outputCap - 12, BuckSchematic.capacitorUpperPlateY),
+      const Offset(outputCap + 12, BuckSchematic.capacitorUpperPlateY),
       part,
     );
     canvas.drawLine(
-      Offset(outputCap - 12, BuckSchematic.capacitorLowerPlateY),
-      Offset(outputCap + 12, BuckSchematic.capacitorLowerPlateY),
+      const Offset(outputCap - 12, BuckSchematic.capacitorLowerPlateY),
+      const Offset(outputCap + 12, BuckSchematic.capacitorLowerPlateY),
       part,
     );
     canvas.drawLine(
