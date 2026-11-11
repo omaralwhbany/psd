@@ -2,8 +2,9 @@
 
 Scope: the non-synchronous Buck device graphs only. Source of truth is
 `PSD5_java/com/ti/switchingpowersupplydesign/sheets/Buck.java` and the
-matching class in `PSD5.jar`. This note records source inspection; the new
-graph arrays are not claimed to be runtime output from Java graph methods.
+matching class in `PSD5.jar`. This note separates source-derived reconstruction details from direct runtime
+checks. The checked-in graph fixture is from actual invocations of the
+original Java graph methods under OpenJDK 21.
 
 ## Original graph entry points
 
@@ -63,9 +64,10 @@ the switch because Java's `>= 1.0` comparison is false for NaN. Flutter now
 preserves both cases instead of checking unrounded doubles.
 
 Regression tests use fixed numerical CCM/DCM oracle values captured from
-previous actual executions of the original `PSD5.jar` calculation class.
-The point-pattern mapping itself is source-derived from `Buck.java`; private
-Java graph methods were not executed at runtime in this audit.
+actual executions of the original `PSD5.jar` calculation class. The point-
+pattern mapping itself is transcribed from `Buck.java` and is independently
+checked against actual invocations of the private Java graph methods in the
+runtime verification section below.
 
 ## Remaining graph parity work
 
