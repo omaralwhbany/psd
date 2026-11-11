@@ -7,7 +7,12 @@ class BuckSchematic extends StatelessWidget {
   static const double diodeTriangleApexY = 114;
   static const double diodeAnodeBaseY = 132;
   @override
-  Widget build(BuildContext context) => SizedBox(height: 190, width: double.infinity, child: CustomPaint(painter: _BuckPainter(Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.onSurface)));
+  Widget build(BuildContext context) => SizedBox(
+      height: 190,
+      width: double.infinity,
+      child: CustomPaint(
+          painter: _BuckPainter(Theme.of(context).colorScheme.primary,
+              Theme.of(context).colorScheme.onSurface)));
 }
 
 class _BuckPainter extends CustomPainter {
@@ -19,13 +24,28 @@ class _BuckPainter extends CustomPainter {
     final sx = size.width / 360;
     canvas.save();
     canvas.scale(sx, sx);
-    final wire = Paint()..color = ink..strokeWidth = 2..style = PaintingStyle.stroke;
-    final part = Paint()..color = accent..strokeWidth = 2.5..style = PaintingStyle.stroke;
-    final fill = Paint()..color = accent.withValues(alpha: 0.08)..style = PaintingStyle.fill;
+    final wire = Paint()
+      ..color = ink
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+    final part = Paint()
+      ..color = accent
+      ..strokeWidth = 2.5
+      ..style = PaintingStyle.stroke;
+    final fill = Paint()
+      ..color = accent.withValues(alpha: 0.08)
+      ..style = PaintingStyle.fill;
     void label(String value, double x, double y) {
-      final tp = TextPainter(text: TextSpan(text: value, style: TextStyle(color: ink, fontSize: 11, fontWeight: FontWeight.w600)), textDirection: TextDirection.ltr)..layout();
+      final tp = TextPainter(
+          text: TextSpan(
+              text: value,
+              style: TextStyle(
+                  color: ink, fontSize: 11, fontWeight: FontWeight.w600)),
+          textDirection: TextDirection.ltr)
+        ..layout();
       tp.paint(canvas, Offset(x, y));
     }
+
     canvas.drawLine(const Offset(16, 70), const Offset(65, 70), wire);
     canvas.drawRect(const Rect.fromLTWH(65, 55, 34, 30), part);
     canvas.drawRect(const Rect.fromLTWH(65, 55, 34, 30), fill);
@@ -33,7 +53,8 @@ class _BuckPainter extends CustomPainter {
     canvas.drawLine(const Offset(99, 70), const Offset(130, 70), wire);
     final coil = Path()..moveTo(130, 70);
     for (var i = 0; i < 4; i++) {
-      coil.arcToPoint(Offset(150 + i * 20, 70), radius: const Radius.circular(10), clockwise: false);
+      coil.arcToPoint(Offset(150 + i * 20, 70),
+          radius: const Radius.circular(10), clockwise: false);
     }
     canvas.drawPath(coil, part);
     canvas.drawLine(const Offset(210, 70), const Offset(344, 70), wire);
@@ -65,10 +86,17 @@ class _BuckPainter extends CustomPainter {
       const Offset(82, 145),
       wire,
     );
-    label('VIN', 16, 42); label('SWITCH', 57, 30); label('D1', 99, 111);
-    label('L1', 157, 40); label('COUT', 295, 108); label('VOUT', 310, 42); label('GND', 18, 151);
+    label('VIN', 16, 42);
+    label('SWITCH', 57, 30);
+    label('D1', 99, 111);
+    label('L1', 157, 40);
+    label('COUT', 295, 108);
+    label('VOUT', 310, 42);
+    label('GND', 18, 151);
     canvas.restore();
   }
+
   @override
-  bool shouldRepaint(covariant _BuckPainter oldDelegate) => oldDelegate.accent != accent || oldDelegate.ink != ink;
+  bool shouldRepaint(covariant _BuckPainter oldDelegate) =>
+      oldDelegate.accent != accent || oldDelegate.ink != ink;
 }
