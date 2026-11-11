@@ -17,7 +17,7 @@ void main() {
           home: const Scaffold(
             body: Center(
               child: RepaintBoundary(
-                key: const ValueKey('buck-schematic-capture'),
+                key: ValueKey('buck-schematic-capture'),
                 child: SizedBox(
                   width: 360,
                   child: BuckSchematic(),
