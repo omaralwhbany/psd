@@ -20,6 +20,8 @@ jobs:
         run: rm -f test/widget_test.dart
       - name: Install dependencies
         run: flutter pub get
+      - name: Dart format check (Buck audit files)
+        run: dart format --output=none --set-exit-if-changed lib/topologies/buck/buck_engine.dart lib/topologies/buck/buck_schematic.dart test/buck_engine_test.dart test/buck_screen_test.dart
       - name: Analyze
         run: flutter analyze
       - name: Test
