@@ -78,7 +78,6 @@ class BuckEngine {
     late double tidle;
     late double peak;
     late double minimum;
-    late double ripple;
     if (isCcm) {
       ton = dutyCcm * period;
       toff = period - ton;
@@ -86,27 +85,30 @@ class BuckEngine {
       tidle = 1e-9;
       peak = iout + rippleCcm / 2;
       minimum = iout - rippleCcm / 2;
-      ripple = rippleCcm;
     } else {
       // Exact closed-form DCM timing used by PSD Buck.onofftimes().
       ton = math.sqrt(2 * iout * inductance *
           ((vo + vf) / (fs * (vin - vo) * (vin + vf))));
       toff = ton * ((vin + vf) / (vo + vf)) - ton;
       tidle = period - ton - toff;
-      if (!ton.isFinite || !toff.isFinite || tidle < -1e-12) {
+      if (!ton.isFinite || !toff.isFinite) {
         return const CalculationResult(values: {}, errors: [
           'The selected inductance does not produce a valid Buck DCM cycle at this operating point.',
         ]);
       }
-      tidle = math.max(0, tidle);
       peak = (1 / inductance) * (vin - vo) * ton;
       minimum = 0;
-      ripple = peak;
     }
 
+    // Java general() derives the displayed excursion after singleValues():
+    // iripple = iind_max - iind_min. This can differ by an ulp from the
+    // earlier CCM design-ripple estimate because the source performs the
+    // two current additions/subtractions before taking their difference.
+    final ripple = peak - minimum;
+
     // Java actualValues() normalizes device RMS integrals by t1+t2+t3.
-    // In CCM t3 is the source's 1 ns numerical epsilon; in DCM the
-    // three intervals sum to one switching period.
+    // Preserve the raw DCM t3 = period - ton - toff, including tiny negative
+    // binary64 roundoff at the CCM/DCM boundary; Buck.java does not clamp it.
     final integrationPeriod = ton + toff + tidle;
     // Time fractions use the switching period, as used by TI's timing and
     // average-current equations. RMS integrals use t1+t2+t3, which differs
@@ -151,28 +153,39 @@ class BuckEngine {
     final inputPower = outputPower + diodeLoss;
     final inputAverage = inputPower / vin;
     final inputCapOffCurrent = fetAverage;
+    // Match the exact current offsets and subtraction order in
+    // Buck.actualValues() for the input-capacitor RMS integral.
+    final inputCapMaxOn = isCcm ? -minimum + inputAverage : inputAverage;
+    final inputCapMinOn = -peak + inputAverage;
+    final inputCapOnDelta = inputCapMaxOn - inputCapMinOn;
+    final inputCapOnIntegral = inputCapMaxOn * inputCapMinOn +
+        inputCapOnDelta * inputCapOnDelta / 3.0;
     final capInRmsSquared = isCcm
-        ? onIntegralFraction * ((inputAverage - minimum) * (inputAverage - peak) +
-                (peak - minimum) * (peak - minimum) / 3) +
+        ? onIntegralFraction * inputCapOnIntegral +
             offIntegralFraction * inputCapOffCurrent * inputCapOffCurrent
-        : onIntegralFraction * (inputAverage * (inputAverage - peak) +
-                peak * peak / 3) +
+        : onIntegralFraction * inputCapOnIntegral +
             ((toff + tidle) / integrationPeriod) *
                 inputCapOffCurrent * inputCapOffCurrent;
-    final inputCapRms = math.sqrt(math.max(0, capInRmsSquared));
+    final inputCapRms = math.sqrt(capInRmsSquared);
 
-    // Output capacitor current iC = iL - Iout, integrated over each
-    // linear interval. This reproduces the original PSD Java expression.
+    // Match Buck.actualValues()'s separate ON/OFF linear current integrals
+    // for the output capacitor, including its DCM zero-current interval.
+    final outputCapMaxOn = peak - iout;
+    final outputCapMinOn = isCcm ? minimum - iout : -iout;
+    final outputCapMaxOff = peak - iout;
+    final outputCapMinOff = isCcm ? minimum - iout : -iout;
+    final outputCapOnDelta = outputCapMaxOn - outputCapMinOn;
+    final outputCapOffDelta = outputCapMaxOff - outputCapMinOff;
+    final outputCapOnIntegral = outputCapMaxOn * outputCapMinOn +
+        outputCapOnDelta * outputCapOnDelta / 3.0;
+    final outputCapOffIntegral = outputCapMaxOff * outputCapMinOff +
+        outputCapOffDelta * outputCapOffDelta / 3.0;
     final capOutRmsSquared = isCcm
-        ? (ton + toff) * fs *
-            ((ripple / 2) * (-ripple / 2) +
-                ripple * ripple / 3)
-        : ton * fs *
-                ((peak - iout) * (-iout) + peak * peak / 3) +
-            toff * fs *
-                ((peak - iout) * (-iout) + peak * peak / 3) +
-            tidle * fs * iout * iout;
-    final outputCapRms = math.sqrt(math.max(0, capOutRmsSquared));
+        ? (ton + toff) * fs * outputCapOnIntegral
+        : ton * fs * outputCapOnIntegral +
+            toff * fs * outputCapOffIntegral +
+            tidle * fs * outputCapMinOff * outputCapMinOff;
+    final outputCapRms = math.sqrt(capOutRmsSquared);
 
     final duty = ton * fs;
     // Buck.java checkCurrentRipple() flags the ripple input when
@@ -197,7 +210,7 @@ class BuckEngine {
       'designRippleCurrent': rippleCcm,
       // Physical excursion: peak-to-valley in CCM, zero-to-peak in DCM.
       'rippleCurrent': ripple,
-      'ripplePercent': ripple / iout * 100,
+      'ripplePercent': ripple / iout * 100.0,
       'peakCurrent': peak,
       'minimumCurrent': minimum,
       'isCcm': isCcm ? 1 : 0,
