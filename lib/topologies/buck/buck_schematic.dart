@@ -35,6 +35,9 @@ class _BuckPainter extends CustomPainter {
     final fill = Paint()
       ..color = accent.withValues(alpha: 0.08)
       ..style = PaintingStyle.fill;
+    final diodeFill = Paint()
+      ..color = accent
+      ..style = PaintingStyle.fill;
     void label(String value, double x, double y) {
       final tp = TextPainter(
           text: TextSpan(
@@ -75,6 +78,7 @@ class _BuckPainter extends CustomPainter {
       ..lineTo(94, BuckSchematic.diodeAnodeBaseY)
       ..lineTo(82, BuckSchematic.diodeTriangleApexY)
       ..close();
+    canvas.drawPath(diode, diodeFill);
     canvas.drawPath(diode, part);
     canvas.drawLine(
       const Offset(70, BuckSchematic.diodeCathodeBarY),
