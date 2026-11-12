@@ -350,3 +350,11 @@ are larger than the zero OFF interval, the original time array is
 non-monotonic around each cycle boundary; the fixture records the exact order
 rather than sorting it. This is an original-JAR runtime observation, not a
 physical waveform recommendation.
+
+The diode's displayed minimum-current metric is intentionally not the global
+minimum of its plotted trace: `singleValues()` assigns `idiode_min` from the
+inductor's CCM valley current, while `diodeCalcCCMCurrent()` still plots zero
+current during the MOSFET ON interval. Therefore the 100% duty boundary has a
+5 A diode minimum side label even though its trace contains zero-valued ON
+samples. The fixture stores the original label-method result separately from
+the waveform samples.
