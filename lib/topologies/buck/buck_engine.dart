@@ -8,6 +8,8 @@ import 'buck_inputs.dart';
 /// Diode forward drop is included; parasitic losses and switching transients
 /// are intentionally excluded.
 class BuckEngine {
+  static const String automaticInductanceZeroError =
+      'Automatic inductance is zero at the 100% duty boundary; choose a positive custom inductance.';
   static const String psdOffTimeWarning =
       'PSD5 flags OFF time and selected inductance when OFF time is negative.';
   static const String psdOnTimeWarning =
@@ -95,6 +97,15 @@ class BuckEngine {
         (vinDesign - vo) *
         ((vo + vf) / (vinDesign + vf)) *
         (1 / rippleTarget);
+    // In automatic mode, Vin(max) == Vo makes the source Lmin expression zero.
+    // TI keeps selected L separate; a positive custom L still produces the
+    // source's valid 100%-duty CCM result at this boundary.
+    if (selected == null &&
+        (!minimumInductance.isFinite || minimumInductance <= 0)) {
+      return const CalculationResult(values: {}, errors: [
+        automaticInductanceZeroError,
+      ]);
+    }
     final inductance = selected ?? minimumInductance;
 
     final dutyCcm = (vo + vf) / (vin + vf);
