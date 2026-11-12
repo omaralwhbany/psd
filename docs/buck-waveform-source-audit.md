@@ -329,3 +329,24 @@ engine now rejects only this automatic-zero case with a clear localized
 message; supplying a positive custom inductance preserves the original Java
 100%-duty CCM result. The numerical regression values above are fixed from
 the original JAR runtime, not from Flutter output.
+
+## 100% duty boundary graph runtime case
+
+A fourth fixed graph fixture covers the exact 100% duty boundary using the
+original `PSD5.jar` Buck class under OpenJDK 21. The input is
+Vin(min)=Vin(max)=Vo=12 V, Iout=5 A, fs=200 kHz, Vf=0.5 V, and selected
+L=33 µH. The original class returns CCM, ton=5 µs, toff=0, and its 1 ns
+CCM zero-current epsilon. The five private device voltage/current point
+methods were invoked reflectively after two calculation passes; their seven
+per-cycle samples, twenty plotted time coordinates, and label metrics are
+stored in the fixture.
+
+At this exact boundary the source FET AC-current label evaluates
+`sqrt(4.999500074987503² - 5²)`, which is NaN because the RMS value is slightly
+below the average due to the 1 ns CCM normalization. The original Graph label
+comparison does not switch units for NaN. The regression now preserves and
+asserts that behavior. Also, because the fixed 1 ns graph transition offsets
+are larger than the zero OFF interval, the original time array is
+non-monotonic around each cycle boundary; the fixture records the exact order
+rather than sorting it. This is an original-JAR runtime observation, not a
+physical waveform recommendation.

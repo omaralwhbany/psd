@@ -50,7 +50,7 @@ void main() {
     expect(metrics(acCurrent: double.nan).currentScale, 1000);
   });
 
-  for (final caseName in ['ccm', 'dcm', 'boundary']) {
+  for (final caseName in ['ccm', 'dcm', 'boundary', 'duty100']) {
     test('all five Buck $caseName graph traces match original PSD5.jar runtime', () {
       final scenario = cases[caseName] as Map<String, dynamic>;
       final inputValues = scenario['input'] as Map<String, dynamic>;
@@ -74,6 +74,17 @@ void main() {
       if (caseName == 'boundary') {
         expect(result.values['designRippleCurrent'], 2 * input.outputCurrent);
         expect(result.values['minimumCurrent'], closeTo(0, 1e-12));
+      }
+      if (caseName == 'duty100') {
+        expect(result.values['dutyCycle'], 1);
+        expect(result.values['onTime'], closeTo(5e-6, 1e-18));
+        expect(result.values['offTime'], 0);
+        expect(result.values['idleTime'], 1e-9);
+        expect(result.values['mosfetRmsCurrent'],
+            closeTo(4.999500074987503, 1e-12));
+        expect(result.values['diodeRmsCurrent'], 0);
+        expect(result.values['inputCapacitorRmsCurrent'], 0);
+        expect(result.values['outputCapacitorRmsCurrent'], 0);
       }
 
       final actual = BuckWaveformSet.fromCalculation(
@@ -137,11 +148,25 @@ void main() {
           closeTo((expectedCurrentMetrics[3] as num).toDouble(), 1e-5),
           reason: '${device.id} Java average current metric',
         );
-        expect(
-          device.metrics.acCurrent,
-          closeTo((expectedCurrentMetrics[4] as num).toDouble(), 1e-5),
-          reason: '${device.id} Java AC current metric',
-        );
+        final expectedAcCurrent = expectedCurrentMetrics[4];
+        if (expectedAcCurrent == null) {
+          expect(
+            device.metrics.acCurrent.isNaN,
+            isTrue,
+            reason: '${device.id} Java AC current metric is NaN',
+          );
+        } else {
+          expect(
+            device.metrics.acCurrent,
+            closeTo((expectedAcCurrent as num).toDouble(), 1e-5),
+            reason: '${device.id} Java AC current metric',
+          );
+        }
+        if (caseName == 'duty100') {
+          // The 1 ns source transition offsets overlap when OFF time is zero;
+          // Graph.java retains this non-monotonic point order.
+          expect(expectedTimes[2], greaterThan(expectedTimes[4]));
+        }
 
         for (var index = 0; index < 20; index++) {
           final time = expectedTimes[index];
