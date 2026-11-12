@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:psd/topologies/buck/buck_screen.dart';
+import 'package:psd/localization/app_strings.dart';
 
 void main() {
   testWidgets('Buck results fit a narrow Arabic screen without overflow',
@@ -178,5 +179,15 @@ void main() {
       }
     },
   );
+
+  test('Buck zero-automatic-inductance boundary error is localized', () {
+    const message =
+        'Automatic inductance is zero at the 100% duty boundary; choose a positive custom inductance.';
+    expect(AppStrings(const Locale('en')).localizeBuckError(message), message);
+    expect(
+      AppStrings(const Locale('ar')).localizeBuckError(message),
+      'عند حد التشغيل بنسبة 100% تكون المحاثة المحسوبة تلقائياً صفراً؛ اختر محاثة مخصصة موجبة.',
+    );
+  });
 
 }
