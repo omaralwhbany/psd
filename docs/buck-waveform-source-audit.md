@@ -303,3 +303,29 @@ source-condition warning, keeps the computed results visible, localizes the
 warning in Arabic and English, and highlights the affected result values.
 The regression values are fixed from this original-JAR runtime probe, not
 from BuckEngine output.
+
+
+## 2026-11-12: zero automatic Lmin at the 100% duty boundary
+
+The original `Buck.calcMinInductance()` expression returns exactly zero when
+`Vin(max) == Vo`. This is distinct from the selected inductor: the TI sheet
+keeps `dLout` as a separate positive user input. An actual OpenJDK 21 run of
+the original `Buck` class from `PSD5.jar`, with
+`Vin(min)=Vin(max)=Vo=12 V`, `Iout=5 A`, `fs=200 kHz`, `Vf=0.5 V`,
+and selected `L=33 µH`, returned:
+
+- `Lmin=0 H`, selected `L=33 µH`, and CCM classification
+- `duty=1`, `ton=5 µs`, `toff=0`, `tzero=1 ns`
+- `Pout=60 W`, `Pin=60 W`, `Iin=5 A`
+- MOSFET average/RMS current `5 A` / `4.999500074987503 A`
+- diode average/RMS current `0 A` / `0 A`
+- inductor average/RMS current `5 A` / `4.999500074987503 A`
+- input- and output-capacitor RMS current `0 A`
+
+Flutter's automatic-inductor mode previously substituted this zero `Lmin` as
+the actual selected inductance. The subsequent `0 * Infinity` intermediate
+made the CCM ripple non-finite and led to a misleading DCM-cycle error. The
+engine now rejects only this automatic-zero case with a clear localized
+message; supplying a positive custom inductance preserves the original Java
+100%-duty CCM result. The numerical regression values above are fixed from
+the original JAR runtime, not from Flutter output.

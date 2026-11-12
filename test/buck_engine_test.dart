@@ -279,6 +279,63 @@ void main() {
     expect(r.values['outputCapacitorRmsCurrent'], closeTo(1.1547005383792515, 1e-12));
   });
 
+  test('Buck handles zero automatic Lmin at the 100% duty boundary', () {
+    const input = BuckInputs(
+      inputVoltageMin: 12,
+      inputVoltageMax: 12,
+      outputVoltage: 12,
+      outputCurrent: 5,
+      switchingFrequency: 200e3,
+      rippleFraction: 0.30,
+      diodeForwardVoltage: 0.5,
+      operatingInputVoltage: 12,
+    );
+
+    final automatic = buck.calculate(input);
+    expect(automatic.isValid, isFalse);
+    expect(
+      automatic.errors,
+      contains(BuckEngine.automaticInductanceZeroError),
+    );
+    expect(automatic.values, isEmpty);
+
+    const selected = BuckInputs(
+      inputVoltageMin: 12,
+      inputVoltageMax: 12,
+      outputVoltage: 12,
+      outputCurrent: 5,
+      switchingFrequency: 200e3,
+      rippleFraction: 0.30,
+      diodeForwardVoltage: 0.5,
+      operatingInputVoltage: 12,
+      selectedInductance: 33e-6,
+    );
+    final result = buck.calculate(selected);
+    expect(result.isValid, isTrue);
+
+    // Fixed values from two calculate() passes on the original PSD5.jar Buck
+    // class under OpenJDK 21. Lmin is zero, but the source's separate positive
+    // selected inductance yields a valid 100%-duty CCM operating point.
+    expect(result.values['minimumInductance'], 0);
+    expect(result.values['inductanceUsed'], 33e-6);
+    expect(result.values['isCcm'], 1);
+    expect(result.values['dutyCycle'], 1);
+    expect(result.values['onTime'], closeTo(5e-6, 1e-18));
+    expect(result.values['offTime'], 0);
+    expect(result.values['idleTime'], 1e-9);
+    expect(result.values['outputPower'], 60);
+    expect(result.values['inputPower'], 60);
+    expect(result.values['inputAverageCurrent'], 5);
+    expect(result.values['mosfetAverageCurrent'], 5);
+    expect(result.values['mosfetRmsCurrent'], closeTo(4.999500074987503, 1e-12));
+    expect(result.values['diodeAverageCurrent'], 0);
+    expect(result.values['diodeRmsCurrent'], 0);
+    expect(result.values['inductorAverageCurrent'], 5);
+    expect(result.values['inductorRmsCurrent'], closeTo(4.999500074987503, 1e-12));
+    expect(result.values['inputCapacitorRmsCurrent'], 0);
+    expect(result.values['outputCapacitorRmsCurrent'], 0);
+  });
+
   test('Buck classifier matches Java on adjacent boundary inductances', () {
     BuckInputs atInductance(double inductance) => BuckInputs(
       inputVoltageMin: 18,
