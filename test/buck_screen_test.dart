@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:psd/topologies/buck/buck_screen.dart';
 import 'package:psd/localization/app_strings.dart';
+import 'package:psd/topologies/buck/buck_screen.dart';
 
 void main() {
   testWidgets('Buck results fit a narrow Arabic screen without overflow',
