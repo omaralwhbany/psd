@@ -165,7 +165,7 @@ void main() {
         if (caseName == 'duty100') {
           // The 1 ns source transition offsets overlap when OFF time is zero;
           // Graph.java retains this non-monotonic point order.
-          expect(expectedTimes[2], greaterThan(expectedTimes[4]));
+          expect(expectedTimes[5], greaterThan(expectedTimes[6]));
         }
 
         for (var index = 0; index < 20; index++) {
