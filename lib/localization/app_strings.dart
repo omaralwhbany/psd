@@ -87,6 +87,7 @@ class AppStrings {
   String localizeBuckWarning(String warning) {
     if (!isArabic) return warning;
     const translations = <String, String>{
+      'PSD5 flags output voltage and minimum input voltage when output voltage exceeds minimum input voltage.': 'وفق سلوك PSD5 الأصلي، يتم تمييز جهد الخرج وأقل جهد دخل عندما يتجاوز جهد الخرج أقل جهد دخل.',
       'Actual inductor ripple exceeds the requested ripple target.': 'تموج تيار الملف الفعلي يتجاوز حد التموج المطلوب.',
       'PSD5 flags OFF time and selected inductance when OFF time is negative.': 'وفق فحص PSD5 الأصلي، يتم تمييز زمن الفصل والمحاثة المختارة عندما يكون زمن الفصل سالباً.',
       'PSD5 flags ON time and switching period when switching frequency is below ON time.': 'وفق فحص PSD5 الأصلي، يتم تمييز زمن التوصيل وزمن الدورة عندما يكون التردد أقل من زمن التوصيل.',
@@ -110,7 +111,6 @@ class AppStrings {
       'Output current must not exceed 1000 A.': 'يجب ألا يتجاوز تيار الخرج 1000 أمبير.',
       'Switching frequency must not exceed 10 MHz.': 'يجب ألا يتجاوز تردد التبديل 10 ميجاهرتز.',
       'Ripple fraction must not exceed 1 (100%).': 'يجب ألا تتجاوز نسبة التموج 100%.',
-      'Buck output voltage must not exceed minimum input voltage.': 'يجب ألا يزيد جهد الخرج عن أقل جهد دخل.',
       'Diode forward voltage must be between 0 and 5 V.': 'يجب أن يكون هبوط جهد الدايود بين 0 و5 فولت.',
       'Operating input voltage must be within the input voltage range.': 'يجب أن يقع جهد الدخل التشغيلي ضمن مجال جهد الدخل المحدد.',
       'Selected inductance must be greater than zero.': 'يجب أن تكون قيمة المحاثة المختارة أكبر من صفر.',
