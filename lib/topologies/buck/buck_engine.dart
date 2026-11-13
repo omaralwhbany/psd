@@ -10,6 +10,8 @@ import 'buck_inputs.dart';
 class BuckEngine {
   static const String automaticInductanceZeroError =
       'Automatic inductance is zero at the 100% duty boundary; choose a positive custom inductance.';
+  static const String automaticInductanceNonFiniteError =
+      'Automatic inductance is not finite for the requested ripple target; choose a finite custom inductance.';
   static const String outputAboveMinimumInputWarning =
       'PSD5 flags output voltage and minimum input voltage when output voltage exceeds minimum input voltage.';
   static const String psdOffTimeWarning =
@@ -127,8 +129,14 @@ class BuckEngine {
     // ranges it has already been handled by the over-duty guard above.
     // TI keeps selected L separate; a positive custom L still produces the
     // source's valid 100%-duty CCM result at the exact boundary.
-    if (selected == null &&
-        (!minimumInductance.isFinite || minimumInductance == 0)) {
+    if (selected == null && !minimumInductance.isFinite) {
+      return CalculationResult(
+        values: const {},
+        errors: const [automaticInductanceNonFiniteError],
+        warnings: warnings,
+      );
+    }
+    if (selected == null && minimumInductance == 0) {
       return CalculationResult(
         values: const {},
         errors: const [automaticInductanceZeroError],

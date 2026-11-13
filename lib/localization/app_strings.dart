@@ -118,6 +118,7 @@ class AppStrings {
       'Buck duty cycle must not exceed 100% at the selected operating point.': 'نسبة تشغيل المحول الخافض لا يمكن أن تتجاوز 100% عند نقطة التشغيل المحددة.',
       'The selected inductance does not produce a valid Buck DCM cycle at this operating point.': 'قيمة المحاثة المختارة لا تنتج دورة تشغيل DCM صالحة عند نقطة التشغيل هذه.',
       'Automatic inductance is zero at the 100% duty boundary; choose a positive custom inductance.': 'عند حد التشغيل بنسبة 100% تكون المحاثة المحسوبة تلقائياً صفراً؛ اختر محاثة مخصصة موجبة.',
+      'Automatic inductance is not finite for the requested ripple target; choose a finite custom inductance.': 'تعذّر حساب محاثة تلقائية محدودة عند نسبة التموج المطلوبة؛ اختر قيمة محاثة مخصصة محدودة.',
     };
     return translations[error] ?? error;
   }

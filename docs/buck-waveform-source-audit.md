@@ -437,3 +437,31 @@ result as the Java UI does. The regression covers both negative Lmin and
 zero Lmin with an under-voltage selected operating point. Flutter intentionally
 does not display the original Java negative-OFF-time/invalid waveform numbers;
 the duty error is a safety guard, not a literal TI error message.
+
+
+## 2026-11-13: non-finite automatic minimum inductance
+
+The original `getUserValues()` parses ripple as a percentage and divides it
+by 100. `calcMinInductance()` then multiplies that fraction by rated output
+current and takes its reciprocal in the Lmin expression. With an extremely
+small but still positive ripple input, the intermediate remains nonzero while
+its reciprocal overflows to positive infinity. This is distinct from the
+exact zero Lmin at `Vin(max) == Vo`.
+
+An actual OpenJDK 21 headless execution of the original `Buck` class from
+`PSD5.jar` used Vin(min)=18 V, Vin(max)=36 V, Vo=12 V, Iout=5 A,
+fs=200 kHz, ripple input=1e-320 percent, Vf=0.5 V, operating Vin=18 V,
+and selected L=33 µH, followed by two `calculate()` calls. Java returned
+`dcurrent_ripple=9.9E-323`, `iripple_buck_preset=4.94E-322`,
+`Lmin=Infinity`, while still calculating a valid selected-inductor
+operating point: duty=0.6756756756756758, ton=3.3783783783783788 µs,
+toff=1.6216216216216216 µs, Pout=60 W, and Pin=60.810810810810814 W.
+The source and `javap -p -c` bytecode both confirm this operation order.
+
+Flutter's automatic mode previously grouped non-finite Lmin with exact zero
+and returned the zero-boundary message. It now reports a separate localized
+non-finite automatic-inductance error rather than mislabeling the condition.
+A finite custom 33 µH selection still calculates the same source operating
+point; its reported Lmin remains positive infinity and the source ripple-limit
+warning is preserved. The non-finite error is a Flutter safety message, not
+a literal TI error string.
