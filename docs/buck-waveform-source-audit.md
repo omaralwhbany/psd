@@ -428,8 +428,12 @@ Flutter previously treated every `Lmin <= 0` as the exact zero-Lmin
 100%-duty boundary and returned the zero-Lmin message before checking the
 selected operating-point duty. For a negative Lmin, that message was false:
 the source equations imply `Vin(op) <= Vin(max) < Vo`, hence duty exceeds
-100%. The automatic-Lmin guard now identifies exact zero separately;
-negative Lmin proceeds to Flutter's existing over-duty safety guard. The
-regression checks this error classification. Flutter intentionally does not
-display the original Java negative-OFF-time/invalid waveform numbers; the
-duty error is a safety guard, not a literal TI error message.
+100%. The engine now checks selected-point duty before the automatic-Lmin
+special case, so negative Lmin reaches the over-duty guard. Exact zero Lmin
+at exactly 100% duty still receives the dedicated automatic-inductance
+message. The early over-duty path also carries the source's negative-OFF-time
+warning so Flutter highlights the selected-inductance control and OFF-time
+result as the Java UI does. The regression covers both negative Lmin and
+zero Lmin with an under-voltage selected operating point. Flutter intentionally
+does not display the original Java negative-OFF-time/invalid waveform numbers;
+the duty error is a safety guard, not a literal TI error message.
