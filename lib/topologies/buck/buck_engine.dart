@@ -120,7 +120,9 @@ class BuckEngine {
     final inductance = selected ?? minimumInductance;
 
     final dutyCcm = (vo + vf) / (vin + vf);
-    // PSD5 Buck.checkDutyCycle() rejects a calculated duty cycle above 100%.
+    // Java flags duty above 100% after calculating, but its displayed device
+    // RMS values can become NaN for negative OFF time. Flutter keeps this
+    // unsupported operating point out of the numeric result and waveform UI.
     if (dutyCcm > 1) {
       return CalculationResult(
         values: const {},
