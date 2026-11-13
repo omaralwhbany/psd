@@ -67,6 +67,7 @@ class _BuckScreenState extends State<BuckScreen> {
     final onTimeWarning = result.warnings.contains(BuckEngine.psdOnTimeWarning);
     final offTimeWarning = result.warnings.contains(BuckEngine.psdOffTimeWarning);
     final inductanceWarning = onTimeWarning || offTimeWarning;
+    final inputRangeWarning = input.outputVoltage > input.inputVoltageMin;
     return ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 28), children: [
       Text(s.buckConverter, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
       const SizedBox(height: 4),
@@ -75,10 +76,10 @@ class _BuckScreenState extends State<BuckScreen> {
       _panel(s.schematic, const BuckSchematic()),
       const SizedBox(height: 14),
       _panel(s.inputs, Column(children: [
-        _field(s.inputVoltageMin, 'vinMin', 'V'),
+        _field(s.inputVoltageMin, 'vinMin', 'V', warning: inputRangeWarning),
         _field(s.inputVoltageMax, 'vinMax', 'V'),
         _field(s.operatingInputVoltage, 'vinOperating', 'V'),
-        _field(s.outputVoltage, 'vout', 'V'),
+        _field(s.outputVoltage, 'vout', 'V', warning: inputRangeWarning),
         _field(s.outputCurrent, 'iout', 'A'),
         _field(s.switchingFrequency, 'fsw', 'kHz'),
         _field(s.ripplePercent, 'ripple', '%'),
@@ -183,7 +184,7 @@ class _BuckScreenState extends State<BuckScreen> {
           _result(s.inputPower, '${result.values['inputPower']!.toStringAsFixed(2)} W'),
           _result(s.inputCurrent, '${result.values['inputAverageCurrent']!.toStringAsFixed(3)} A'),
         ],
-      ) : _errors(result.errors, s)),
+      ) : _errors(result.errors, result.warnings, s)),
       if (result.isValid) ...[
         const SizedBox(height: 14),
         _panel(s.deviceWaveforms, BuckDeviceWaveformsView(
@@ -231,9 +232,25 @@ class _BuckScreenState extends State<BuckScreen> {
     ]);
   }
 
-  Widget _errors(List<String> errors, AppStrings strings) => Column(crossAxisAlignment: CrossAxisAlignment.start,
-    children: errors.map((e) => Padding(padding: const EdgeInsets.only(bottom: 6),
-      child: Text(strings.localizeBuckError(e), style: const TextStyle(color: Colors.red)))).toList());
+  Widget _errors(List<String> errors, List<String> warnings, AppStrings strings) =>
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        for (final warning in warnings)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              strings.localizeBuckWarning(warning),
+              style: TextStyle(color: Theme.of(context).colorScheme.tertiary),
+            ),
+          ),
+        for (final error in errors)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Text(
+              strings.localizeBuckError(error),
+              style: const TextStyle(color: Colors.red),
+            ),
+          ),
+      ]);
 
   Widget _field(String label, String key, String unit, {bool warning = false}) =>
       Padding(
