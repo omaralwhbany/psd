@@ -391,3 +391,45 @@ probe above, not from BuckEngine. When the selected operating input itself
 cannot support the requested output (duty above 100%), Flutter continues to
 reject that operating point rather than displaying the NaN/negative-time
 results that the original Swing sheet can expose while flagging its fields.
+
+
+## 2026-11-13: negative calculated Lmin is not the zero-Lmin boundary
+
+The extracted `Buck.java` `calcMinInductance()` (source lines 848-855)
+computes
+
+`Lmin = (1/fs) * (Vin(max)-Vo) * ((Vo+Vf)/(Vin(max)+Vf)) * (1/(Iout*ripple))`.
+
+This is exactly zero when `Vin(max) == Vo`, but it is negative when
+`Vin(max) < Vo`. The source's `checkDutyCycle()` flags duty above 1, and
+`checktontoff()` flags negative OFF time and the selected-inductance field.
+The same branches are present in `PSD5.jar` bytecode. Source and JAR inputs
+were rechecked for this audit (SHA-256: `PSD5_java.zip`
+`1aa7e32095315684f44746404a4ed06eed9c61b04ee1e82d47c27577e8adbacf`;
+`PSD5.jar`
+`a034c9fe92467342b2d24e2ceb1f734d8ab3227d6acda29ce59570a20a9a925f`).
+
+An actual OpenJDK 21 headless execution of the original `Buck` class from
+`PSD5.jar` used Vin(min)=9 V, Vin(max)=18 V, Vo=19 V, Iout=5 A,
+fs=200 kHz, ripple=30%, Vf=0.5 V, operating Vin=18 V, and selected
+L=33 µH, then called `calculate()` twice. Java returned:
+
+- `Lmin = -3.5135135135135134 µH`
+- `duty = 1.0540540540540542`
+- `ton = 5.2702702702702705 µs`
+- `toff = -0.27027027027027013 µs`
+- `CCM = 1`
+
+The original Swing UI highlighted Vin(min), Vout, selected inductance,
+duty-cycle output, and OFF-time output. This was confirmed by reading the
+actual component backgrounds after the runtime calculation.
+
+Flutter previously treated every `Lmin <= 0` as the exact zero-Lmin
+100%-duty boundary and returned the zero-Lmin message before checking the
+selected operating-point duty. For a negative Lmin, that message was false:
+the source equations imply `Vin(op) <= Vin(max) < Vo`, hence duty exceeds
+100%. The automatic-Lmin guard now identifies exact zero separately;
+negative Lmin proceeds to Flutter's existing over-duty safety guard. The
+regression checks this error classification. Flutter intentionally does not
+display the original Java negative-OFF-time/invalid waveform numbers; the
+duty error is a safety guard, not a literal TI error message.
