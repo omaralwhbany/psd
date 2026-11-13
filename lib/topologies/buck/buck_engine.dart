@@ -106,11 +106,13 @@ class BuckEngine {
         (vinDesign - vo) *
         ((vo + vf) / (vinDesign + vf)) *
         (1 / rippleTarget);
-    // In automatic mode, Vin(max) == Vo makes the source Lmin expression zero.
+    // In automatic mode, Vin(max) == Vo makes the source Lmin expression
+    // exactly zero. A negative Lmin is different: because Vin(op) cannot exceed
+    // Vin(max), it also implies duty > 100% and must reach the duty guard below.
     // TI keeps selected L separate; a positive custom L still produces the
-    // source's valid 100%-duty CCM result at this boundary.
+    // source's valid 100%-duty CCM result at the exact boundary.
     if (selected == null &&
-        (!minimumInductance.isFinite || minimumInductance <= 0)) {
+        (!minimumInductance.isFinite || minimumInductance == 0)) {
       return CalculationResult(
         values: const {},
         errors: const [automaticInductanceZeroError],
