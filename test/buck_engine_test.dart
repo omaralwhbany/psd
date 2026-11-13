@@ -279,6 +279,37 @@ void main() {
     expect(r.values['outputCapacitorRmsCurrent'], closeTo(1.1547005383792515, 1e-12));
   });
 
+  test('Buck distinguishes negative automatic Lmin from the exact zero boundary', () {
+    const input = BuckInputs(
+      inputVoltageMin: 9,
+      inputVoltageMax: 18,
+      outputVoltage: 19,
+      outputCurrent: 5,
+      switchingFrequency: 200e3,
+      rippleFraction: 0.30,
+      diodeForwardVoltage: 0.5,
+      operatingInputVoltage: 18,
+    );
+
+    final result = buck.calculate(input);
+    expect(result.isValid, isFalse);
+    expect(result.values, isEmpty);
+    expect(
+      result.errors,
+      contains(
+        'Buck duty cycle must not exceed 100% at the selected operating point.',
+      ),
+    );
+    expect(
+      result.errors,
+      isNot(contains(BuckEngine.automaticInductanceZeroError)),
+    );
+    expect(
+      result.warnings,
+      contains(BuckEngine.outputAboveMinimumInputWarning),
+    );
+  });
+
   test('Buck handles zero automatic Lmin at the 100% duty boundary', () {
     const input = BuckInputs(
       inputVoltageMin: 12,
