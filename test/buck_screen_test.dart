@@ -226,13 +226,23 @@ void main() {
     },
   );
 
-  test('Buck zero-automatic-inductance boundary error is localized', () {
-    const message =
+  test('Buck automatic-inductance errors are localized', () {
+    const zeroMessage =
         'Automatic inductance is zero at the 100% duty boundary; choose a positive custom inductance.';
-    expect(AppStrings(const Locale('en')).localizeBuckError(message), message);
+    const nonFiniteMessage =
+        'Automatic inductance is not finite for the requested ripple target; choose a finite custom inductance.';
+    expect(AppStrings(const Locale('en')).localizeBuckError(zeroMessage), zeroMessage);
     expect(
-      AppStrings(const Locale('ar')).localizeBuckError(message),
+      AppStrings(const Locale('ar')).localizeBuckError(zeroMessage),
       'عند حد التشغيل بنسبة 100% تكون المحاثة المحسوبة تلقائياً صفراً؛ اختر محاثة مخصصة موجبة.',
+    );
+    expect(
+      AppStrings(const Locale('en')).localizeBuckError(nonFiniteMessage),
+      nonFiniteMessage,
+    );
+    expect(
+      AppStrings(const Locale('ar')).localizeBuckError(nonFiniteMessage),
+      'تعذّر حساب محاثة تلقائية محدودة عند نسبة التموج المطلوبة؛ اختر قيمة محاثة مخصصة محدودة.',
     );
   });
 
