@@ -106,9 +106,25 @@ class BuckEngine {
         (vinDesign - vo) *
         ((vo + vf) / (vinDesign + vf)) *
         (1 / rippleTarget);
+    final dutyCcm = (vo + vf) / (vin + vf);
+    // Java checks negative OFF time after calculating. For an over-duty point,
+    // preserve those source warnings/highlights but do not expose its negative
+    // time or potentially NaN device values in Flutter's numeric result.
+    if (dutyCcm > 1) {
+      final unsupportedOnTime = dutyCcm * period;
+      warnings.add(psdOffTimeWarning);
+      if (fs < unsupportedOnTime) warnings.add(psdOnTimeWarning);
+      return CalculationResult(
+        values: const {},
+        errors: const [
+          'Buck duty cycle must not exceed 100% at the selected operating point.',
+        ],
+        warnings: warnings,
+      );
+    }
     // In automatic mode, Vin(max) == Vo makes the source Lmin expression
-    // exactly zero. A negative Lmin is different: because Vin(op) cannot exceed
-    // Vin(max), it also implies duty > 100% and must reach the duty guard below.
+    // exactly zero. A negative Lmin is not this boundary; with valid input
+    // ranges it has already been handled by the over-duty guard above.
     // TI keeps selected L separate; a positive custom L still produces the
     // source's valid 100%-duty CCM result at the exact boundary.
     if (selected == null &&
@@ -120,20 +136,6 @@ class BuckEngine {
       );
     }
     final inductance = selected ?? minimumInductance;
-
-    final dutyCcm = (vo + vf) / (vin + vf);
-    // Java flags duty above 100% after calculating, but its displayed device
-    // RMS values can become NaN for negative OFF time. Flutter keeps this
-    // unsupported operating point out of the numeric result and waveform UI.
-    if (dutyCcm > 1) {
-      return CalculationResult(
-        values: const {},
-        errors: const [
-          'Buck duty cycle must not exceed 100% at the selected operating point.',
-        ],
-        warnings: warnings,
-      );
-    }
     final rippleCcm =
         (1 / fs) * (vin - vo) * ((vo + vf) / (vin + vf)) * (1 / inductance);
     final isCcm = rippleCcm <= 2 * iout;
