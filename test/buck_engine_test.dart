@@ -393,19 +393,33 @@ void main() {
     );
   });
 
-  test('Buck error text matches the original strict output/minimum-input comparison', () {
-    // Buck.java checkOutputVolt() rejects only dVout > dVin_min; equality is valid.
+  test('Buck flags output above minimum input but calculates a valid selected operating point', () {
+    // Fixed values captured by running the original PSD5.jar Buck class twice
+    // after input setup. Java highlights Vout and Vin(min) but still calculates
+    // because the selected operating Vin=18 V is above Vout=12 V.
     const input = BuckInputs(
-      inputVoltageMin: 5,
-      inputVoltageMax: 8,
-      outputVoltage: 5.01,
-      outputCurrent: 2,
-      switchingFrequency: 100e3,
+      inputVoltageMin: 9,
+      inputVoltageMax: 18,
+      outputVoltage: 12,
+      outputCurrent: 5,
+      switchingFrequency: 200e3,
       rippleFraction: 0.3,
       diodeForwardVoltage: 0.5,
+      operatingInputVoltage: 18,
+      selectedInductance: 33e-6,
     );
     final result = buck.calculate(input);
-    expect(result.errors, contains('Buck output voltage must not exceed minimum input voltage.'));
+    expect(result.isValid, isTrue);
+    expect(result.warnings, contains(BuckEngine.outputAboveMinimumInputWarning));
+    expect(result.values['dutyCycle'], closeTo(0.6756756756756758, 1e-12));
+    expect(result.values['onTime'], closeTo(3.3783783783783788e-6, 1e-18));
+    expect(result.values['offTime'], closeTo(1.6216216216216216e-6, 1e-18));
+    expect(result.values['outputPower'], 60.0);
+    expect(result.values['inputPower'], closeTo(60.810810810810814, 1e-11));
+    expect(result.values['mosfetRmsCurrent'], closeTo(4.112147191587798, 1e-12));
+    expect(result.values['diodeRmsCurrent'], closeTo(2.8489791456126947, 1e-12));
+    expect(result.values['inputCapacitorRmsCurrent'], closeTo(2.344908588716427, 1e-12));
+    expect(result.values['outputCapacitorRmsCurrent'], closeTo(0.17731887874374277, 1e-12));
   });
 
   test('Buck rejects invalid operating input voltage', () {
