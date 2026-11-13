@@ -328,6 +328,58 @@ void main() {
     }
   });
 
+  test('Buck distinguishes non-finite automatic Lmin from the exact zero boundary', () {
+    const input = BuckInputs(
+      inputVoltageMin: 18,
+      inputVoltageMax: 36,
+      outputVoltage: 12,
+      outputCurrent: 5,
+      switchingFrequency: 200e3,
+      rippleFraction: 9.9e-323,
+      diodeForwardVoltage: 0.5,
+      operatingInputVoltage: 18,
+    );
+
+    final automatic = buck.calculate(input);
+    expect(automatic.isValid, isFalse);
+    expect(automatic.values, isEmpty);
+    expect(
+      automatic.errors,
+      contains(BuckEngine.automaticInductanceNonFiniteError),
+    );
+    expect(
+      automatic.errors,
+      isNot(contains(BuckEngine.automaticInductanceZeroError)),
+    );
+
+    const custom = BuckInputs(
+      inputVoltageMin: 18,
+      inputVoltageMax: 36,
+      outputVoltage: 12,
+      outputCurrent: 5,
+      switchingFrequency: 200e3,
+      rippleFraction: 9.9e-323,
+      diodeForwardVoltage: 0.5,
+      operatingInputVoltage: 18,
+      selectedInductance: 33e-6,
+    );
+    final selected = buck.calculate(custom);
+    expect(selected.isValid, isTrue);
+    // Original PSD5.jar runtime: Lmin overflows to +Infinity, but the selected
+    // 33 µH inductor still produces a valid operating point.
+    expect(selected.values['minimumInductance']!.isInfinite, isTrue);
+    expect(selected.values['inductanceUsed'], 33e-6);
+    expect(selected.values['dutyCycle'], closeTo(0.6756756756756758, 1e-12));
+    expect(selected.values['onTime'], closeTo(3.3783783783783788e-6, 1e-18));
+    expect(selected.values['offTime'], closeTo(1.6216216216216216e-6, 1e-18));
+    expect(selected.values['outputPower'], 60.0);
+    expect(selected.values['inputPower'], closeTo(60.810810810810814, 1e-11));
+    expect(
+      selected.warnings,
+      contains('Actual inductor ripple exceeds the requested ripple target.'),
+    );
+  });
+
   test('Buck handles zero automatic Lmin at the 100% duty boundary', () {
     const input = BuckInputs(
       inputVoltageMin: 12,
