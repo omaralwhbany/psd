@@ -49,6 +49,14 @@ class _BuckScreenState extends State<BuckScreen> {
       ? '${(seconds * 1e9).toStringAsFixed(2)} ns'
       : '${Units.baseToMicro(seconds).toStringAsFixed(2)} µs';
 
+  // DecimalFormat("#0.00") in PSD5 displays positive infinity as U+221E.
+  String _formatTiInductance(double henries) {
+    if (henries.isInfinite) {
+      return '${henries.isNegative ? '-' : ''}∞ µH';
+    }
+    return '${Units.baseToMicro(henries).toStringAsFixed(2)} µH';
+  }
+
   BuckInputs get _input => BuckInputs(
     inputVoltageMin: _v('vinMin'), inputVoltageMax: _v('vinMax'),
     outputVoltage: _v('vout'), outputCurrent: _v('iout'),
@@ -144,7 +152,7 @@ class _BuckScreenState extends State<BuckScreen> {
           _result(s.zeroCurrentTime, '${Units.baseToMicro(result.values['idleTime']!).toStringAsFixed(2)} µs'),
           const Divider(height: 22),
           _sectionTitle(s.inductor),
-          _result(s.minimumInductance, '${Units.baseToMicro(result.values['minimumInductance']!).toStringAsFixed(2)} µH'),
+          _result(s.minimumInductance, _formatTiInductance(result.values['minimumInductance']!)),
           _result(s.inductanceUsed, '${Units.baseToMicro(result.values['inductanceUsed']!).toStringAsFixed(2)} µH',
             warning: inductanceWarning),
           if (result.values['isCcm'] == 0)
