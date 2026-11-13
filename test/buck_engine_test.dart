@@ -422,6 +422,28 @@ void main() {
     expect(result.values['outputCapacitorRmsCurrent'], closeTo(0.17731887874374277, 1e-12));
   });
 
+  test('Buck keeps unsupported over-duty operating points out of numeric results', () {
+    const input = BuckInputs(
+      inputVoltageMin: 9,
+      inputVoltageMax: 18,
+      outputVoltage: 12,
+      outputCurrent: 5,
+      switchingFrequency: 200e3,
+      rippleFraction: 0.3,
+      diodeForwardVoltage: 0.5,
+      operatingInputVoltage: 9,
+      selectedInductance: 33e-6,
+    );
+    final result = buck.calculate(input);
+    expect(result.isValid, isFalse);
+    expect(result.values, isEmpty);
+    expect(
+      result.errors,
+      contains('Buck duty cycle must not exceed 100% at the selected operating point.'),
+    );
+    expect(result.warnings, contains(BuckEngine.outputAboveMinimumInputWarning));
+  });
+
   test('Buck rejects invalid operating input voltage', () {
     final d = BuckInputs.defaults();
     final invalid = BuckInputs(
