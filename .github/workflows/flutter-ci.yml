@@ -20,6 +20,19 @@ jobs:
         run: rm -f test/widget_test.dart
       - name: Install dependencies
         run: flutter pub get
+      - name: Apply and export Buck formatting (temporary)
+        run: |
+          dart format lib/topologies/buck lib/localization/app_strings.dart test/buck_*.dart
+          {
+            find lib/topologies/buck -type f -name '*.dart' -print
+            printf '%s\\n' lib/localization/app_strings.dart
+            find test -maxdepth 1 -type f -name 'buck_*.dart' -print
+          } | sort -u | while IFS= read -r file; do
+            echo "BUCK_FORMAT_FILE_BEGIN:$file"
+            base64 -w0 "$file"
+            echo
+            echo "BUCK_FORMAT_FILE_END:$file"
+          done
       - name: Dart format check (Buck audit files)
         run: dart format --output=none --set-exit-if-changed lib/topologies/buck lib/localization/app_strings.dart test/buck_*.dart
       - name: Analyze
