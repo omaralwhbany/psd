@@ -101,8 +101,8 @@ void main() {
         expect(find.text(expectedWarning), findsOneWidget);
         expect(find.text(operatingPoint), findsOneWidget);
         expect(find.text('60.00 W'), findsOneWidget);
-        expect(tester.widget<TextField>(fields.at(0)).decoration.filled, isTrue);
-        expect(tester.widget<TextField>(fields.at(3)).decoration.filled, isTrue);
+        expect(tester.widget<TextField>(fields.at(0)).decoration?.filled, isTrue);
+        expect(tester.widget<TextField>(fields.at(3)).decoration?.filled, isTrue);
         expect(tester.takeException(), isNull);
       }
     },
