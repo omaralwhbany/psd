@@ -358,3 +358,36 @@ current during the MOSFET ON interval. Therefore the 100% duty boundary has a
 5 A diode minimum side label even though its trace contains zero-valued ON
 samples. The fixture stores the original label-method result separately from
 the waveform samples.
+
+
+## 2026-11-13: output above minimum input range warning
+
+The extracted `Buck.java` `checkOutputVolt()` (around lines 509-517) does
+not abort calculation when `dVout > dVin_min`. It decrements both the
+`outputvoltage` and `minimumInputVoltage` error-state counters. The
+`userCalculate()` order (lines 464-475) runs `actualValues()`,
+`singleValues()`, `general()`, output updates and graph time generation
+before `runChecks()` marks the fields. The JAR bytecode for
+`checkOutputVolt()` and `userCalculate()` confirms the same ordering.
+
+An actual OpenJDK 21 headless execution of the original `Buck` class from
+`PSD5.jar` was performed after setting Vin(min)=9 V, Vin(max)=18 V,
+Vout=12 V, Iout=5 A, fs=200 kHz, ripple=30%, Vf=0.5 V, operating Vin=18 V,
+and selected L=33 µH, followed by two `calculate()` calls. Java highlighted
+both the output-voltage and minimum-input text fields while retaining the
+calculated CCM result: duty=0.6756756756756758, ton=3.3783783783783788 µs,
+toff=1.6216216216216216 µs, Pout=60 W, Pin=60.810810810810814 W,
+MOSFET RMS=4.112147191587798 A, diode RMS=2.8489791456126947 A,
+input-capacitor RMS=2.344908588716427 A, and output-capacitor RMS=
+0.17731887874374277 A.
+
+Flutter previously returned an empty result immediately for
+`Vout > Vin(min)`, even when the selected operating input voltage was
+sufficient. The engine now preserves the calculation and reports a
+source-derived warning; the screen highlights both corresponding fields and
+keeps the valid operating-point results visible in English and Arabic. Fixed
+expected values in the regression test are from the actual Java runtime
+probe above, not from BuckEngine. When the selected operating input itself
+cannot support the requested output (duty above 100%), Flutter continues to
+reject that operating point rather than displaying the NaN/negative-time
+results that the original Swing sheet can expose while flagging its fields.
