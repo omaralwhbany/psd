@@ -10,6 +10,8 @@ import 'buck_inputs.dart';
 class BuckEngine {
   static const String automaticInductanceZeroError =
       'Automatic inductance is zero at the 100% duty boundary; choose a positive custom inductance.';
+  static const String outputAboveMinimumInputWarning =
+      'PSD5 flags output voltage and minimum input voltage when output voltage exceeds minimum input voltage.';
   static const String psdOffTimeWarning =
       'PSD5 flags OFF time and selected inductance when OFF time is negative.';
   static const String psdOnTimeWarning =
@@ -26,6 +28,12 @@ class BuckEngine {
       'Switching frequency': input.switchingFrequency,
       'Ripple fraction': input.rippleFraction,
     });
+    final warnings = <String>[];
+    // Buck.java checkOutputVolt() flags both fields after calculating; it does
+    // not abort when the selected operating input voltage is still sufficient.
+    if (input.outputVoltage > input.inputVoltageMin) {
+      warnings.add(outputAboveMinimumInputWarning);
+    }
     if (input.inputVoltageMin > input.inputVoltageMax) {
       errors.add('Input voltage minimum cannot exceed maximum.');
     }
@@ -50,9 +58,6 @@ class BuckEngine {
         input.operatingLoadPercent > 100) {
       errors.add('Operating load percentage must be between 0 and 100.');
     }
-    if (input.outputVoltage > input.inputVoltageMin) {
-      errors.add('Buck output voltage must not exceed minimum input voltage.');
-    }
     if (input.diodeForwardVoltage < 0 ||
         input.diodeForwardVoltage > 5 ||
         !input.diodeForwardVoltage.isFinite) {
@@ -74,7 +79,11 @@ class BuckEngine {
       errors.add('Selected inductance must not exceed 2200 µH.');
     }
     if (errors.isNotEmpty) {
-      return CalculationResult(values: const {}, errors: errors);
+      return CalculationResult(
+        values: const {},
+        errors: errors,
+        warnings: warnings,
+      );
     }
 
     final vo = input.outputVoltage;
@@ -102,18 +111,24 @@ class BuckEngine {
     // source's valid 100%-duty CCM result at this boundary.
     if (selected == null &&
         (!minimumInductance.isFinite || minimumInductance <= 0)) {
-      return const CalculationResult(values: {}, errors: [
-        automaticInductanceZeroError,
-      ]);
+      return CalculationResult(
+        values: const {},
+        errors: const [automaticInductanceZeroError],
+        warnings: warnings,
+      );
     }
     final inductance = selected ?? minimumInductance;
 
     final dutyCcm = (vo + vf) / (vin + vf);
     // PSD5 Buck.checkDutyCycle() rejects a calculated duty cycle above 100%.
     if (dutyCcm > 1) {
-      return const CalculationResult(values: {}, errors: [
-        'Buck duty cycle must not exceed 100% at the selected operating point.',
-      ]);
+      return CalculationResult(
+        values: const {},
+        errors: const [
+          'Buck duty cycle must not exceed 100% at the selected operating point.',
+        ],
+        warnings: warnings,
+      );
     }
     final rippleCcm =
         (1 / fs) * (vin - vo) * ((vo + vf) / (vin + vf)) * (1 / inductance);
@@ -138,9 +153,13 @@ class BuckEngine {
       toff = ton * ((vin + vf) / (vo + vf)) - ton;
       tidle = period - ton - toff;
       if (!ton.isFinite || !toff.isFinite) {
-        return const CalculationResult(values: {}, errors: [
-          'The selected inductance does not produce a valid Buck DCM cycle at this operating point.',
-        ]);
+        return CalculationResult(
+          values: const {},
+          errors: const [
+            'The selected inductance does not produce a valid Buck DCM cycle at this operating point.',
+          ],
+          warnings: warnings,
+        );
       }
       peak = (1 / inductance) * (vin - vo) * ton;
       minimum = 0;
@@ -235,7 +254,6 @@ class BuckEngine {
     // Buck.java checkCurrentRipple() flags the ripple input when
     // !(iripple * 0.99 < Iout * rippleFraction). The original still
     // calculates and displays results, so preserve it as a warning.
-    final warnings = <String>[];
     // Preserve Buck.java checktontoff() exactly. Its second condition compares
     // switching frequency in Hz directly with ON time in seconds; this is a
     // dimensionally inconsistent source quirk, but it marks ON time and period.
