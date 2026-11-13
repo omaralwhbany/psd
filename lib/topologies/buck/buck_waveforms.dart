@@ -16,6 +16,39 @@ class BuckWaveformPoint {
   final double value;
 }
 
+/// The x-axis bounds used by the original GraphPanel across all plotted points.
+class BuckGraphTimeRange {
+  const BuckGraphTimeRange({
+    required this.minimumMicroseconds,
+    required this.maximumMicroseconds,
+  });
+
+  final double minimumMicroseconds;
+  final double maximumMicroseconds;
+
+  double get spanMicroseconds => maximumMicroseconds - minimumMicroseconds;
+
+  factory BuckGraphTimeRange.fromPoints(List<BuckWaveformPoint> points) {
+    if (points.isEmpty) {
+      throw ArgumentError('A Buck graph time range requires at least one point.');
+    }
+    var minimum = points.first.timeMicroseconds;
+    var maximum = minimum;
+    for (final point in points.skip(1)) {
+      if (point.timeMicroseconds < minimum) {
+        minimum = point.timeMicroseconds;
+      }
+      if (point.timeMicroseconds > maximum) {
+        maximum = point.timeMicroseconds;
+      }
+    }
+    return BuckGraphTimeRange(
+      minimumMicroseconds: minimum,
+      maximumMicroseconds: maximum,
+    );
+  }
+}
+
 class BuckDeviceMetrics {
   const BuckDeviceMetrics({
     required this.minimumVoltage,
@@ -387,9 +420,12 @@ class _BuckTracePainter extends CustomPainter {
     if (minValue > 0) minValue = 0;
     if (maxValue < 0) maxValue = 0;
     final valueSpan = maxValue - minValue;
-    final timeMin = points.first.timeMicroseconds;
-    final timeMax = points.last.timeMicroseconds;
-    final timeSpan = timeMax - timeMin;
+    // GraphPanel scans every retained point for both x-axis extrema. The
+    // fixed 1 ns edge offsets can make early samples negative when ton < 1 ns.
+    final timeRange = BuckGraphTimeRange.fromPoints(points);
+    final timeMin = timeRange.minimumMicroseconds;
+    final timeMax = timeRange.maximumMicroseconds;
+    final timeSpan = timeRange.spanMicroseconds;
     if (timeSpan <= 0) return;
 
     double x(double time) =>

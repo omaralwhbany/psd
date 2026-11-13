@@ -465,3 +465,12 @@ A finite custom 33 µH selection still calculates the same source operating
 point; its reported Lmin remains positive infinity and the source ripple-limit
 warning is preserved. The non-finite error is a Flutter safety message, not
 a literal TI error string.
+
+
+## 2026-11-13: GraphPanel x-axis extrema
+
+The original `GraphPanel.getMinimumX()` and `getMaximumX()` scan every point in the array passed to the panel. The original `Graph` constructor and `setPoints()` first copy only the first `length - 1` samples, so Buck displays the first 20 of its 21 generated time samples. The Flutter painter previously used only `points.first` and `points.last` as the x-axis bounds.
+
+An actual OpenJDK 21 runtime probe of the original `PSD5.jar` was run headlessly with Vin(min)=Vin(max)=10000 V, Vo=0.001 V, Iout=5 A, fs=10 MHz, Vf=0.5 V, ripple target=30%, and selected L=2200 µH. The original `Buck` class returned ton=5.009749512524374e-12 s, toff=9.999499025048747e-8 s, and t3=1 ns. Its 1 ns graph transition offset therefore creates a plotted sample at -0.0009949902504874757 µs, even though the first plotted sample is 0 µs. Instantiating the original `GraphPanel` with the first 20 runtime samples returned minX=-0.0009949902504874757 µs and maxX=0.30400000000000005 µs. The former Flutter first/last range started at 0 µs and clipped that negative transition.
+
+The painter now obtains both x-axis bounds by scanning all retained points, matching the original GraphPanel algorithm. A regression test covers this sub-nanosecond ON-time case using the actual-JAR runtime extrema. No Buck calculation equation or generated waveform sample was changed.

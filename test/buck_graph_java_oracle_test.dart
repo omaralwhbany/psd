@@ -223,6 +223,52 @@ void main() {
     );
   });
 
+  test('Buck graph time range includes sub-nanosecond transition samples', () {
+    const input = BuckInputs(
+      inputVoltageMin: 10000,
+      inputVoltageMax: 10000,
+      outputVoltage: 0.001,
+      outputCurrent: 5,
+      switchingFrequency: 10e6,
+      rippleFraction: 0.30,
+      diodeForwardVoltage: 0.5,
+      operatingInputVoltage: 10000,
+      selectedInductance: 2200e-6,
+    );
+    final result = const BuckEngine().calculate(input);
+    expect(result.isValid, isTrue);
+    expect(result.values['isCcm'], 1);
+
+    final waveforms = BuckWaveformSet.fromCalculation(
+      input: input,
+      values: result.values,
+    );
+    final inductor = waveforms.devices.firstWhere(
+      (device) => device.id == 'inductor',
+    );
+    final points = inductor.voltage;
+    expect(points, hasLength(20));
+    // Original PSD5.jar runtime: ton=5.009749512524374 ps, so the
+    // source's ton - 1 ns transition is a negative x-coordinate.
+    expect(
+      points[2].timeMicroseconds,
+      closeTo(-0.0009949902504874757, 1e-15),
+    );
+
+    final range = BuckGraphTimeRange.fromPoints(points);
+    // GraphPanel.getMinimumX() scans all 20 retained Graph.java points;
+    // it does not assume the first point is the minimum.
+    expect(
+      range.minimumMicroseconds,
+      closeTo(-0.0009949902504874757, 1e-15),
+    );
+    expect(
+      range.maximumMicroseconds,
+      closeTo(0.30400000000000005, 1e-12),
+    );
+    expect(points.first.timeMicroseconds, greaterThan(range.minimumMicroseconds));
+  });
+
 }
 
 
