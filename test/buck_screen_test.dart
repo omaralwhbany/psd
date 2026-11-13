@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:psd/localization/app_strings.dart';
+import 'package:psd/topologies/buck/buck_engine.dart';
 import 'package:psd/topologies/buck/buck_screen.dart';
 
 void main() {
@@ -61,6 +62,51 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+
+  testWidgets(
+    'Buck flags minimum-input range in both languages without hiding a valid operating point',
+    (tester) async {
+      tester.view.physicalSize = const Size(800, 1400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      for (final locale in [const Locale('en'), const Locale('ar')]) {
+        await tester.pumpWidget(MaterialApp(
+          locale: locale,
+          supportedLocales: const [Locale('en'), Locale('ar')],
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: const Scaffold(body: BuckScreen()),
+        ));
+        await tester.pumpAndSettle();
+
+        final fields = find.byType(TextField);
+        await tester.enterText(fields.at(0), '9');
+        await tester.enterText(fields.at(1), '18');
+        await tester.enterText(fields.at(2), '18');
+        await tester.enterText(fields.at(3), '12');
+        await tester.pumpAndSettle();
+
+        final expectedWarning = locale.languageCode == 'ar'
+            ? 'وفق سلوك PSD5 الأصلي، يتم تمييز جهد الخرج وأقل جهد دخل عندما يتجاوز جهد الخرج أقل جهد دخل.'
+            : BuckEngine.outputAboveMinimumInputWarning;
+        final operatingPoint = locale.languageCode == 'ar'
+            ? 'نقطة التشغيل'
+            : 'Operating point';
+
+        expect(find.text(expectedWarning), findsOneWidget);
+        expect(find.text(operatingPoint), findsOneWidget);
+        expect(find.text('60.00 W'), findsOneWidget);
+        expect(tester.widget<TextField>(fields.at(0)).decoration.filled, isTrue);
+        expect(tester.widget<TextField>(fields.at(3)).decoration.filled, isTrue);
+        expect(tester.takeException(), isNull);
+      }
+    },
+  );
 
   testWidgets('Buck ON/OFF time units match PSD5 Java threshold and precision',
       (tester) async {
