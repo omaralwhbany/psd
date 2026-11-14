@@ -21,7 +21,7 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
       - name: Dart format check (Buck audit files)
-        run: dart format --output=none --set-exit-if-changed lib/topologies/buck/buck_engine.dart lib/topologies/buck/buck_schematic.dart lib/topologies/buck/buck_waveforms.dart test/buck_java_rounding_regression_test.dart test/buck_schematic_orientation_test.dart test/buck_graph_java_oracle_test.dart
+        run: dart format --output=none --set-exit-if-changed lib/topologies/buck/buck_engine.dart lib/topologies/buck/buck_schematic.dart lib/topologies/buck/buck_waveforms.dart test/buck_java_rounding_regression_test.dart test/buck_schematic_orientation_test.dart test/buck_graph_java_oracle_test.dart test/buck_infinite_lmin_display_test.dart
       - name: Analyze
         run: flutter analyze
       - name: Test

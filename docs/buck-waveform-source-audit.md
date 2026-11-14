@@ -497,3 +497,8 @@ numeric inputs at indexes 6 and 18 were
 `0.09967376832987639` and `0.3010147803562267`, respectively.
 The regression test asserts these Java runtime values independently of
 BuckEngine. No waveform sample or calculation equation changed.
+
+
+## 2026-11-13: non-finite minimum-inductance label formatting
+
+The original `Buck.updateValues()` uses `new DecimalFormat("#0.00").format(lmin_buck * 1e6)`. The extracted source and `javap -p -c` bytecode confirm the formatter and conversion order. A direct OpenJDK 21 headless run of the original `Buck` class from `PSD5.jar` with Vin(min)=18 V, Vin(max)=36 V, Vo=12 V, Iout=5 A, fs=200 kHz, ripple input=1e-320 percent, Vf=0.5 V, and selected L=33 µH returned Lmin=+Infinity; the actual Swing label contained Unicode U+221E (∞). Flutter previously used `double.toStringAsFixed(2)`, which renders the word `Infinity` rather than the original symbol. The Buck screen now formats positive and negative infinite inductance labels with the TI infinity symbol while retaining the two-decimal format for finite values. A second original-JAR runtime probe at Vin(min)=Vin(max)=Vo=12 V with the same tiny ripple returned Lmin=NaN and the source label `NaN`; Flutter's normal NaN formatting remains unchanged. No calculation equation was changed.
