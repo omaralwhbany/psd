@@ -51,7 +51,8 @@ void main() {
   });
 
   for (final caseName in ['ccm', 'dcm', 'boundary', 'duty100']) {
-    test('all five Buck $caseName graph traces match original PSD5.jar runtime', () {
+    test('all five Buck $caseName graph traces match original PSD5.jar runtime',
+        () {
       final scenario = cases[caseName] as Map<String, dynamic>;
       final inputValues = scenario['input'] as Map<String, dynamic>;
       double number(String key) => (inputValues[key] as num).toDouble();
@@ -114,8 +115,10 @@ void main() {
         expect(device.voltage, hasLength(20));
         expect(device.current, hasLength(20));
 
-        final expectedVoltageMetrics = expected['voltageMetrics'] as List<dynamic>;
-        final expectedCurrentMetrics = expected['currentMetrics'] as List<dynamic>;
+        final expectedVoltageMetrics =
+            expected['voltageMetrics'] as List<dynamic>;
+        final expectedCurrentMetrics =
+            expected['currentMetrics'] as List<dynamic>;
         expect(expectedVoltageMetrics, hasLength(2));
         expect(expectedCurrentMetrics, hasLength(5));
         expect(
@@ -194,7 +197,8 @@ void main() {
       }
     });
   }
-  test('Buck source-derived device graphs follow the operating load slider', () {
+  test('Buck source-derived device graphs follow the operating load slider',
+      () {
     const input = BuckInputs(
       inputVoltageMin: 18,
       inputVoltageMax: 36,
@@ -212,9 +216,12 @@ void main() {
     expect(result.values['operatingOutputCurrent'], closeTo(0.05, 1e-14));
     expect(result.values['isCcm'], 0);
 
-    final graphs = BuckWaveformSet.fromCalculation(input: input, values: result.values);
-    final inductor = graphs.devices.firstWhere((device) => device.id == 'inductor');
-    final outputCapacitor = graphs.devices.firstWhere((device) => device.id == 'outputCapacitor');
+    final graphs =
+        BuckWaveformSet.fromCalculation(input: input, values: result.values);
+    final inductor =
+        graphs.devices.firstWhere((device) => device.id == 'inductor');
+    final outputCapacitor =
+        graphs.devices.firstWhere((device) => device.id == 'outputCapacitor');
     expect(inductor.metrics.averageCurrent, closeTo(0.05, 1e-12));
     expect(outputCapacitor.current.first.value, closeTo(-0.05, 1e-12));
     expect(
@@ -223,8 +230,85 @@ void main() {
     );
   });
 
-}
+  test('Buck graph time range includes sub-nanosecond transition samples', () {
+    const input = BuckInputs(
+      inputVoltageMin: 10000,
+      inputVoltageMax: 10000,
+      outputVoltage: 0.001,
+      outputCurrent: 5,
+      switchingFrequency: 10e6,
+      rippleFraction: 0.30,
+      diodeForwardVoltage: 0.5,
+      operatingInputVoltage: 10000,
+      selectedInductance: 2200e-6,
+    );
+    final result = const BuckEngine().calculate(input);
+    expect(result.isValid, isTrue);
+    expect(result.values['isCcm'], 1);
 
+    final waveforms = BuckWaveformSet.fromCalculation(
+      input: input,
+      values: result.values,
+    );
+    final inductor = waveforms.devices.firstWhere(
+      (device) => device.id == 'inductor',
+    );
+    final points = inductor.voltage;
+    expect(points, hasLength(20));
+    // Original PSD5.jar runtime: ton=5.009749512524374 ps, so the
+    // source's ton - 1 ns transition is a negative x-coordinate.
+    expect(
+      points[2].timeMicroseconds,
+      closeTo(-0.0009949902504874757, 1e-15),
+    );
+
+    final range = BuckGraphTimeRange.fromPoints(points);
+    // GraphPanel.getMinimumX() scans all 20 retained Graph.java points;
+    // it does not assume the first point is the minimum.
+    expect(
+      range.minimumMicroseconds,
+      closeTo(-0.0009949902504874757, 1e-15),
+    );
+    expect(
+      range.maximumMicroseconds,
+      closeTo(0.30400000000000005, 1e-12),
+    );
+    expect(
+        points.first.timeMicroseconds, greaterThan(range.minimumMicroseconds));
+
+    // Original GraphPanel uses mappingX = X / abs(maxX - minX), then
+    // screenX = 65 + time * mappingX. It does not translate by minX.
+    // This runtime probe used a 600 px panel, so X = width - 130 = 470.
+    const graphPanelWidth = 470.0;
+    expect(
+      range.graphPanelXOffset(points[0].timeMicroseconds, graphPanelWidth),
+      0,
+    );
+    expect(
+      range.graphPanelXOffset(points[2].timeMicroseconds, graphPanelWidth),
+      closeTo(-1.53328884958092, 1e-12),
+    );
+    expect(
+      range.graphPanelXOffset(points[19].timeMicroseconds, graphPanelWidth),
+      closeTo(468.4667111504191, 1e-12),
+    );
+    // GraphPanel labels each tick as maxX * (time * mappingX / X).
+    expect(
+      range.graphPanelTickLabelValue(
+        points[6].timeMicroseconds,
+        graphPanelWidth,
+      ),
+      closeTo(0.09967376832987639, 1e-15),
+    );
+    expect(
+      range.graphPanelTickLabelValue(
+        points[18].timeMicroseconds,
+        graphPanelWidth,
+      ),
+      closeTo(0.3010147803562267, 1e-15),
+    );
+  });
+}
 
 /// Expands the seven original Java per-cycle samples into Graph.java's
 /// first 20 plotted points; the final 21st source point is intentionally cut.
@@ -232,8 +316,19 @@ List<double> _expandJavaBuckSamples(List<dynamic> sourceSamples) {
   final p = sourceSamples.map((value) => (value as num).toDouble()).toList();
   return [
     ...p,
-    p[0], p[2], p[3], p[4], p[5], p[6],
-    p[0], p[2], p[3], p[4], p[5], p[6],
-    p[0], p[2],
+    p[0],
+    p[2],
+    p[3],
+    p[4],
+    p[5],
+    p[6],
+    p[0],
+    p[2],
+    p[3],
+    p[4],
+    p[5],
+    p[6],
+    p[0],
+    p[2],
   ].take(20).toList();
 }
