@@ -43,8 +43,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Buck narrow English layout remains LTR and renders device graphs',
-      (tester) async {
+  testWidgets(
+    'Buck narrow English layout remains LTR and renders device graphs',
+    (tester) async {
     await _pumpNarrowBuck(tester, const Locale('en'));
 
     expect(
@@ -64,7 +65,10 @@ void main() {
       280,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text('Buck device waveforms (PSD5 source model)'), findsOneWidget);
+    expect(
+      find.text('Buck device waveforms (PSD5 source model)'),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 }
