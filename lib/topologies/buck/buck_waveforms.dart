@@ -561,7 +561,6 @@ class _BuckTracePainter extends CustomPainter {
     // GraphPanel scans every retained point for both x-axis extrema. The
     // fixed 1 ns edge offsets can make early samples negative when ton < 1 ns.
     final timeRange = BuckGraphTimeRange.fromPoints(points);
-    final timeMin = timeRange.minimumMicroseconds;
     final timeMax = timeRange.maximumMicroseconds;
     final timeSpan = timeRange.spanMicroseconds;
     if (timeSpan <= 0) return;
