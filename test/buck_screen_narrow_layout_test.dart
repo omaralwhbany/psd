@@ -46,29 +46,30 @@ void main() {
   testWidgets(
     'Buck narrow English layout remains LTR and renders device graphs',
     (tester) async {
-    await _pumpNarrowBuck(tester, const Locale('en'));
+      await _pumpNarrowBuck(tester, const Locale('en'));
 
-    expect(
-      Directionality.of(tester.element(find.text('Buck Converter'))),
-      TextDirection.ltr,
-    );
-    await tester.scrollUntilVisible(
-      find.text('Output power'),
-      280,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(find.text('Output power'), findsOneWidget);
-    expect(find.text('Input power'), findsOneWidget);
+      expect(
+        Directionality.of(tester.element(find.text('Buck Converter'))),
+        TextDirection.ltr,
+      );
+      await tester.scrollUntilVisible(
+        find.text('Output power'),
+        280,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('Output power'), findsOneWidget);
+      expect(find.text('Input power'), findsOneWidget);
 
-    await tester.scrollUntilVisible(
-      find.text('Buck device waveforms (PSD5 source model)'),
-      280,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(
-      find.text('Buck device waveforms (PSD5 source model)'),
-      findsOneWidget,
-    );
-    expect(tester.takeException(), isNull);
-  });
+      await tester.scrollUntilVisible(
+        find.text('Buck device waveforms (PSD5 source model)'),
+        280,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(
+        find.text('Buck device waveforms (PSD5 source model)'),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
