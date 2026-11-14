@@ -657,9 +657,30 @@ class _BuckTracePainter extends CustomPainter {
 
     final middleValue = maxValue / 2;
     final middleY = (zeroY + top) / 2;
-    drawRightAligned(_formatJavaDecimal(maxValue, minFractionDigits: 2, maxFractionDigits: 2), top);
-    drawRightAligned(_formatJavaDecimal(middleValue, minFractionDigits: 2, maxFractionDigits: 2), middleY);
-    drawRightAligned(_formatJavaDecimal(minValue, minFractionDigits: 2, maxFractionDigits: 2), plotBottom);
+    drawRightAligned(
+      _formatJavaDecimal(
+        maxValue,
+        minFractionDigits: 2,
+        maxFractionDigits: 2,
+      ),
+      top,
+    );
+    drawRightAligned(
+      _formatJavaDecimal(
+        middleValue,
+        minFractionDigits: 2,
+        maxFractionDigits: 2,
+      ),
+      middleY,
+    );
+    drawRightAligned(
+      _formatJavaDecimal(
+        minValue,
+        minFractionDigits: 2,
+        maxFractionDigits: 2,
+      ),
+      plotBottom,
+    );
     canvas.drawLine(Offset(left - 4, middleY), Offset(left + 4, middleY), axis);
 
     var lastLabelRight = -1000.0;
@@ -686,7 +707,14 @@ class _BuckTracePainter extends CustomPainter {
       lastLabelRight = start + 30;
     }
     final maxPainter = TextPainter(
-      text: TextSpan(text: _formatJavaDecimal(timeMax, minFractionDigits: 2, maxFractionDigits: 2), style: textStyle),
+      text: TextSpan(
+        text: _formatJavaDecimal(
+          timeMax,
+          minFractionDigits: 2,
+          maxFractionDigits: 2,
+        ),
+        style: textStyle,
+      ),
       textDirection: TextDirection.ltr,
     )..layout();
     final maxStart = plotRight - maxPainter.width / 2;
