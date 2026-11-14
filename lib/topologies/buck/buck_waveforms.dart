@@ -28,6 +28,22 @@ class BuckGraphTimeRange {
 
   double get spanMicroseconds => maximumMicroseconds - minimumMicroseconds;
 
+  /// GraphPanel maps x directly from zero; it scales by the full range but
+  /// deliberately does not subtract minimumMicroseconds from each sample.
+  double graphPanelXOffset(double timeMicroseconds, double plotWidth) {
+    final mappingX = plotWidth / spanMicroseconds.abs();
+    return timeMicroseconds * mappingX;
+  }
+
+  /// Reproduces GraphPanel's DecimalFormat input for a tick label.
+  double graphPanelTickLabelValue(
+    double timeMicroseconds,
+    double plotWidth,
+  ) {
+    final mappingX = plotWidth / spanMicroseconds.abs();
+    return maximumMicroseconds * (timeMicroseconds * mappingX / plotWidth);
+  }
+
   factory BuckGraphTimeRange.fromPoints(List<BuckWaveformPoint> points) {
     if (points.isEmpty) {
       throw ArgumentError(
@@ -551,7 +567,7 @@ class _BuckTracePainter extends CustomPainter {
     if (timeSpan <= 0) return;
 
     double x(double time) =>
-        left + (time - timeMin) / timeSpan * (plotRight - left);
+        left + timeRange.graphPanelXOffset(time, plotRight - left);
     double y(double value) => valueSpan == 0
         ? plotBottom
         : plotBottom - (value - minValue) / valueSpan * (plotBottom - top);
@@ -587,7 +603,12 @@ class _BuckTracePainter extends CustomPainter {
       canvas.drawLine(Offset(px, zeroY - 4), Offset(px, zeroY + 4), axis);
       final painter = TextPainter(
         text: TextSpan(
-            text: points[index].timeMicroseconds.toStringAsFixed(2),
+            text: timeRange
+                .graphPanelTickLabelValue(
+                  points[index].timeMicroseconds,
+                  plotRight - left,
+                )
+                .toStringAsFixed(2),
             style: textStyle),
         textDirection: TextDirection.ltr,
       )..layout();
