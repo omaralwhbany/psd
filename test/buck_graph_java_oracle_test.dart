@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:psd/topologies/buck/buck_engine.dart';
 import 'package:psd/topologies/buck/buck_inputs.dart';
@@ -308,6 +309,142 @@ void main() {
       closeTo(0.3010147803562267, 1e-15),
     );
   });
+
+  testWidgets(
+    'Buck graph metric labels follow PSD5 two-stage DecimalFormat rounding',
+    (tester) async {
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      const metrics = BuckDeviceMetrics(
+        minimumVoltage: 0.1234550000001,
+        maximumVoltage: 0.234567,
+        minimumCurrent: 0.1234550000001,
+        maximumCurrent: 0.8,
+        rmsCurrent: 0.7,
+        averageCurrent: 0.6,
+        acCurrent: 0.5,
+      );
+      const device = BuckDeviceWaveform(
+        id: 'probe',
+        title: 'Probe device',
+        voltage: [
+          BuckWaveformPoint(0, 0),
+          BuckWaveformPoint(1, 1),
+        ],
+        current: [
+          BuckWaveformPoint(0, 0),
+          BuckWaveformPoint(1, 1),
+        ],
+        metrics: metrics,
+      );
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: BuckDeviceWaveformsView(
+                waveforms: BuckWaveformSet([device]),
+                voltageLabel: 'Voltage',
+                currentLabel: 'Current',
+                periodLabel: 'Three periods',
+                timeAxisLabel: 'Time',
+                deviceTitles: {'probe': 'Probe device'},
+                metricLabels: {
+                  'minimumVoltage': 'Minimum voltage',
+                  'maximumVoltage': 'Maximum voltage',
+                  'minimumCurrent': 'Minimum current',
+                  'maximumCurrent': 'Maximum current',
+                  'rmsCurrent': 'RMS current',
+                  'averageCurrent': 'Average current',
+                  'acCurrent': 'AC current',
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // OpenJDK 21 DecimalFormat("#0.00####") first emits 0.123455.
+      // Graph.java parses that string, multiplies by 1000, then formats the
+      // resulting binary64 value with DecimalFormat("#0.00") as 123.45.
+      // Formatting the unrounded original value directly would display 123.46.
+      expect(find.text('Minimum voltage: 123.45 mV'), findsOneWidget);
+      expect(find.text('Minimum current: 123.45 mA'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'Buck graph labels use Java HALF_EVEN rounding at exact half cents',
+    (tester) async {
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      const metrics = BuckDeviceMetrics(
+        minimumVoltage: 1.125,
+        maximumVoltage: 1.375,
+        minimumCurrent: 1.125,
+        maximumCurrent: 1.375,
+        rmsCurrent: 1.125,
+        averageCurrent: 1.375,
+        acCurrent: 1.125,
+      );
+      const device = BuckDeviceWaveform(
+        id: 'probe',
+        title: 'Probe device',
+        voltage: [
+          BuckWaveformPoint(0, 0),
+          BuckWaveformPoint(1, 1),
+        ],
+        current: [
+          BuckWaveformPoint(0, 0),
+          BuckWaveformPoint(1, 1),
+        ],
+        metrics: metrics,
+      );
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: BuckDeviceWaveformsView(
+                waveforms: BuckWaveformSet([device]),
+                voltageLabel: 'Voltage',
+                currentLabel: 'Current',
+                periodLabel: 'Three periods',
+                timeAxisLabel: 'Time',
+                deviceTitles: {'probe': 'Probe device'},
+                metricLabels: {
+                  'minimumVoltage': 'Minimum voltage',
+                  'maximumVoltage': 'Maximum voltage',
+                  'minimumCurrent': 'Minimum current',
+                  'maximumCurrent': 'Maximum current',
+                  'rmsCurrent': 'RMS current',
+                  'averageCurrent': 'Average current',
+                  'acCurrent': 'AC current',
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // DecimalFormat("#0.00") uses HALF_EVEN: 1.125 -> 1.12 and
+      // 1.375 -> 1.38. Dart's toStringAsFixed() does not preserve that tie rule.
+      expect(find.text('Minimum voltage: 1.12 V'), findsOneWidget);
+      expect(find.text('Maximum voltage: 1.38 V'), findsOneWidget);
+      expect(find.text('Minimum current: 1.12 A'), findsOneWidget);
+      expect(find.text('Maximum current: 1.38 A'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
 
 /// Expands the seven original Java per-cycle samples into Graph.java's

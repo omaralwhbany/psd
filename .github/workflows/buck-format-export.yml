@@ -1,0 +1,24 @@
+name: Temporary Buck formatter diff export
+
+on:
+  push:
+    branches:
+      - maintenance/buck-java-decimalformat-2026-11-14
+
+jobs:
+  format-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.9'
+      - name: Format and capture diff
+        run: |
+          dart format lib/topologies/buck/buck_waveforms.dart
+          git diff --no-ext-diff -- lib/topologies/buck/buck_waveforms.dart > /tmp/buck-waveforms-format.patch
+      - name: Export formatter patch
+        uses: actions/upload-artifact@v4
+        with:
+          name: buck-waveforms-format-patch
+          path: /tmp/buck-waveforms-format.patch
