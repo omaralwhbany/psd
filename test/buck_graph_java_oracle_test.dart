@@ -275,6 +275,38 @@ void main() {
     );
     expect(
         points.first.timeMicroseconds, greaterThan(range.minimumMicroseconds));
+
+    // Original GraphPanel uses mappingX = X / abs(maxX - minX), then
+    // screenX = 65 + time * mappingX. It does not translate by minX.
+    // This runtime probe used a 600 px panel, so X = width - 130 = 470.
+    const graphPanelWidth = 470.0;
+    expect(
+      range.graphPanelXOffset(points[0].timeMicroseconds, graphPanelWidth),
+      0,
+    );
+    expect(
+      range.graphPanelXOffset(points[2].timeMicroseconds, graphPanelWidth),
+      closeTo(-1.53328884958092, 1e-12),
+    );
+    expect(
+      range.graphPanelXOffset(points[19].timeMicroseconds, graphPanelWidth),
+      closeTo(468.4667111504191, 1e-12),
+    );
+    // GraphPanel labels each tick as maxX * (time * mappingX / X).
+    expect(
+      range.graphPanelTickLabelValue(
+        points[6].timeMicroseconds,
+        graphPanelWidth,
+      ),
+      closeTo(0.09967376832987639, 1e-15),
+    );
+    expect(
+      range.graphPanelTickLabelValue(
+        points[18].timeMicroseconds,
+        graphPanelWidth,
+      ),
+      closeTo(0.3010147803562267, 1e-15),
+    );
   });
 }
 
