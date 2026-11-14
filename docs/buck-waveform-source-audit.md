@@ -465,3 +465,40 @@ A finite custom 33 µH selection still calculates the same source operating
 point; its reported Lmin remains positive infinity and the source ripple-limit
 warning is preserved. The non-finite error is a Flutter safety message, not
 a literal TI error string.
+
+
+## 2026-11-13: GraphPanel x-axis extrema
+
+The original `GraphPanel.getMinimumX()` and `getMaximumX()` scan every point in the array passed to the panel. The original `Graph` constructor and `setPoints()` first copy only the first `length - 1` samples, so Buck displays the first 20 of its 21 generated time samples. The Flutter painter previously used only `points.first` and `points.last` as the x-axis bounds.
+
+An actual OpenJDK 21 runtime probe of the original `PSD5.jar` was run headlessly with Vin(min)=Vin(max)=10000 V, Vo=0.001 V, Iout=5 A, fs=10 MHz, Vf=0.5 V, ripple target=30%, and selected L=2200 µH. The original `Buck` class returned ton=5.009749512524374e-12 s, toff=9.999499025048747e-8 s, and t3=1 ns. Its 1 ns graph transition offset therefore creates a plotted sample at -0.0009949902504874757 µs, even though the first plotted sample is 0 µs. Instantiating the original `GraphPanel` with the first 20 runtime samples returned minX=-0.0009949902504874757 µs and maxX=0.30400000000000005 µs. The former Flutter first/last range started at 0 µs and clipped that negative transition.
+
+The painter now obtains both x-axis bounds by scanning all retained points, matching the original GraphPanel algorithm. A regression test covers this sub-nanosecond ON-time case using the actual-JAR runtime extrema. No Buck calculation equation or generated waveform sample was changed.
+
+
+## 2026-11-14: exact GraphPanel x-coordinate transform
+
+A follow-up comparison of `GraphPanel.paintComponent()` found that matching
+only `getMinimumX()` and `getMaximumX()` is insufficient. The original
+Java computes `mappingX = X / abs(maxX - minX)`, then maps each point as
+`65 + point.x * mappingX`. It does **not** subtract `minX` from each point
+before mapping. Its tick text is computed as
+`maxX * (point.x * mappingX / X)`. The Flutter painter now preserves this
+same zero-origin transform while using the all-points range for the scale;
+it does not shift the negative sample to the left plot boundary.
+
+This was checked against an actual OpenJDK 21 execution of the original
+`PSD5.jar` and its `GraphPanel` class. With the sub-nanosecond ON-time
+fixture above and a 600 px panel (`X = width - 130 = 470`), Java returned
+`mappingX=1541.0089182579572 px/µs`, a screen offset of
+`-1.53328884958092 px` for the negative sample, and
+`468.4667111504191 px` for the final retained sample. Its tick-label
+numeric inputs at indexes 6 and 18 were
+`0.09967376832987639` and `0.3010147803562267`, respectively.
+The regression test asserts these Java runtime values independently of
+BuckEngine. No waveform sample or calculation equation changed.
+
+
+## 2026-11-13: non-finite minimum-inductance label formatting
+
+The original `Buck.updateValues()` uses `new DecimalFormat("#0.00").format(lmin_buck * 1e6)`. The extracted source and `javap -p -c` bytecode confirm the formatter and conversion order. A direct OpenJDK 21 headless run of the original `Buck` class from `PSD5.jar` with Vin(min)=18 V, Vin(max)=36 V, Vo=12 V, Iout=5 A, fs=200 kHz, ripple input=1e-320 percent, Vf=0.5 V, and selected L=33 µH returned Lmin=+Infinity; the actual Swing label contained Unicode U+221E (∞). Flutter previously used `double.toStringAsFixed(2)`, which renders the word `Infinity` rather than the original symbol. The Buck screen now formats positive and negative infinite inductance labels with the TI infinity symbol while retaining the two-decimal format for finite values. A second original-JAR runtime probe at Vin(min)=Vin(max)=Vo=12 V with the same tiny ripple returned Lmin=NaN and the source label `NaN`; Flutter's normal NaN formatting remains unchanged. No calculation equation was changed.

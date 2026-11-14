@@ -16,6 +16,56 @@ class BuckWaveformPoint {
   final double value;
 }
 
+/// The x-axis bounds used by the original GraphPanel across all plotted points.
+class BuckGraphTimeRange {
+  const BuckGraphTimeRange({
+    required this.minimumMicroseconds,
+    required this.maximumMicroseconds,
+  });
+
+  final double minimumMicroseconds;
+  final double maximumMicroseconds;
+
+  double get spanMicroseconds => maximumMicroseconds - minimumMicroseconds;
+
+  /// GraphPanel maps x directly from zero; it scales by the full range but
+  /// deliberately does not subtract minimumMicroseconds from each sample.
+  double graphPanelXOffset(double timeMicroseconds, double plotWidth) {
+    final mappingX = plotWidth / spanMicroseconds.abs();
+    return timeMicroseconds * mappingX;
+  }
+
+  /// Reproduces GraphPanel's DecimalFormat input for a tick label.
+  double graphPanelTickLabelValue(
+    double timeMicroseconds,
+    double plotWidth,
+  ) {
+    final mappingX = plotWidth / spanMicroseconds.abs();
+    return maximumMicroseconds * (timeMicroseconds * mappingX / plotWidth);
+  }
+
+  factory BuckGraphTimeRange.fromPoints(List<BuckWaveformPoint> points) {
+    if (points.isEmpty) {
+      throw ArgumentError(
+          'A Buck graph time range requires at least one point.');
+    }
+    var minimum = points.first.timeMicroseconds;
+    var maximum = minimum;
+    for (final point in points.skip(1)) {
+      if (point.timeMicroseconds < minimum) {
+        minimum = point.timeMicroseconds;
+      }
+      if (point.timeMicroseconds > maximum) {
+        maximum = point.timeMicroseconds;
+      }
+    }
+    return BuckGraphTimeRange(
+      minimumMicroseconds: minimum,
+      maximumMicroseconds: maximum,
+    );
+  }
+}
+
 class BuckDeviceMetrics {
   const BuckDeviceMetrics({
     required this.minimumVoltage,
@@ -95,26 +145,52 @@ class BuckWaveformSet {
 
     // Exact 21-point time_scale_raw sequence in Buck.java lines 437-457.
     final times = <double>[
-      0.0, edge, ton - edge, ton + edge,
-      ton + toff - edge, ton + toff + edge, cycleDuration - edge,
-      cycleDuration + edge, cycleDuration + ton - edge, cycleDuration + ton + edge,
-      cycleDuration + ton + toff - edge, cycleDuration + ton + toff + edge,
-      2 * cycleDuration - edge, 2 * cycleDuration + edge,
-      2 * cycleDuration + ton - edge, 2 * cycleDuration + ton + edge,
-      2 * cycleDuration + ton + toff - edge, 2 * cycleDuration + ton + toff + edge,
-      3 * cycleDuration - edge, 3 * cycleDuration + edge, 3 * cycleDuration + ton - edge,
+      0.0,
+      edge,
+      ton - edge,
+      ton + edge,
+      ton + toff - edge,
+      ton + toff + edge,
+      cycleDuration - edge,
+      cycleDuration + edge,
+      cycleDuration + ton - edge,
+      cycleDuration + ton + edge,
+      cycleDuration + ton + toff - edge,
+      cycleDuration + ton + toff + edge,
+      2 * cycleDuration - edge,
+      2 * cycleDuration + edge,
+      2 * cycleDuration + ton - edge,
+      2 * cycleDuration + ton + edge,
+      2 * cycleDuration + ton + toff - edge,
+      2 * cycleDuration + ton + toff + edge,
+      3 * cycleDuration - edge,
+      3 * cycleDuration + edge,
+      3 * cycleDuration + ton - edge,
     ];
 
     List<BuckWaveformPoint> trace(List<double> samples) {
       if (samples.length != 7) {
-        throw ArgumentError('A Buck.java trace requires seven transition values.');
+        throw ArgumentError(
+            'A Buck.java trace requires seven transition values.');
       }
       // Java's overlapping 21-point sequence:
       // A,A,B,C,D,E,F,A,B,C,D,E,F,A,B,C,D,E,F,A,B.
       final sampleValues = <double>[
         ...samples,
-        samples[0], samples[2], samples[3], samples[4], samples[5], samples[6], samples[0],
-        samples[2], samples[3], samples[4], samples[5], samples[6], samples[0], samples[2],
+        samples[0],
+        samples[2],
+        samples[3],
+        samples[4],
+        samples[5],
+        samples[6],
+        samples[0],
+        samples[2],
+        samples[3],
+        samples[4],
+        samples[5],
+        samples[6],
+        samples[0],
+        samples[2],
       ];
       // Graph.java's constructor and setPoints() discard the final array
       // element, so the original GUI actually plots the first 20 of 21.
@@ -133,7 +209,15 @@ class BuckWaveformSet {
 
     final inductorVoltage = dcm
         ? [vin - vo, vin - vo, vin - vo, -vo - vf, -vo - vf, 0.0, 0.0]
-        : [vin - vo, vin - vo, vin - vo, -vo - vf, -vo - vf, -vo - vf, -vo - vf];
+        : [
+            vin - vo,
+            vin - vo,
+            vin - vo,
+            -vo - vf,
+            -vo - vf,
+            -vo - vf,
+            -vo - vf
+          ];
     final inductorCurrent = dcm
         ? [0.0, 0.0, peak, peak, 0.0, 0.0, 0.0]
         : [minimum, minimum, peak, peak, minimum, minimum, minimum];
@@ -147,28 +231,51 @@ class BuckWaveformSet {
 
     final inputCapCurrent = dcm
         ? [iin, iin, iin - peak, fetAverage, fetAverage, fetAverage, fetAverage]
-        : [iin - minimum, iin - minimum, iin - peak, fetAverage, fetAverage, fetAverage, fetAverage];
+        : [
+            iin - minimum,
+            iin - minimum,
+            iin - peak,
+            fetAverage,
+            fetAverage,
+            fetAverage,
+            fetAverage
+          ];
     final outputCapCurrent = dcm
         ? [-iout, -iout, peak - iout, peak - iout, -iout, -iout, -iout]
-        : [minimum - iout, minimum - iout, peak - iout, peak - iout,
-            minimum - iout, minimum - iout, minimum - iout];
+        : [
+            minimum - iout,
+            minimum - iout,
+            peak - iout,
+            peak - iout,
+            minimum - iout,
+            minimum - iout,
+            minimum - iout
+          ];
 
-    double acCurrent(double rms, double average, {bool clampBelowAverage = false}) {
+    double acCurrent(double rms, double average,
+        {bool clampBelowAverage = false}) {
       if (clampBelowAverage && rms < average) return 0;
       return math.sqrt(rms * rms - average * average);
     }
 
     BuckDeviceMetrics metrics({
-      required double minV, required double maxV,
-      required double minI, required double maxI,
-      required double rmsI, required double averageI,
+      required double minV,
+      required double maxV,
+      required double minI,
+      required double maxI,
+      required double rmsI,
+      required double averageI,
       bool clampAc = false,
-    }) => BuckDeviceMetrics(
-      minimumVoltage: minV, maximumVoltage: maxV,
-      minimumCurrent: minI, maximumCurrent: maxI,
-      rmsCurrent: rmsI, averageCurrent: averageI,
-      acCurrent: acCurrent(rmsI, averageI, clampBelowAverage: clampAc),
-    );
+    }) =>
+        BuckDeviceMetrics(
+          minimumVoltage: minV,
+          maximumVoltage: maxV,
+          minimumCurrent: minI,
+          maximumCurrent: maxI,
+          rmsCurrent: rmsI,
+          averageCurrent: averageI,
+          acCurrent: acCurrent(rmsI, averageI, clampBelowAverage: clampAc),
+        );
 
     final inputCapMetrics = metrics(
       minV: values['inputCapacitorVoltageMin']!,
@@ -179,53 +286,73 @@ class BuckWaveformSet {
       averageI: values['inputCapacitorAverageCurrent']!,
     );
     final fetMetrics = metrics(
-      minV: values['mosfetVoltageMin']!, maxV: values['mosfetVoltageMax']!,
-      minI: minimum, maxI: peak,
-      rmsI: values['mosfetRmsCurrent']!, averageI: values['mosfetAverageCurrent']!,
+      minV: values['mosfetVoltageMin']!,
+      maxV: values['mosfetVoltageMax']!,
+      minI: minimum,
+      maxI: peak,
+      rmsI: values['mosfetRmsCurrent']!,
+      averageI: values['mosfetAverageCurrent']!,
     );
     final inductorMetrics = metrics(
-      minV: values['inductorVoltageMin']!, maxV: values['inductorVoltageMax']!,
-      minI: minimum, maxI: peak,
-      rmsI: values['inductorRmsCurrent']!, averageI: values['inductorAverageCurrent']!,
+      minV: values['inductorVoltageMin']!,
+      maxV: values['inductorVoltageMax']!,
+      minI: minimum,
+      maxI: peak,
+      rmsI: values['inductorRmsCurrent']!,
+      averageI: values['inductorAverageCurrent']!,
       clampAc: true,
     );
     final diodeMetrics = metrics(
-      minV: values['diodeVoltageMin']!, maxV: values['diodeVoltageMax']!,
-      minI: minimum, maxI: peak,
-      rmsI: values['diodeRmsCurrent']!, averageI: values['diodeAverageCurrent']!,
+      minV: values['diodeVoltageMin']!,
+      maxV: values['diodeVoltageMax']!,
+      minI: minimum,
+      maxI: peak,
+      rmsI: values['diodeRmsCurrent']!,
+      averageI: values['diodeAverageCurrent']!,
     );
     final outputCapMetrics = metrics(
       minV: values['outputCapacitorVoltageMin']!,
       maxV: values['outputCapacitorVoltageMax']!,
-      minI: dcm ? -iout : minimum - iout, maxI: peak - iout,
+      minI: dcm ? -iout : minimum - iout,
+      maxI: peak - iout,
       rmsI: values['outputCapacitorRmsCurrent']!,
       averageI: values['outputCapacitorAverageCurrent']!,
     );
 
     return BuckWaveformSet(List.unmodifiable([
       BuckDeviceWaveform(
-        id: 'inputCapacitor', title: 'Input capacitor Ci',
-        voltage: trace(List.filled(7, vin)), current: trace(inputCapCurrent),
+        id: 'inputCapacitor',
+        title: 'Input capacitor Ci',
+        voltage: trace(List.filled(7, vin)),
+        current: trace(inputCapCurrent),
         metrics: inputCapMetrics,
       ),
       BuckDeviceWaveform(
-        id: 'mosfet', title: 'MOSFET Q1',
-        voltage: trace(fetVoltage), current: trace(fetCurrent),
+        id: 'mosfet',
+        title: 'MOSFET Q1',
+        voltage: trace(fetVoltage),
+        current: trace(fetCurrent),
         metrics: fetMetrics,
       ),
       BuckDeviceWaveform(
-        id: 'inductor', title: 'Inductor L1',
-        voltage: trace(inductorVoltage), current: trace(inductorCurrent),
+        id: 'inductor',
+        title: 'Inductor L1',
+        voltage: trace(inductorVoltage),
+        current: trace(inductorCurrent),
         metrics: inductorMetrics,
       ),
       BuckDeviceWaveform(
-        id: 'diode', title: 'Freewheel diode D1',
-        voltage: trace(diodeVoltage), current: trace(diodeCurrent),
+        id: 'diode',
+        title: 'Freewheel diode D1',
+        voltage: trace(diodeVoltage),
+        current: trace(diodeCurrent),
         metrics: diodeMetrics,
       ),
       BuckDeviceWaveform(
-        id: 'outputCapacitor', title: 'Output capacitor Co',
-        voltage: trace(List.filled(7, vo)), current: trace(outputCapCurrent),
+        id: 'outputCapacitor',
+        title: 'Output capacitor Co',
+        voltage: trace(List.filled(7, vo)),
+        current: trace(outputCapCurrent),
         metrics: outputCapMetrics,
       ),
     ]));
@@ -266,22 +393,31 @@ class BuckDeviceWaveformsView extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(deviceTitles[device.id] ?? device.title,
-                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                      style: theme.textTheme.titleSmall
+                          ?.copyWith(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 6),
-                  _BuckTrace(points: device.voltage, label: voltageLabel,
-                    unit: 'V', timeAxisLabel: timeAxisLabel,
-                    scale: device.metrics.voltageScale,
-                    color: theme.colorScheme.tertiary),
+                  _BuckTrace(
+                      points: device.voltage,
+                      label: voltageLabel,
+                      unit: 'V',
+                      timeAxisLabel: timeAxisLabel,
+                      scale: device.metrics.voltageScale,
+                      color: theme.colorScheme.tertiary),
                   const SizedBox(height: 4),
-                  _BuckTrace(points: device.current, label: currentLabel,
-                    unit: 'A', timeAxisLabel: timeAxisLabel,
-                    scale: device.metrics.currentScale,
-                    color: theme.colorScheme.primary),
+                  _BuckTrace(
+                      points: device.current,
+                      label: currentLabel,
+                      unit: 'A',
+                      timeAxisLabel: timeAxisLabel,
+                      scale: device.metrics.currentScale,
+                      color: theme.colorScheme.primary),
                   const SizedBox(height: 6),
-                  _BuckDeviceMetricsView(metrics: device.metrics, labels: metricLabels),
+                  _BuckDeviceMetricsView(
+                      metrics: device.metrics, labels: metricLabels),
                   const SizedBox(height: 2),
-                  Text(periodLabel, style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant)),
+                  Text(periodLabel,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant)),
                 ],
               ),
             ),
@@ -293,8 +429,12 @@ class BuckDeviceWaveformsView extends StatelessWidget {
 
 class _BuckTrace extends StatelessWidget {
   const _BuckTrace({
-    required this.points, required this.label, required this.unit,
-    required this.timeAxisLabel, required this.scale, required this.color,
+    required this.points,
+    required this.label,
+    required this.unit,
+    required this.timeAxisLabel,
+    required this.scale,
+    required this.color,
   });
   final List<BuckWaveformPoint> points;
   final String label;
@@ -309,18 +449,25 @@ class _BuckTrace extends StatelessWidget {
     return SizedBox(
       height: 94,
       child: Row(textDirection: TextDirection.ltr, children: [
-        SizedBox(width: 96, child: Directionality(
-          textDirection: Directionality.of(context),
-          child: Text('$label ($displayUnit)',
-            style: Theme.of(context).textTheme.labelSmall,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis),
-        )),
-        Expanded(child: Column(children: [
-          Expanded(child: CustomPaint(
-            painter: _BuckTracePainter(points: points, scale: scale, color: color,
-              gridColor: Theme.of(context).colorScheme.outlineVariant,
-              textColor: Theme.of(context).colorScheme.onSurfaceVariant),
+        SizedBox(
+            width: 96,
+            child: Directionality(
+              textDirection: Directionality.of(context),
+              child: Text('$label ($displayUnit)',
+                  style: Theme.of(context).textTheme.labelSmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
+            )),
+        Expanded(
+            child: Column(children: [
+          Expanded(
+              child: CustomPaint(
+            painter: _BuckTracePainter(
+                points: points,
+                scale: scale,
+                color: color,
+                gridColor: Theme.of(context).colorScheme.outlineVariant,
+                textColor: Theme.of(context).colorScheme.onSurfaceVariant),
             child: const SizedBox.expand(),
           )),
           Text(timeAxisLabel, style: Theme.of(context).textTheme.labelSmall),
@@ -342,13 +489,34 @@ class _BuckDeviceMetricsView extends StatelessWidget {
     final voltageUnit = voltageScale == 1000 ? 'mV' : 'V';
     final currentUnit = currentScale == 1000 ? 'mA' : 'A';
     final entries = <(String, String)>[
-      ('minimumVoltage', '${(metrics.minimumVoltage * voltageScale).toStringAsFixed(2)} $voltageUnit'),
-      ('maximumVoltage', '${(metrics.maximumVoltage * voltageScale).toStringAsFixed(2)} $voltageUnit'),
-      ('minimumCurrent', '${(metrics.minimumCurrent * currentScale).toStringAsFixed(2)} $currentUnit'),
-      ('maximumCurrent', '${(metrics.maximumCurrent * currentScale).toStringAsFixed(2)} $currentUnit'),
-      ('rmsCurrent', '${(metrics.rmsCurrent * currentScale).toStringAsFixed(2)} $currentUnit'),
-      ('averageCurrent', '${(metrics.averageCurrent * currentScale).toStringAsFixed(2)} $currentUnit'),
-      ('acCurrent', '${(metrics.acCurrent * currentScale).toStringAsFixed(2)} $currentUnit'),
+      (
+        'minimumVoltage',
+        '${(metrics.minimumVoltage * voltageScale).toStringAsFixed(2)} $voltageUnit'
+      ),
+      (
+        'maximumVoltage',
+        '${(metrics.maximumVoltage * voltageScale).toStringAsFixed(2)} $voltageUnit'
+      ),
+      (
+        'minimumCurrent',
+        '${(metrics.minimumCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+      ),
+      (
+        'maximumCurrent',
+        '${(metrics.maximumCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+      ),
+      (
+        'rmsCurrent',
+        '${(metrics.rmsCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+      ),
+      (
+        'averageCurrent',
+        '${(metrics.averageCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+      ),
+      (
+        'acCurrent',
+        '${(metrics.acCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+      ),
     ];
     final style = Theme.of(context).textTheme.labelSmall;
     return Wrap(
@@ -364,8 +532,11 @@ class _BuckDeviceMetricsView extends StatelessWidget {
 
 class _BuckTracePainter extends CustomPainter {
   const _BuckTracePainter({
-    required this.points, required this.scale, required this.color,
-    required this.gridColor, required this.textColor,
+    required this.points,
+    required this.scale,
+    required this.color,
+    required this.gridColor,
+    required this.textColor,
   });
   final List<BuckWaveformPoint> points;
   final double scale;
@@ -387,19 +558,23 @@ class _BuckTracePainter extends CustomPainter {
     if (minValue > 0) minValue = 0;
     if (maxValue < 0) maxValue = 0;
     final valueSpan = maxValue - minValue;
-    final timeMin = points.first.timeMicroseconds;
-    final timeMax = points.last.timeMicroseconds;
-    final timeSpan = timeMax - timeMin;
+    // GraphPanel scans every retained point for both x-axis extrema. The
+    // fixed 1 ns edge offsets can make early samples negative when ton < 1 ns.
+    final timeRange = BuckGraphTimeRange.fromPoints(points);
+    final timeMax = timeRange.maximumMicroseconds;
+    final timeSpan = timeRange.spanMicroseconds;
     if (timeSpan <= 0) return;
 
     double x(double time) =>
-        left + (time - timeMin) / timeSpan * (plotRight - left);
+        left + timeRange.graphPanelXOffset(time, plotRight - left);
     double y(double value) => valueSpan == 0
         ? plotBottom
         : plotBottom - (value - minValue) / valueSpan * (plotBottom - top);
     final zeroY = y(0);
 
-    final axis = Paint()..color = gridColor..strokeWidth = 0.7;
+    final axis = Paint()
+      ..color = gridColor
+      ..strokeWidth = 0.7;
     canvas.drawLine(const Offset(left, top), Offset(left, plotBottom), axis);
     canvas.drawLine(Offset(left, zeroY), Offset(plotRight, zeroY), axis);
 
@@ -409,7 +584,8 @@ class _BuckTracePainter extends CustomPainter {
         text: TextSpan(text: text, style: textStyle),
         textDirection: TextDirection.ltr,
       )..layout(maxWidth: left - 5);
-      painter.paint(canvas, Offset(left - painter.width - 4, baselineY - painter.height / 2));
+      painter.paint(canvas,
+          Offset(left - painter.width - 4, baselineY - painter.height / 2));
     }
 
     final middleValue = maxValue / 2;
@@ -425,7 +601,14 @@ class _BuckTracePainter extends CustomPainter {
       final px = x(points[index].timeMicroseconds);
       canvas.drawLine(Offset(px, zeroY - 4), Offset(px, zeroY + 4), axis);
       final painter = TextPainter(
-        text: TextSpan(text: points[index].timeMicroseconds.toStringAsFixed(2), style: textStyle),
+        text: TextSpan(
+            text: timeRange
+                .graphPanelTickLabelValue(
+                  points[index].timeMicroseconds,
+                  plotRight - left,
+                )
+                .toStringAsFixed(2),
+            style: textStyle),
         textDirection: TextDirection.ltr,
       )..layout();
       final start = px - painter.width / 2;
@@ -447,11 +630,13 @@ class _BuckTracePainter extends CustomPainter {
     for (final point in points.skip(1)) {
       path.lineTo(x(point.timeMicroseconds), y(point.value * scale));
     }
-    canvas.drawPath(path, Paint()
-      ..color = color
-      ..strokeWidth = 1.8
-      ..style = PaintingStyle.stroke
-      ..strokeJoin = StrokeJoin.round);
+    canvas.drawPath(
+        path,
+        Paint()
+          ..color = color
+          ..strokeWidth = 1.8
+          ..style = PaintingStyle.stroke
+          ..strokeJoin = StrokeJoin.round);
   }
 
   @override
