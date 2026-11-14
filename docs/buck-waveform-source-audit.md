@@ -502,3 +502,31 @@ BuckEngine. No waveform sample or calculation equation changed.
 ## 2026-11-13: non-finite minimum-inductance label formatting
 
 The original `Buck.updateValues()` uses `new DecimalFormat("#0.00").format(lmin_buck * 1e6)`. The extracted source and `javap -p -c` bytecode confirm the formatter and conversion order. A direct OpenJDK 21 headless run of the original `Buck` class from `PSD5.jar` with Vin(min)=18 V, Vin(max)=36 V, Vo=12 V, Iout=5 A, fs=200 kHz, ripple input=1e-320 percent, Vf=0.5 V, and selected L=33 µH returned Lmin=+Infinity; the actual Swing label contained Unicode U+221E (∞). Flutter previously used `double.toStringAsFixed(2)`, which renders the word `Infinity` rather than the original symbol. The Buck screen now formats positive and negative infinite inductance labels with the TI infinity symbol while retaining the two-decimal format for finite values. A second original-JAR runtime probe at Vin(min)=Vin(max)=Vo=12 V with the same tiny ripple returned Lmin=NaN and the source label `NaN`; Flutter's normal NaN formatting remains unchanged. No calculation equation was changed.
+
+
+## 2026-11-14: exact Graph.java side-label and axis rounding
+
+The original `Buck.java` graph-label methods first format each device metric
+with `DecimalFormat("#0.00####")`. The `Graph.java` constructor then parses
+those strings with `Double.parseDouble`, chooses mV/mA only when every parsed
+label is below 1 in magnitude, multiplies the parsed values by 1000 when
+needed, and finally formats them with `DecimalFormat("#0.00")`. The same
+`#0.00` formatter is used for GraphPanel axis labels. The extracted Java
+source and `javap -p -c` bytecode confirm this two-stage order and Java's
+`DecimalFormat` default HALF_EVEN rounding.
+
+A direct OpenJDK 21 `DecimalFormat` runtime probe with the synthetic value
+`0.1234550000001` produced the first-stage string `0.123455`; parsing that
+string and multiplying by 1000 yields the binary64 value that Java formats as
+`123.45`. Formatting the unrounded input after multiplying instead yields
+`123.46`. Exact half-cent probes also confirmed `1.125 -> 1.12` and
+`1.375 -> 1.38` under HALF_EVEN. These are formatter probes, not Buck
+calculation results and not an execution of the original Buck class.
+
+Flutter previously chose the milli prefix using a fixed decimal threshold and
+formatted the raw metric directly with `toStringAsFixed(2)`. It now reproduces
+the source's binary64-to-decimal HALF_EVEN rounding, six-place source-label
+rounding, parse-back step, unit conversion, and two-place final formatting.
+Graph axis numbers now use the same Java-compatible two-place formatter.
+Regression widget tests cover the two-stage mA/mV case and exact HALF_EVEN
+ties. No Buck equation, calculated value, or waveform sample was changed.

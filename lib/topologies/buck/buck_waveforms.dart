@@ -1,13 +1,80 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
 import 'buck_inputs.dart';
 
-/// Mirrors Buck.java's six-decimal side-label rounding and Graph.java's
-/// negated >= 1 comparison. NaN therefore does not trigger the V/A prefix.
+/// Formats a finite binary64 value with Java DecimalFormat's default
+/// HALF_EVEN rounding. The PSD5 graph first rounds labels to six fractional
+/// places, parses them back to double, and only then applies its unit choice.
+String _formatJavaDecimal(
+  double value, {
+  required int minFractionDigits,
+  required int maxFractionDigits,
+}) {
+  if (value.isNaN) return 'NaN';
+  if (value.isInfinite) return value.isNegative ? '-∞' : '∞';
+
+  final data = ByteData(8)..setFloat64(0, value, Endian.big);
+  final bits = data.getInt64(0, Endian.big);
+  final exponentBits = (bits >> 52) & 0x7ff;
+  final fractionBits = bits & 0x000fffffffffffff;
+  final mantissa =
+      exponentBits == 0 ? fractionBits : fractionBits | (1 << 52);
+  final binaryExponent =
+      exponentBits == 0 ? -1074 : exponentBits - 1023 - 52;
+  final decimalScale = BigInt.from(10).pow(maxFractionDigits);
+  final numerator = BigInt.from(mantissa) * decimalScale;
+
+  late final BigInt rounded;
+  if (binaryExponent >= 0) {
+    rounded = numerator << binaryExponent;
+  } else {
+    final denominator = BigInt.one << -binaryExponent;
+    final quotient = numerator ~/ denominator;
+    final remainder = numerator.remainder(denominator);
+    final twiceRemainder = remainder << 1;
+    final comparison = twiceRemainder.compareTo(denominator);
+    final roundUp =
+        comparison > 0 || (comparison == 0 && quotient.isOdd);
+    rounded = roundUp ? quotient + BigInt.one : quotient;
+  }
+
+  final integerPart = rounded ~/ decimalScale;
+  var fractionalPart =
+      (rounded % decimalScale).toString().padLeft(maxFractionDigits, '0');
+  while (fractionalPart.length > minFractionDigits &&
+      fractionalPart.endsWith('0')) {
+    fractionalPart =
+        fractionalPart.substring(0, fractionalPart.length - 1);
+  }
+  return '${bits.isNegative ? '-' : ''}$integerPart.$fractionalPart';
+}
+
+double _javaGraphLabelValue(double value) {
+  if (!value.isFinite) return value;
+  return double.parse(
+    _formatJavaDecimal(
+      value,
+      minFractionDigits: 2,
+      maxFractionDigits: 6,
+    ),
+  );
+}
+
+/// Graph.java compares the parsed, six-decimal Buck label strings to 1.0.
+/// Negating >= preserves its original NaN behavior.
 bool _javaGraphLabelKeepsMilliPrefix(double value) =>
-    !(value.abs() >= 0.9999995);
+    !(_javaGraphLabelValue(value).abs() >= 1.0);
+
+/// Graph.java formats the already-rounded source label after unit conversion.
+String _formatJavaGraphMetric(double value, double scale) =>
+    _formatJavaDecimal(
+      _javaGraphLabelValue(value) * scale,
+      minFractionDigits: 2,
+      maxFractionDigits: 2,
+    );
 
 /// One sample from the original PSD5 Buck graph time base (microseconds).
 class BuckWaveformPoint {
@@ -491,31 +558,31 @@ class _BuckDeviceMetricsView extends StatelessWidget {
     final entries = <(String, String)>[
       (
         'minimumVoltage',
-        '${(metrics.minimumVoltage * voltageScale).toStringAsFixed(2)} $voltageUnit'
+        '${_formatJavaGraphMetric(metrics.minimumVoltage, voltageScale)} $voltageUnit'
       ),
       (
         'maximumVoltage',
-        '${(metrics.maximumVoltage * voltageScale).toStringAsFixed(2)} $voltageUnit'
+        '${_formatJavaGraphMetric(metrics.maximumVoltage, voltageScale)} $voltageUnit'
       ),
       (
         'minimumCurrent',
-        '${(metrics.minimumCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+        '${_formatJavaGraphMetric(metrics.minimumCurrent, currentScale)} $currentUnit'
       ),
       (
         'maximumCurrent',
-        '${(metrics.maximumCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+        '${_formatJavaGraphMetric(metrics.maximumCurrent, currentScale)} $currentUnit'
       ),
       (
         'rmsCurrent',
-        '${(metrics.rmsCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+        '${_formatJavaGraphMetric(metrics.rmsCurrent, currentScale)} $currentUnit'
       ),
       (
         'averageCurrent',
-        '${(metrics.averageCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+        '${_formatJavaGraphMetric(metrics.averageCurrent, currentScale)} $currentUnit'
       ),
       (
         'acCurrent',
-        '${(metrics.acCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+        '${_formatJavaGraphMetric(metrics.acCurrent, currentScale)} $currentUnit'
       ),
     ];
     final style = Theme.of(context).textTheme.labelSmall;
@@ -590,9 +657,9 @@ class _BuckTracePainter extends CustomPainter {
 
     final middleValue = maxValue / 2;
     final middleY = (zeroY + top) / 2;
-    drawRightAligned(maxValue.toStringAsFixed(2), top);
-    drawRightAligned(middleValue.toStringAsFixed(2), middleY);
-    drawRightAligned(minValue.toStringAsFixed(2), plotBottom);
+    drawRightAligned(_formatJavaDecimal(maxValue, minFractionDigits: 2, maxFractionDigits: 2), top);
+    drawRightAligned(_formatJavaDecimal(middleValue, minFractionDigits: 2, maxFractionDigits: 2), middleY);
+    drawRightAligned(_formatJavaDecimal(minValue, minFractionDigits: 2, maxFractionDigits: 2), plotBottom);
     canvas.drawLine(Offset(left - 4, middleY), Offset(left + 4, middleY), axis);
 
     var lastLabelRight = -1000.0;
@@ -602,12 +669,14 @@ class _BuckTracePainter extends CustomPainter {
       canvas.drawLine(Offset(px, zeroY - 4), Offset(px, zeroY + 4), axis);
       final painter = TextPainter(
         text: TextSpan(
-            text: timeRange
-                .graphPanelTickLabelValue(
-                  points[index].timeMicroseconds,
-                  plotRight - left,
-                )
-                .toStringAsFixed(2),
+            text: _formatJavaDecimal(
+              timeRange.graphPanelTickLabelValue(
+                points[index].timeMicroseconds,
+                plotRight - left,
+              ),
+              minFractionDigits: 2,
+              maxFractionDigits: 2,
+            ),
             style: textStyle),
         textDirection: TextDirection.ltr,
       )..layout();
@@ -617,7 +686,7 @@ class _BuckTracePainter extends CustomPainter {
       lastLabelRight = start + 30;
     }
     final maxPainter = TextPainter(
-      text: TextSpan(text: timeMax.toStringAsFixed(2), style: textStyle),
+      text: TextSpan(text: _formatJavaDecimal(timeMax, minFractionDigits: 2, maxFractionDigits: 2), style: textStyle),
       textDirection: TextDirection.ltr,
     )..layout();
     final maxStart = plotRight - maxPainter.width / 2;
