@@ -20,10 +20,8 @@ String _formatJavaDecimal(
   final bits = data.getInt64(0, Endian.big);
   final exponentBits = (bits >> 52) & 0x7ff;
   final fractionBits = bits & 0x000fffffffffffff;
-  final mantissa =
-      exponentBits == 0 ? fractionBits : fractionBits | (1 << 52);
-  final binaryExponent =
-      exponentBits == 0 ? -1074 : exponentBits - 1023 - 52;
+  final mantissa = exponentBits == 0 ? fractionBits : fractionBits | (1 << 52);
+  final binaryExponent = exponentBits == 0 ? -1074 : exponentBits - 1023 - 52;
   final decimalScale = BigInt.from(10).pow(maxFractionDigits);
   final numerator = BigInt.from(mantissa) * decimalScale;
 
@@ -36,18 +34,18 @@ String _formatJavaDecimal(
     final remainder = numerator.remainder(denominator);
     final twiceRemainder = remainder << 1;
     final comparison = twiceRemainder.compareTo(denominator);
-    final roundUp =
-        comparison > 0 || (comparison == 0 && quotient.isOdd);
+    final roundUp = comparison > 0 || (comparison == 0 && quotient.isOdd);
     rounded = roundUp ? quotient + BigInt.one : quotient;
   }
 
   final integerPart = rounded ~/ decimalScale;
-  var fractionalPart =
-      (rounded % decimalScale).toString().padLeft(maxFractionDigits, '0');
+  var fractionalPart = (rounded % decimalScale).toString().padLeft(
+    maxFractionDigits,
+    '0',
+  );
   while (fractionalPart.length > minFractionDigits &&
       fractionalPart.endsWith('0')) {
-    fractionalPart =
-        fractionalPart.substring(0, fractionalPart.length - 1);
+    fractionalPart = fractionalPart.substring(0, fractionalPart.length - 1);
   }
   return '${bits.isNegative ? '-' : ''}$integerPart.$fractionalPart';
 }
@@ -55,11 +53,7 @@ String _formatJavaDecimal(
 double _javaGraphLabelValue(double value) {
   if (!value.isFinite) return value;
   return double.parse(
-    _formatJavaDecimal(
-      value,
-      minFractionDigits: 2,
-      maxFractionDigits: 6,
-    ),
+    _formatJavaDecimal(value, minFractionDigits: 2, maxFractionDigits: 6),
   );
 }
 
@@ -69,12 +63,11 @@ bool _javaGraphLabelKeepsMilliPrefix(double value) =>
     !(_javaGraphLabelValue(value).abs() >= 1.0);
 
 /// Graph.java formats the already-rounded source label after unit conversion.
-String _formatJavaGraphMetric(double value, double scale) =>
-    _formatJavaDecimal(
-      _javaGraphLabelValue(value) * scale,
-      minFractionDigits: 2,
-      maxFractionDigits: 2,
-    );
+String _formatJavaGraphMetric(double value, double scale) => _formatJavaDecimal(
+  _javaGraphLabelValue(value) * scale,
+  minFractionDigits: 2,
+  maxFractionDigits: 2,
+);
 
 /// One sample from the original PSD5 Buck graph time base (microseconds).
 class BuckWaveformPoint {
@@ -558,38 +551,31 @@ class _BuckDeviceMetricsView extends StatelessWidget {
     final entries = <(String, String)>[
       (
         'minimumVoltage',
-        '${_formatJavaGraphMetric(metrics.minimumVoltage, voltageScale)} '
-            '$voltageUnit'
+        '${_formatJavaGraphMetric(metrics.minimumVoltage, voltageScale)} $voltageUnit',
       ),
       (
         'maximumVoltage',
-        '${_formatJavaGraphMetric(metrics.maximumVoltage, voltageScale)} '
-            '$voltageUnit'
+        '${_formatJavaGraphMetric(metrics.maximumVoltage, voltageScale)} $voltageUnit',
       ),
       (
         'minimumCurrent',
-        '${_formatJavaGraphMetric(metrics.minimumCurrent, currentScale)} '
-            '$currentUnit'
+        '${_formatJavaGraphMetric(metrics.minimumCurrent, currentScale)} $currentUnit',
       ),
       (
         'maximumCurrent',
-        '${_formatJavaGraphMetric(metrics.maximumCurrent, currentScale)} '
-            '$currentUnit'
+        '${_formatJavaGraphMetric(metrics.maximumCurrent, currentScale)} $currentUnit',
       ),
       (
         'rmsCurrent',
-        '${_formatJavaGraphMetric(metrics.rmsCurrent, currentScale)} '
-            '$currentUnit'
+        '${_formatJavaGraphMetric(metrics.rmsCurrent, currentScale)} $currentUnit',
       ),
       (
         'averageCurrent',
-        '${_formatJavaGraphMetric(metrics.averageCurrent, currentScale)} '
-            '$currentUnit'
+        '${_formatJavaGraphMetric(metrics.averageCurrent, currentScale)} $currentUnit',
       ),
       (
         'acCurrent',
-        '${_formatJavaGraphMetric(metrics.acCurrent, currentScale)} '
-            '$currentUnit'
+        '${_formatJavaGraphMetric(metrics.acCurrent, currentScale)} $currentUnit',
       ),
     ];
     final style = Theme.of(context).textTheme.labelSmall;
@@ -665,11 +651,7 @@ class _BuckTracePainter extends CustomPainter {
     final middleValue = maxValue / 2;
     final middleY = (zeroY + top) / 2;
     drawRightAligned(
-      _formatJavaDecimal(
-        maxValue,
-        minFractionDigits: 2,
-        maxFractionDigits: 2,
-      ),
+      _formatJavaDecimal(maxValue, minFractionDigits: 2, maxFractionDigits: 2),
       top,
     );
     drawRightAligned(
@@ -681,11 +663,7 @@ class _BuckTracePainter extends CustomPainter {
       middleY,
     );
     drawRightAligned(
-      _formatJavaDecimal(
-        minValue,
-        minFractionDigits: 2,
-        maxFractionDigits: 2,
-      ),
+      _formatJavaDecimal(minValue, minFractionDigits: 2, maxFractionDigits: 2),
       plotBottom,
     );
     canvas.drawLine(Offset(left - 4, middleY), Offset(left + 4, middleY), axis);
