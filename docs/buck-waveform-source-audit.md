@@ -502,3 +502,50 @@ BuckEngine. No waveform sample or calculation equation changed.
 ## 2026-11-13: non-finite minimum-inductance label formatting
 
 The original `Buck.updateValues()` uses `new DecimalFormat("#0.00").format(lmin_buck * 1e6)`. The extracted source and `javap -p -c` bytecode confirm the formatter and conversion order. A direct OpenJDK 21 headless run of the original `Buck` class from `PSD5.jar` with Vin(min)=18 V, Vin(max)=36 V, Vo=12 V, Iout=5 A, fs=200 kHz, ripple input=1e-320 percent, Vf=0.5 V, and selected L=33 µH returned Lmin=+Infinity; the actual Swing label contained Unicode U+221E (∞). Flutter previously used `double.toStringAsFixed(2)`, which renders the word `Infinity` rather than the original symbol. The Buck screen now formats positive and negative infinite inductance labels with the TI infinity symbol while retaining the two-decimal format for finite values. A second original-JAR runtime probe at Vin(min)=Vin(max)=Vo=12 V with the same tiny ripple returned Lmin=NaN and the source label `NaN`; Flutter's normal NaN formatting remains unchanged. No calculation equation was changed.
+
+
+## 2026-11-15: input-capacitor RMS and first-pass iin ordering
+
+The original `Buck.userCalculate()` order is
+`getUserModifiedValues()`, `checkForCCMDCCM()`, `onofftimes()`,
+`actualValues()`, `singleValues()`, then `general()`. In
+`actualValues()`, the input-capacitor ON-current endpoints are calculated
+from the instance field `iin` (`-imin_ccm_buck + iin` and
+`-imax_ccm_buck + iin`, or the DCM equivalents). Only later, in
+`general()`, does the source update `iin = pin / vin_calculation`.
+The original source and `javap -p -c` bytecode both confirm this order.
+This makes the first calculation after an input edit use the previous
+calculation's input current for the input-capacitor RMS integral, while
+`ifet_avg_buck` and the other interval values already belong to the new
+operating point.
+
+A headless OpenJDK 21 harness instantiated the original `Buck` class from
+`PSD5.jar`, changed the corresponding Swing text field through reflection,
+and called the original `calculate()` method twice. The baseline was first
+settled with two calls. The probes below therefore distinguish the actual
+first-pass value from the next-pass settled value; they are runtime results
+from the original class, not calculations from BuckEngine.
+
+| Mode and edit | Previous iin used by first pass | New iin after general() | First-pass input-cap RMS | Second-pass input-cap RMS |
+|---|---:|---:|---:|---:|
+| CCM: Vo 12 V → 10 V, Vin 18 V, Iout 5 A, fs 200 kHz, L 33 µH, Vf 0.5 V | 3.3783783783783785 A | 2.8378378378378377 A | 2.2352655791705716 A | 2.4813342227348256 A |
+| DCM: Vo 5 V → 4.5 V, Vin 16 V, Iout 2 A, fs 100 kHz, L 3 µH, Vf 0.7 V | 0.6826347305389221 A | 0.6227544910179641 A | 1.555763454932851 A | 1.5750845623591112 A |
+
+The source's interaction methods explain why the transient does not persist
+as the final desktop result: `WorkingSheet.setInputVoltage()` and
+`setLoadCurrent()` each call `calculate()` twice; Buck text-field
+key-release handlers call their focus-lost validation method (which calls
+`calculate()`), and the actual focus-loss handler also calls
+`calculate()`. Thus the final calculation after the edit uses the updated
+`iin`. This audit executed the original `Buck.calculate()` method twice;
+it did not synthesize a full Swing event queue or claim a pixel-level UI
+runtime comparison.
+
+Flutter's `BuckEngine.calculate()` is stateless and derives the current
+`inputAverageCurrent` before the capacitor RMS integral. Its result matches
+the original Java second-pass settled values in both CCM and DCM. It does
+not reproduce the transient first-pass stale value while a key is being
+edited. No equation was changed and no stale state was introduced into the
+engine; the immediate stable result is retained as a deliberate live-UI
+difference. Two independent regression tests now pin the settled CCM and DCM
+values from the actual original-JAR runtime.
