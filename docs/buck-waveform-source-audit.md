@@ -604,3 +604,44 @@ retain its current curated automatic-inductance preset is a functional
 product decision. Exact startup-default parity remains open and must not be
 silently treated as complete. This does not invalidate the fixed-point
 Java-oracle regressions, which supply explicit inputs.
+
+
+## 2026-11-16: original PSD5 startup operating-point runtime oracle
+
+The original \`Buck.initComponents()\` source and matching \`PSD5.jar\` bytecode
+set Vin(min)=7 V, Vin(max)=30 V, Vo=3.3 V, Iout=2 A, fs=1600 kHz,
+inductor ripple=50%, selected L=2.2 µH, and diode drop=0.7 V.
+\`WorkingSheet\` initializes \`currentInputVoltage=0\` and
+\`currentLoadCurrent=100\`; its constructor bytecode stores those exact
+values. Therefore the initial operating point uses Vin=7 V and 100% of
+rated output current.
+
+A direct OpenJDK 21 runtime probe instantiated the original \`Buck\` class
+inside the Swing event thread under \`xvfb-run\`. The original constructor
+calls \`calculate()\` twice. Private fields were then read reflectively; the
+values below are from that original Java object after its constructor
+completed, not from BuckEngine:
+
+| Quantity | Original Java runtime value |
+|---|---:|
+| Calculated minimum inductance | 2.1742671009771992 µH |
+| Selected inductance | 2.2 µH |
+| CCM/DCM | CCM |
+| Design ripple | 0.5460448642266824 A |
+| Duty cycle | 0.5194805194805194 |
+| ON / OFF / zero-current time | 0.32467532467532465 / 0.3003246753246754 / 0.001 µs |
+| Inductor valley / peak | 1.7269775678866588 / 2.273022432113341 A |
+| Inductor average / RMS | 2.0 / 2.004599115690954 A |
+| MOSFET average / RMS | 1.0389610389610389 / 1.4448147528098954 A |
+| Diode average / RMS | 0.9610389610389612 / 1.3895783334133545 A |
+| Input-capacitor RMS | 1.0048751039660124 A |
+| Output-capacitor RMS | 0.1576295746754439 A |
+| Output / input power | 6.6 / 7.2727272727272725 W |
+
+\`test/buck_java_startup_defaults_oracle_test.dart\` now supplies these exact
+original design inputs explicitly and checks the fixed runtime values. The
+expected values are independent of BuckEngine and cover the default CCM
+operating point, interval timing, all four device-current RMS groups, and
+power balance. This regression does not alter Flutter's current curated
+startup preset or claim that the Flutter screen already has TI-default
+parity; that separate UI-default decision remains open.
