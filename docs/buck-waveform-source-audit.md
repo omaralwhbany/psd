@@ -578,3 +578,29 @@ now compares every retained time coordinate exactly against the fixed
 original-JAR fixture instead of using a tolerance large enough to hide these
 differences. This is a waveform time-coordinate parity fix only; no Buck
 electrical calculation or device sample value changed.
+
+## 2026-11-16: original TI defaults versus Flutter startup defaults
+
+The original `Buck.initComponents()` source and the matching JAR bytecode
+were checked for the text-field defaults. The original PSD5 Buck sheet starts
+with Vin(min)=7 V, Vin(max)=30 V, Vout=3.3 V, Iout=2 A, switching frequency
+1600 kHz, inductor ripple=50%, selected inductance=2.2 µH, and diode drop=0.7 V.
+`getUserValues()` converts the displayed frequency from kHz to Hz and ripple
+from percent to a fraction; `getUserModifiedValues()` converts the selected
+inductance from µH to henries.
+
+The current Flutter screen starts with Vin(min)=18 V, Vin(max)=36 V,
+Vout=12 V, Iout=5 A, switching frequency=200 kHz, ripple=30%, and diode drop
+0.5 V. Its custom-inductance switch is initially off, so the engine uses
+calculated Lmin as the operating inductance; the hidden custom field is
+pre-filled with 33 µH. These are materially different startup calculation
+conditions, not merely formatting differences.
+
+No default was changed in this audit pass. Changing these values would alter
+the initial operating point, selected-inductance behavior, CCM/DCM mode,
+device stresses, and graph traces. Whether the Flutter app should reproduce
+the original TI defaults (including the original 2.2 µH selected inductor) or
+retain its current curated automatic-inductance preset is a functional
+product decision. Exact startup-default parity remains open and must not be
+silently treated as complete. This does not invalidate the fixed-point
+Java-oracle regressions, which supply explicit inputs.
