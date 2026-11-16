@@ -549,3 +549,32 @@ edited. No equation was changed and no stale state was introduced into the
 engine; the immediate stable result is retained as a deliberate live-UI
 difference. Two independent regression tests now pin the settled CCM and DCM
 values from the actual original-JAR runtime.
+
+## 2026-11-16: exact cumulative time-scale addition order
+
+A bytecode review of the original `Buck.fillTimeScaleArrays()` found that
+later cycle coordinates are evaluated as repeated left-associative additions
+of `t1`, `t2`, and `t3`. The bytecode contains a `dadd` for each term;
+it does not multiply a previously calculated cycle duration by two or three.
+The Flutter graph builder had used `2 * cycleDuration` and
+`3 * cycleDuration` for the later cycles. Those expressions are
+mathematically equivalent but differ from Java by a few binary64 ULPs.
+
+The original private `fillTimeScaleArrays()` method was invoked reflectively
+from `PSD5.jar` under OpenJDK 21. To isolate the method from Swing window
+construction, a Buck instance was allocated without invoking its constructor,
+then its time arrays and timing fields were initialized. For the CCM runtime
+point `t1=3.3783783783783788e-6 s`,
+`t2=1.6216216216216216e-6 s`, and `t3=1e-9 s`, Java returned
+`time_scale[12]=10.001000000000001 µs`,
+`time_scale[16]=15.001000000000003 µs`, and
+`time_scale[18]=15.002000000000002 µs`. The former Flutter multiplication
+expressions produced `10.000999999999999 µs`,
+`15.000999999999999 µs`, and `15.001999999999999 µs` respectively.
+
+Flutter now builds the second and third cycle starts by repeating the same
+`+t1+t2+t3` sequence as the Java source and bytecode. The graph-oracle test
+now compares every retained time coordinate exactly against the fixed
+original-JAR fixture instead of using a tolerance large enough to hide these
+differences. This is a waveform time-coordinate parity fix only; no Buck
+electrical calculation or device sample value changed.

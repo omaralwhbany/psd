@@ -175,12 +175,12 @@ void main() {
           final time = expectedTimes[index];
           expect(
             device.voltage[index].timeMicroseconds,
-            closeTo(time, 1e-9),
+            time,
             reason: '${device.id} voltage time sample $index',
           );
           expect(
             device.current[index].timeMicroseconds,
-            closeTo(time, 1e-9),
+            time,
             reason: '${device.id} current time sample $index',
           );
           expect(

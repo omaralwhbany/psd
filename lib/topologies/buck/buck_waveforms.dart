@@ -143,6 +143,10 @@ class BuckWaveformSet {
     final dcm = values['isCcm'] == 0;
     const edge = 1e-9;
 
+    // Buck.java evaluates later cycle starts as repeated left-associative
+    // t1+t2+t3 additions. Multiplying cycleDuration by 2 or 3 changes a few ULPs.
+    final secondCycleStart = cycleDuration + ton + toff + tidle;
+    final thirdCycleStart = secondCycleStart + ton + toff + tidle;
     // Exact 21-point time_scale_raw sequence in Buck.java lines 437-457.
     final times = <double>[
       0.0,
@@ -157,15 +161,15 @@ class BuckWaveformSet {
       cycleDuration + ton + edge,
       cycleDuration + ton + toff - edge,
       cycleDuration + ton + toff + edge,
-      2 * cycleDuration - edge,
-      2 * cycleDuration + edge,
-      2 * cycleDuration + ton - edge,
-      2 * cycleDuration + ton + edge,
-      2 * cycleDuration + ton + toff - edge,
-      2 * cycleDuration + ton + toff + edge,
-      3 * cycleDuration - edge,
-      3 * cycleDuration + edge,
-      3 * cycleDuration + ton - edge,
+      secondCycleStart - edge,
+      secondCycleStart + edge,
+      secondCycleStart + ton - edge,
+      secondCycleStart + ton + edge,
+      secondCycleStart + ton + toff - edge,
+      secondCycleStart + ton + toff + edge,
+      thirdCycleStart - edge,
+      thirdCycleStart + edge,
+      thirdCycleStart + ton - edge,
     ];
 
     List<BuckWaveformPoint> trace(List<double> samples) {
