@@ -393,7 +393,6 @@ void main() {
     expect(result.values['inductorVoltageMin'], -4.0);
     expect(result.values['inductorVoltageMax'], 3.7);
   });
-
 }
 
 /// Expands the seven original Java per-cycle samples into Graph.java's
