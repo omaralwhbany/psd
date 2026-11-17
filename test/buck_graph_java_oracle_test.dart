@@ -308,6 +308,92 @@ void main() {
       closeTo(0.3010147803562267, 1e-15),
     );
   });
+
+  test('Buck original TI default operating point matches PSD5.jar runtime', () {
+    const input = BuckInputs(
+      inputVoltageMin: 7,
+      inputVoltageMax: 30,
+      outputVoltage: 3.3,
+      outputCurrent: 2,
+      switchingFrequency: 1.6e6,
+      rippleFraction: 0.5,
+      diodeForwardVoltage: 0.7,
+      operatingInputVoltage: 7,
+      operatingLoadPercent: 100,
+      selectedInductance: 2.2e-6,
+    );
+
+    final result = const BuckEngine().calculate(input);
+    expect(result.isValid, isTrue);
+    expect(result.values['isCcm'], 1);
+
+    // These fixed values came from two constructor-time calculate() passes
+    // on the original PSD5.jar Buck class under OpenJDK 21. The Java sheet
+    // defaults to Vin=7..30 V, Vo=3.3 V, Iout=2 A, fs=1.6 MHz,
+    // 50% ripple, Vf=0.7 V, and a selected 2.2 uH inductor.
+    expect(
+      result.values['minimumInductance'],
+      closeTo(2.1742671009771992e-6, 1e-18),
+    );
+    expect(result.values['inductanceUsed'], 2.2e-6);
+    expect(
+      result.values['designRippleCurrent'],
+      closeTo(0.5460448642266824, 1e-14),
+    );
+    expect(
+      result.values['rippleCurrent'],
+      closeTo(0.5460448642266824, 1e-14),
+    );
+    expect(
+      result.values['dutyCycle'],
+      closeTo(0.5194805194805194, 1e-15),
+    );
+    expect(result.values['onTime'], closeTo(3.2467532467532465e-7, 1e-19));
+    expect(result.values['offTime'], closeTo(3.003246753246754e-7, 1e-19));
+    expect(result.values['idleTime'], 1e-9);
+
+    expect(result.values['outputPower'], 6.6);
+    expect(
+      result.values['inputPower'],
+      closeTo(7.2727272727272725, 1e-14),
+    );
+    expect(
+      result.values['diodeLosses'],
+      closeTo(0.6727272727272728, 1e-14),
+    );
+    expect(
+      result.values['inputAverageCurrent'],
+      closeTo(1.0389610389610389, 1e-14),
+    );
+
+    expect(result.values['inductorAverageCurrent'], 2);
+    expect(
+      result.values['inductorRmsCurrent'],
+      closeTo(2.004599115690954, 1e-13),
+    );
+    expect(
+      result.values['mosfetRmsCurrent'],
+      closeTo(1.4448147528098954, 1e-13),
+    );
+    expect(
+      result.values['diodeRmsCurrent'],
+      closeTo(1.3895783334133545, 1e-13),
+    );
+    expect(
+      result.values['inputCapacitorRmsCurrent'],
+      closeTo(1.0048751039660124, 1e-13),
+    );
+    expect(
+      result.values['outputCapacitorRmsCurrent'],
+      closeTo(0.1576295746754439, 1e-13),
+    );
+
+    expect(result.values['mosfetVoltageMax'], 7.7);
+    expect(result.values['diodeVoltageMin'], -7);
+    expect(result.values['inductorVoltageMin'], -4.0);
+    expect(result.values['inductorVoltageMax'], 3.7);
+  });
+
 }
 
 /// Expands the seven original Java per-cycle samples into Graph.java's
