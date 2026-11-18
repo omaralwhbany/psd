@@ -153,7 +153,15 @@ void main() {
 
       final synchronizedWaveforms =
           find.text(AppStrings(locale).synchronizedWaveforms);
-      await tester.ensureVisible(synchronizedWaveforms);
+      final scrollable = find.descendant(
+        of: find.byType(ListView),
+        matching: find.byType(Scrollable),
+      ).first;
+      await tester.scrollUntilVisible(
+        synchronizedWaveforms,
+        300,
+        scrollable: scrollable,
+      );
       await tester.pumpAndSettle();
       expect(synchronizedWaveforms, findsOneWidget);
       expect(
