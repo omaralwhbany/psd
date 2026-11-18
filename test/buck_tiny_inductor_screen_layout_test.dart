@@ -156,6 +156,10 @@ void main() {
       await tester.ensureVisible(synchronizedWaveforms);
       await tester.pumpAndSettle();
       expect(synchronizedWaveforms, findsOneWidget);
+      expect(
+        find.text(AppStrings(locale).waveformUnavailableForNonFiniteResults),
+        findsOneWidget,
+      );
       expect(tester.takeException(), isNull);
     },
   );

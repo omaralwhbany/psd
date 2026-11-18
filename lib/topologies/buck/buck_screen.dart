@@ -81,6 +81,16 @@ class _BuckScreenState extends State<BuckScreen> {
         ) ||
         result.errors.any((error) => error.startsWith('Ripple fraction'));
     final inputRangeWarning = input.outputVoltage > input.inputVoltageMin;
+    final canRenderSynchronizedWaveforms = result.isValid &&
+        [
+          'operatingOutputCurrent',
+          'rippleCurrent',
+          'dutyCycle',
+          'onFraction',
+          'offFraction',
+          'idleFraction',
+          'operatingInputVoltage',
+        ].every((key) => result.values[key]?.isFinite ?? false);
     return ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 28), children: [
       Text(s.buckConverter, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
       const SizedBox(height: 4),
@@ -227,23 +237,33 @@ class _BuckScreenState extends State<BuckScreen> {
           },
         )),
         const SizedBox(height: 14),
-        _panel(s.synchronizedWaveforms, PowerWaveformChart(
-          averageCurrent: result.values['operatingOutputCurrent']!,
-          rippleCurrent: result.values['rippleCurrent']!,
-          dutyCycle: result.values['dutyCycle']!,
-          currentLabel: result.values['isCcm'] == 0 ? s.buckDcmCurrent : s.buckCcmCurrent,
-          switchHighDuringOn: true,
-          discontinuous: result.values['isCcm'] == 0,
-          onFraction: result.values['onFraction']!,
-          offFraction: result.values['offFraction']!,
-          idleFraction: result.values['idleFraction']!,
-          topology: 'buck',
-          inputVoltage: result.values['operatingInputVoltage']!,
-          outputVoltage: input.outputVoltage,
-          diodeDrop: input.diodeForwardVoltage,
-          periodCaption: s.oneSwitchingPeriod,
-          idealizedNote: s.idealizedWaveformNote,
-        )),
+        if (canRenderSynchronizedWaveforms)
+          _panel(s.synchronizedWaveforms, PowerWaveformChart(
+            averageCurrent: result.values['operatingOutputCurrent']!,
+            rippleCurrent: result.values['rippleCurrent']!,
+            dutyCycle: result.values['dutyCycle']!,
+            currentLabel:
+                result.values['isCcm'] == 0 ? s.buckDcmCurrent : s.buckCcmCurrent,
+            switchHighDuringOn: true,
+            discontinuous: result.values['isCcm'] == 0,
+            onFraction: result.values['onFraction']!,
+            offFraction: result.values['offFraction']!,
+            idleFraction: result.values['idleFraction']!,
+            topology: 'buck',
+            inputVoltage: result.values['operatingInputVoltage']!,
+            outputVoltage: input.outputVoltage,
+            diodeDrop: input.diodeForwardVoltage,
+            periodCaption: s.oneSwitchingPeriod,
+            idealizedNote: s.idealizedWaveformNote,
+          ))
+        else
+          _panel(
+            s.synchronizedWaveforms,
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(s.waveformUnavailableForNonFiniteResults),
+            ),
+          ),
       ],
     ]);
   }

@@ -716,3 +716,35 @@ did not use those errors to highlight the ripple input. The screen now maps
 both source conditions to the same warning fill: actual ripple above target,
 or a ripple-fraction validation error. A widget regression covers 0% and
 101% without changing any calculation or validation rule.
+
+
+## 2026-11-18: rendering the smallest-positive-inductor NaN waveforms
+
+The new narrow-screen widget regression entered a selected inductance of
+5e-318 µH, which the original Buck parser converts to the smallest positive
+binary64 value. The engine correctly preserves the original Java underflow
+results, including NaN current metrics. The first UI test exposed a separate
+Flutter rendering defect: the Buck trace painter passed a NaN y-coordinate
+to Canvas.drawLine, which throws `Offset argument contained a NaN value`.
+
+The original GraphPanel.getMinimumY() and getMaximumY() initialize their
+bounds from the first sample and update them only through strict comparisons.
+For a first NaN sample, both bounds remain NaN. A direct OpenJDK 21 runtime
+probe instantiated the original GraphPanel from PSD5.jar with all-NaN
+current samples and painted it into a BufferedImage; painting completed.
+The Java renderer casts non-finite double coordinates to integer zero
+rather than rejecting them.
+
+The Buck trace painter now uses the same strict-comparison extrema order and
+a finite zero-coordinate fallback so Flutter Canvas never receives NaN
+Offsets. The additional synchronized Flutter chart is not a PSD5 source
+graph; when its required current values are non-finite, the screen replaces
+it with a localized Arabic/English explanation instead of passing NaN into
+its painter. The calculation result map is unchanged: Infinity and NaN
+remain visible in numeric result labels, and no Buck equation or validation
+limit was altered.
+
+The narrow Arabic screen regression scrolls through the result, five-device
+waveform section and synchronized-waveform fallback, then asserts that no
+rendering exception occurs. This is a display-safety adaptation, not a claim
+that the original Java graph uses the same fallback drawing.
