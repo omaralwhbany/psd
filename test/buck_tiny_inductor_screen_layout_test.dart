@@ -51,6 +51,15 @@ void main() {
         '1e-90',
       );
 
+      // Buck.java showErrors() highlights the requested ripple input when
+      // actual inductor ripple exceeds the requested target.
+      final rippleField = find.byType(TextField).at(6);
+      final rippleInput = tester.widget<TextField>(rippleField);
+      final rippleTheme = Theme.of(tester.element(rippleField));
+      expect(rippleInput.decoration!.filled, isTrue);
+      expect(rippleInput.decoration!.fillColor, rippleTheme.colorScheme.error);
+      expect(rippleInput.style!.color, rippleTheme.colorScheme.onError);
+
       final rippleWarning = find.text(
         strings.localizeBuckWarning(
           'Actual inductor ripple exceeds the requested ripple target.',
