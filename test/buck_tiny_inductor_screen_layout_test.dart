@@ -35,34 +35,33 @@ void main() {
       );
 
       final customInductor = find.byType(SwitchListTile);
-      await tester.scrollUntilVisible(
-        customInductor,
-        280,
-        scrollable: find.byType(Scrollable).first,
-      );
+      await tester.ensureVisible(customInductor);
+      await tester.pumpAndSettle();
       await tester.tap(customInductor);
       await tester.pumpAndSettle();
+      expect(tester.widget<SwitchListTile>(customInductor).value, isTrue);
 
       final inductanceField = find.byType(TextField).last;
       await tester.ensureVisible(inductanceField);
+      await tester.pumpAndSettle();
       await tester.enterText(inductanceField, '1e-90');
       await tester.pumpAndSettle();
-
-      await tester.scrollUntilVisible(
-        find.text(strings.outputPower),
-        280,
-        scrollable: find.byType(Scrollable).first,
+      expect(
+        tester.widget<TextField>(inductanceField).controller!.text,
+        '1e-90',
       );
+
+      final rippleWarning = find.text(
+        strings.localizeBuckWarning(
+          'Actual inductor ripple exceeds the requested ripple target.',
+        ),
+      );
+      await tester.ensureVisible(rippleWarning);
+      await tester.pumpAndSettle();
+
       expect(find.text(strings.outputPower), findsOneWidget);
       expect(find.text(strings.inputPower), findsOneWidget);
-      expect(
-        find.text(
-          strings.localizeBuckWarning(
-            'Actual inductor ripple exceeds the requested ripple target.',
-          ),
-        ),
-        findsOneWidget,
-      );
+      expect(rippleWarning, findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
