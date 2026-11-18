@@ -75,9 +75,11 @@ class _BuckScreenState extends State<BuckScreen> {
     final onTimeWarning = result.warnings.contains(BuckEngine.psdOnTimeWarning);
     final offTimeWarning = result.warnings.contains(BuckEngine.psdOffTimeWarning);
     final inductanceWarning = onTimeWarning || offTimeWarning;
-    final rippleWarning = result.warnings.contains(
-      'Actual inductor ripple exceeds the requested ripple target.',
-    );
+    final rippleWarning =
+        result.warnings.contains(
+          'Actual inductor ripple exceeds the requested ripple target.',
+        ) ||
+        result.errors.any((error) => error.startsWith('Ripple fraction'));
     final inputRangeWarning = input.outputVoltage > input.inputVoltageMin;
     return ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 28), children: [
       Text(s.buckConverter, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
