@@ -596,6 +596,7 @@ class _BuckTracePainter extends CustomPainter {
           ? plotBottom
           : plotBottom - (value - minValue) / valueSpan * (plotBottom - top);
     }
+
     final zeroY = y(0);
 
     final axis = Paint()
