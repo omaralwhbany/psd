@@ -579,8 +579,7 @@ class _BuckTracePainter extends CustomPainter {
 
     double x(double time) {
       if (!time.isFinite) return 0;
-      final mapped =
-          left + timeRange.graphPanelXOffset(time, plotRight - left);
+      final mapped = left + timeRange.graphPanelXOffset(time, plotRight - left);
       return mapped.isFinite ? mapped : 0;
     }
 
