@@ -115,6 +115,7 @@ void main() {
         contains('Actual inductor ripple exceeds the requested ripple target.'),
       );
     },
+  );
 
   test(
     'Buck preserves PSD5 underflow and NaN results at the smallest positive inductor',
@@ -173,6 +174,5 @@ void main() {
         contains('Actual inductor ripple exceeds the requested ripple target.'),
       );
     },
-  );
   );
 }
