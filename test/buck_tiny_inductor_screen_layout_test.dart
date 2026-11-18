@@ -73,5 +73,27 @@ void main() {
       expect(rippleWarning, findsOneWidget);
       expect(tester.takeException(), isNull);
     },
+
+  testWidgets('Buck highlights invalid ripple targets like PSD5', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: BuckScreen())),
+    );
+    await tester.pumpAndSettle();
+
+    final rippleField = find.byType(TextField).at(6);
+    final theme = Theme.of(tester.element(rippleField));
+    for (final value in ['0', '101']) {
+      await tester.enterText(rippleField, value);
+      await tester.pumpAndSettle();
+      final field = tester.widget<TextField>(rippleField);
+      expect(field.decoration!.filled, isTrue, reason: value);
+      expect(
+        field.decoration!.fillColor,
+        theme.colorScheme.error,
+        reason: value,
+      );
+    }
+    expect(tester.takeException(), isNull);
+  });
   );
 }
