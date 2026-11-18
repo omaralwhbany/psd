@@ -700,3 +700,19 @@ is a numeric stress case, not a physically usable design.
 
 The new runtime regression pins the finite/Infinity/NaN classifications and
 the source warning without substituting a mathematically idealized result.
+
+
+## 2026-11-18: invalid ripple-target field highlighting
+
+The original Buck.java checkCurrentRipple() flags the ripple input when the
+requested fraction is not in (0, 1], and showErrors() paints the input red.
+This is separate from the actual-ripple-over-target condition. Direct runs
+of the original Buck class under OpenJDK 21 with ripple targets 0% and 101%
+both left the ripple field red, while the selected 33 µH inductor field
+remained white.
+
+Flutter already returned the matching validation errors, but BuckScreen
+did not use those errors to highlight the ripple input. The screen now maps
+both source conditions to the same warning fill: actual ripple above target,
+or a ripple-fraction validation error. A widget regression covers 0% and
+101% without changing any calculation or validation rule.
