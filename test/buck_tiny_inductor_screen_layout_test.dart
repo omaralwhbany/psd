@@ -99,4 +99,65 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets(
+    'Buck renders the smallest-positive inductor PSD5 edge case on a narrow Arabic screen',
+    (tester) async {
+      tester.view.physicalSize = const Size(320, 720);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      const locale = Locale('ar');
+      await tester.pumpWidget(
+        const MaterialApp(
+          locale: locale,
+          supportedLocales: [Locale('en'), Locale('ar')],
+          localizationsDelegates: [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: Scaffold(body: BuckScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final customInductor = find.byType(SwitchListTile);
+      await tester.ensureVisible(customInductor);
+      await tester.pumpAndSettle();
+      await tester.tap(customInductor);
+      await tester.pumpAndSettle();
+
+      final inductanceField = find.byType(TextField).last;
+      await tester.ensureVisible(inductanceField);
+      await tester.pumpAndSettle();
+      await tester.enterText(inductanceField, '5e-318');
+      await tester.pumpAndSettle();
+
+      final rippleField = find.byType(TextField).at(6);
+      final rippleTheme = Theme.of(tester.element(rippleField));
+      final rippleInput = tester.widget<TextField>(rippleField);
+      expect(rippleInput.decoration!.filled, isTrue);
+      expect(rippleInput.decoration!.fillColor, rippleTheme.colorScheme.error);
+
+      final outputPower = find.text(AppStrings(locale).outputPower);
+      await tester.ensureVisible(outputPower);
+      await tester.pumpAndSettle();
+      expect(outputPower, findsOneWidget);
+
+      final deviceWaveforms = find.text(AppStrings(locale).deviceWaveforms);
+      await tester.ensureVisible(deviceWaveforms);
+      await tester.pumpAndSettle();
+      expect(deviceWaveforms, findsOneWidget);
+
+      final synchronizedWaveforms =
+          find.text(AppStrings(locale).synchronizedWaveforms);
+      await tester.ensureVisible(synchronizedWaveforms);
+      await tester.pumpAndSettle();
+      expect(synchronizedWaveforms, findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
 }
