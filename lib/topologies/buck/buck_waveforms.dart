@@ -496,31 +496,31 @@ class _BuckDeviceMetricsView extends StatelessWidget {
     final entries = <(String, String)>[
       (
         'minimumVoltage',
-        '${(metrics.minimumVoltage * voltageScale).toTiDisplayStringAsFixed(2)} $voltageUnit'
+        '${(metrics.minimumVoltage * voltageScale).toTiFixed(2)} $voltageUnit'
       ),
       (
         'maximumVoltage',
-        '${(metrics.maximumVoltage * voltageScale).toTiDisplayStringAsFixed(2)} $voltageUnit'
+        '${(metrics.maximumVoltage * voltageScale).toTiFixed(2)} $voltageUnit'
       ),
       (
         'minimumCurrent',
-        '${(metrics.minimumCurrent * currentScale).toTiDisplayStringAsFixed(2)} $currentUnit'
+        '${(metrics.minimumCurrent * currentScale).toTiFixed(2)} $currentUnit'
       ),
       (
         'maximumCurrent',
-        '${(metrics.maximumCurrent * currentScale).toTiDisplayStringAsFixed(2)} $currentUnit'
+        '${(metrics.maximumCurrent * currentScale).toTiFixed(2)} $currentUnit'
       ),
       (
         'rmsCurrent',
-        '${(metrics.rmsCurrent * currentScale).toTiDisplayStringAsFixed(2)} $currentUnit'
+        '${(metrics.rmsCurrent * currentScale).toTiFixed(2)} $currentUnit'
       ),
       (
         'averageCurrent',
-        '${(metrics.averageCurrent * currentScale).toTiDisplayStringAsFixed(2)} $currentUnit'
+        '${(metrics.averageCurrent * currentScale).toTiFixed(2)} $currentUnit'
       ),
       (
         'acCurrent',
-        '${(metrics.acCurrent * currentScale).toTiDisplayStringAsFixed(2)} $currentUnit'
+        '${(metrics.acCurrent * currentScale).toTiFixed(2)} $currentUnit'
       ),
     ];
     final style = Theme.of(context).textTheme.labelSmall;
@@ -595,9 +595,9 @@ class _BuckTracePainter extends CustomPainter {
 
     final middleValue = maxValue / 2;
     final middleY = (zeroY + top) / 2;
-    drawRightAligned(maxValue.toTiDisplayStringAsFixed(2), top);
-    drawRightAligned(middleValue.toTiDisplayStringAsFixed(2), middleY);
-    drawRightAligned(minValue.toTiDisplayStringAsFixed(2), plotBottom);
+    drawRightAligned(maxValue.toTiFixed(2), top);
+    drawRightAligned(middleValue.toTiFixed(2), middleY);
+    drawRightAligned(minValue.toTiFixed(2), plotBottom);
     canvas.drawLine(Offset(left - 4, middleY), Offset(left + 4, middleY), axis);
 
     var lastLabelRight = -1000.0;
@@ -612,7 +612,7 @@ class _BuckTracePainter extends CustomPainter {
                   points[index].timeMicroseconds,
                   plotRight - left,
                 )
-                .toTiDisplayStringAsFixed(2),
+                .toTiFixed(2),
             style: textStyle),
         textDirection: TextDirection.ltr,
       )..layout();
@@ -622,7 +622,7 @@ class _BuckTracePainter extends CustomPainter {
       lastLabelRight = start + 30;
     }
     final maxPainter = TextPainter(
-      text: TextSpan(text: timeMax.toTiDisplayStringAsFixed(2), style: textStyle),
+      text: TextSpan(text: timeMax.toTiFixed(2), style: textStyle),
       textDirection: TextDirection.ltr,
     )..layout();
     final maxStart = plotRight - maxPainter.width / 2;

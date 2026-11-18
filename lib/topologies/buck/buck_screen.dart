@@ -21,7 +21,7 @@ bool _buckWaveformsAreFinite(
     'offFraction',
     'idleFraction',
   ];
-  if (!sourceKeys.every((key) => values[key]?.isFinite ?? false)) {
+  if (!sourceKeys.every((key) => !(values[key]?.isInfinite ?? true))) {
     return false;
   }
 
@@ -36,7 +36,7 @@ bool _buckWaveformsAreFinite(
       metrics.averageCurrent,
       metrics.acCurrent,
     ];
-    if (!metricValues.every((value) => value.isFinite)) return false;
+    if (!metricValues.every((value) => !value.isInfinite)) return false;
 
     final points = <BuckWaveformPoint>[
       ...device.voltage,
@@ -44,7 +44,7 @@ bool _buckWaveformsAreFinite(
     ];
     return points.every(
       (point) =>
-          point.timeMicroseconds.isFinite && point.value.isFinite,
+          !point.timeMicroseconds.isInfinite && !point.value.isInfinite,
     );
   });
 }
@@ -71,8 +71,8 @@ class _BuckScreenState extends State<BuckScreen> {
       'vinOperating': TextEditingController(text: d.inputVoltageMin.toString()),
       'vout': TextEditingController(text: d.outputVoltage.toString()),
       'iout': TextEditingController(text: d.outputCurrent.toString()),
-      'fsw': TextEditingController(text: Units.baseToKilo(d.switchingFrequency).toTiDisplayStringAsFixed(0)),
-      'ripple': TextEditingController(text: (d.rippleFraction * 100).toTiDisplayStringAsFixed(0)),
+      'fsw': TextEditingController(text: Units.baseToKilo(d.switchingFrequency).toTiFixed(0)),
+      'ripple': TextEditingController(text: (d.rippleFraction * 100).toTiFixed(0)),
       'vf': TextEditingController(text: d.diodeForwardVoltage.toString()),
       'inductance': TextEditingController(text: '33'),
     });
@@ -88,15 +88,15 @@ class _BuckScreenState extends State<BuckScreen> {
 
   // Buck.java displays ON/OFF times in ns below 100 ns, otherwise in µs.
   String _formatTiTime(double seconds) => seconds < 1e-7
-      ? '${(seconds * 1e9).toTiDisplayStringAsFixed(2)} ns'
-      : '${Units.baseToMicro(seconds).toTiDisplayStringAsFixed(2)} µs';
+      ? '${(seconds * 1e9).toTiFixed(2)} ns'
+      : '${Units.baseToMicro(seconds).toTiFixed(2)} µs';
 
   // DecimalFormat("#0.00") in PSD5 displays positive infinity as U+221E.
   String _formatTiInductance(double henries) {
     if (henries.isInfinite) {
       return '${henries.isNegative ? '-' : ''}∞ µH';
     }
-    return '${Units.baseToMicro(henries).toTiDisplayStringAsFixed(2)} µH';
+    return '${Units.baseToMicro(henries).toTiFixed(2)} µH';
   }
 
   BuckInputs get _input => BuckInputs(
@@ -142,14 +142,14 @@ class _BuckScreenState extends State<BuckScreen> {
         Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Row(children: [
             Expanded(child: Text(s.loadLevel)),
-            Text('${_operatingLoadPercent.toTiDisplayStringAsFixed(0)} %'),
+            Text('${_operatingLoadPercent.toTiFixed(0)} %'),
           ]),
           Slider(
             value: _operatingLoadPercent,
             min: 0,
             max: 100,
             divisions: 100,
-            label: '${_operatingLoadPercent.toTiDisplayStringAsFixed(0)} %',
+            label: '${_operatingLoadPercent.toTiFixed(0)} %',
             onChanged: (value) => setState(() => _operatingLoadPercent = value),
           ),
           Text(s.loadControlNote, style: Theme.of(context).textTheme.bodySmall),
@@ -188,59 +188,59 @@ class _BuckScreenState extends State<BuckScreen> {
             ),
           _sectionTitle(s.operatingPoint),
           _result(s.operatingMode, result.values['isCcm'] == 1 ? s.ccm : s.dcm, emphasize: true),
-          _result(s.operatingOutputCurrent, '${result.values['operatingOutputCurrent']!.toTiDisplayStringAsFixed(3)} A'),
-          _result(s.dutyCycle, '${(result.values['dutyCycle']! * 100).toTiDisplayStringAsFixed(2)} %'),
-          _result(s.switchingPeriod, '${Units.baseToMicro(1 / input.switchingFrequency).toTiDisplayStringAsFixed(2)} µs',
+          _result(s.operatingOutputCurrent, '${result.values['operatingOutputCurrent']!.toTiFixed(3)} A'),
+          _result(s.dutyCycle, '${(result.values['dutyCycle']! * 100).toTiFixed(2)} %'),
+          _result(s.switchingPeriod, '${Units.baseToMicro(1 / input.switchingFrequency).toTiFixed(2)} µs',
             warning: onTimeWarning),
           _result(s.onTime, _formatTiTime(result.values['onTime']!),
             warning: onTimeWarning),
           _result(s.offTime, _formatTiTime(result.values['offTime']!),
             warning: offTimeWarning),
-          _result(s.zeroCurrentTime, '${Units.baseToMicro(result.values['idleTime']!).toTiDisplayStringAsFixed(2)} µs'),
+          _result(s.zeroCurrentTime, '${Units.baseToMicro(result.values['idleTime']!).toTiFixed(2)} µs'),
           const Divider(height: 22),
           _sectionTitle(s.inductor),
           _result(
             s.minimumInductance,
             _formatTiInductance(result.values['minimumInductance']!),
           ),
-          _result(s.inductanceUsed, '${Units.baseToMicro(result.values['inductanceUsed']!).toTiDisplayStringAsFixed(2)} µH',
+          _result(s.inductanceUsed, '${Units.baseToMicro(result.values['inductanceUsed']!).toTiFixed(2)} µH',
             warning: inductanceWarning),
           if (result.values['isCcm'] == 0)
-            _result(s.designRippleCurrent, '${result.values['designRippleCurrent']!.toTiDisplayStringAsFixed(3)} A'),
+            _result(s.designRippleCurrent, '${result.values['designRippleCurrent']!.toTiFixed(3)} A'),
           _result(result.values['isCcm'] == 0 ? s.actualCurrentExcursion : s.rippleCurrent,
-            '${result.values['rippleCurrent']!.toTiDisplayStringAsFixed(3)} A'),
-          _result(s.actualRipplePercent, '${result.values['ripplePercent']!.toTiDisplayStringAsFixed(2)} %'),
-          _result(s.graphAverageCurrent, '${result.values['inductorAverageCurrent']!.toTiDisplayStringAsFixed(3)} A'),
-          _result(s.graphRmsCurrent, '${result.values['inductorRmsCurrent']!.toTiDisplayStringAsFixed(3)} A'),
-          _result(s.peakCurrent, '${result.values['inductorPeakCurrent']!.toTiDisplayStringAsFixed(3)} A'),
-          _result(s.graphMinimumCurrent, '${result.values['minimumCurrent']!.toTiDisplayStringAsFixed(3)} A'),
-          _result(s.voltageMinMax, '${result.values['inductorVoltageMin']!.toTiDisplayStringAsFixed(2)} / ${result.values['inductorVoltageMax']!.toTiDisplayStringAsFixed(2)} V'),
+            '${result.values['rippleCurrent']!.toTiFixed(3)} A'),
+          _result(s.actualRipplePercent, '${result.values['ripplePercent']!.toTiFixed(2)} %'),
+          _result(s.graphAverageCurrent, '${result.values['inductorAverageCurrent']!.toTiFixed(3)} A'),
+          _result(s.graphRmsCurrent, '${result.values['inductorRmsCurrent']!.toTiFixed(3)} A'),
+          _result(s.peakCurrent, '${result.values['inductorPeakCurrent']!.toTiFixed(3)} A'),
+          _result(s.graphMinimumCurrent, '${result.values['minimumCurrent']!.toTiFixed(3)} A'),
+          _result(s.voltageMinMax, '${result.values['inductorVoltageMin']!.toTiFixed(2)} / ${result.values['inductorVoltageMax']!.toTiFixed(2)} V'),
           const Divider(height: 22),
           _sectionTitle(s.mosfet),
-          _result(s.graphAverageCurrent, '${result.values['mosfetAverageCurrent']!.toTiDisplayStringAsFixed(3)} A'),
-          _result(s.graphRmsCurrent, '${result.values['mosfetRmsCurrent']!.toTiDisplayStringAsFixed(3)} A'),
-          _result(s.peakCurrentGeneric, '${result.values['mosfetPeakCurrent']!.toTiDisplayStringAsFixed(3)} A'),
-          _result(s.voltageMinMax, '${result.values['mosfetVoltageMin']!.toTiDisplayStringAsFixed(2)} / ${result.values['mosfetVoltageMax']!.toTiDisplayStringAsFixed(2)} V'),
-          _result(s.voltageAtZeroCurrent, '${result.values['mosfetVoltageAtZeroCurrent']!.toTiDisplayStringAsFixed(2)} V'),
+          _result(s.graphAverageCurrent, '${result.values['mosfetAverageCurrent']!.toTiFixed(3)} A'),
+          _result(s.graphRmsCurrent, '${result.values['mosfetRmsCurrent']!.toTiFixed(3)} A'),
+          _result(s.peakCurrentGeneric, '${result.values['mosfetPeakCurrent']!.toTiFixed(3)} A'),
+          _result(s.voltageMinMax, '${result.values['mosfetVoltageMin']!.toTiFixed(2)} / ${result.values['mosfetVoltageMax']!.toTiFixed(2)} V'),
+          _result(s.voltageAtZeroCurrent, '${result.values['mosfetVoltageAtZeroCurrent']!.toTiFixed(2)} V'),
           const Divider(height: 22),
           _sectionTitle(s.freewheelDiode),
-          _result(s.graphAverageCurrent, '${result.values['diodeAverageCurrent']!.toTiDisplayStringAsFixed(3)} A'),
-          _result(s.graphRmsCurrent, '${result.values['diodeRmsCurrent']!.toTiDisplayStringAsFixed(3)} A'),
-          _result(s.peakCurrentGeneric, '${result.values['diodePeakCurrent']!.toTiDisplayStringAsFixed(3)} A'),
-          _result(s.voltageMinMax, '${result.values['diodeVoltageMin']!.toTiDisplayStringAsFixed(2)} / ${result.values['diodeVoltageMax']!.toTiDisplayStringAsFixed(2)} V'),
-          _result(s.voltageAtZeroCurrent, '${result.values['diodeVoltageAtZeroCurrent']!.toTiDisplayStringAsFixed(2)} V'),
+          _result(s.graphAverageCurrent, '${result.values['diodeAverageCurrent']!.toTiFixed(3)} A'),
+          _result(s.graphRmsCurrent, '${result.values['diodeRmsCurrent']!.toTiFixed(3)} A'),
+          _result(s.peakCurrentGeneric, '${result.values['diodePeakCurrent']!.toTiFixed(3)} A'),
+          _result(s.voltageMinMax, '${result.values['diodeVoltageMin']!.toTiFixed(2)} / ${result.values['diodeVoltageMax']!.toTiFixed(2)} V'),
+          _result(s.voltageAtZeroCurrent, '${result.values['diodeVoltageAtZeroCurrent']!.toTiFixed(2)} V'),
           const Divider(height: 22),
           _sectionTitle(s.capacitors),
-          _result(s.inputCapacitorRmsCurrent, '${result.values['inputCapacitorRmsCurrent']!.toTiDisplayStringAsFixed(3)} A'),
-          _result(s.inputCapacitorVoltage, '${result.values['inputCapacitorVoltageMin']!.toTiDisplayStringAsFixed(2)} V'),
-          _result(s.outputCapacitorRmsCurrent, '${result.values['outputCapacitorRmsCurrent']!.toTiDisplayStringAsFixed(3)} A'),
-          _result(s.outputCapacitorVoltage, '${result.values['outputCapacitorVoltageMin']!.toTiDisplayStringAsFixed(2)} V'),
+          _result(s.inputCapacitorRmsCurrent, '${result.values['inputCapacitorRmsCurrent']!.toTiFixed(3)} A'),
+          _result(s.inputCapacitorVoltage, '${result.values['inputCapacitorVoltageMin']!.toTiFixed(2)} V'),
+          _result(s.outputCapacitorRmsCurrent, '${result.values['outputCapacitorRmsCurrent']!.toTiFixed(3)} A'),
+          _result(s.outputCapacitorVoltage, '${result.values['outputCapacitorVoltageMin']!.toTiFixed(2)} V'),
           const Divider(height: 22),
           _sectionTitle(s.power),
-          _result(s.outputPower, '${result.values['outputPower']!.toTiDisplayStringAsFixed(2)} W'),
-          _result(s.diodeLoss, '${result.values['diodeLosses']!.toTiDisplayStringAsFixed(2)} W'),
-          _result(s.inputPower, '${result.values['inputPower']!.toTiDisplayStringAsFixed(2)} W'),
-          _result(s.inputCurrent, '${result.values['inputAverageCurrent']!.toTiDisplayStringAsFixed(3)} A'),
+          _result(s.outputPower, '${result.values['outputPower']!.toTiFixed(2)} W'),
+          _result(s.diodeLoss, '${result.values['diodeLosses']!.toTiFixed(2)} W'),
+          _result(s.inputPower, '${result.values['inputPower']!.toTiFixed(2)} W'),
+          _result(s.inputCurrent, '${result.values['inputAverageCurrent']!.toTiFixed(3)} A'),
         ],
       ) : _errors(result.errors, result.warnings, s)),
       if (result.isValid && waveformsAvailable) ...[

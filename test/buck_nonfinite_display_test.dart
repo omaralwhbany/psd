@@ -11,38 +11,43 @@ import 'package:psd/topologies/buck/buck_waveforms.dart';
 
 void main() {
   test('TI DecimalFormat special values use the original display strings', () {
-    expect(double.infinity.toTiDisplayStringAsFixed(2), '∞');
-    expect(double.negativeInfinity.toTiDisplayStringAsFixed(2), '-∞');
-    expect(double.nan.toTiDisplayStringAsFixed(2), 'NaN');
-    expect(12.345.toTiDisplayStringAsFixed(2), '12.35');
+    expect(double.infinity.toTiFixed(2), '∞');
+    expect(double.negativeInfinity.toTiFixed(2), '-∞');
+    expect(double.nan.toTiFixed(2), 'NaN');
+    expect(12.345.toTiFixed(2), '12.35');
+    expect(double.parse('NaN').isNaN, isTrue);
+    expect(() => double.parse('∞'), throwsFormatException);
   });
 
-  test('Buck tiny positive inductance preserves PSD5 non-finite runtime values', () {
-    const input = BuckInputs(
-      inputVoltageMin: 18,
-      inputVoltageMax: 36,
-      outputVoltage: 12,
-      outputCurrent: 5,
-      switchingFrequency: 200e3,
-      rippleFraction: 0.30,
-      diodeForwardVoltage: 0.5,
-      operatingInputVoltage: 18,
-      selectedInductance: 1e-316,
-    );
+  test(
+    'Buck tiny positive inductance preserves PSD5 non-finite runtime values',
+    () {
+      const input = BuckInputs(
+        inputVoltageMin: 18,
+        inputVoltageMax: 36,
+        outputVoltage: 12,
+        outputCurrent: 5,
+        switchingFrequency: 200e3,
+        rippleFraction: 0.30,
+        diodeForwardVoltage: 0.5,
+        operatingInputVoltage: 18,
+        selectedInductance: 1e-316,
+      );
 
-    final result = const BuckEngine().calculate(input);
+      final result = const BuckEngine().calculate(input);
 
-    expect(result.isValid, isTrue);
-    expect(result.values['isCcm'], 0);
-    expect(result.values['peakCurrent'], double.infinity);
-    expect(result.values['inductorRmsCurrent'], double.infinity);
-    expect(result.values['inputCapacitorRmsCurrent'], isNaN);
-    expect(result.values['outputCapacitorRmsCurrent'], isNaN);
-    expect(result.values['inputPower'], double.infinity);
-  });
+      expect(result.isValid, isTrue);
+      expect(result.values['isCcm'], 0);
+      expect(result.values['peakCurrent'], double.infinity);
+      expect(result.values['inductorRmsCurrent'], double.infinity);
+      expect(result.values['inputCapacitorRmsCurrent'], isNaN);
+      expect(result.values['outputCapacitorRmsCurrent'], isNaN);
+      expect(result.values['inputPower'], double.infinity);
+    },
+  );
 
   testWidgets(
-    'Buck displays TI infinity/NaN values and hides non-finite waveforms in both locales',
+    'Buck displays TI infinity/NaN values and hides infinite waveforms in both locales',
     (tester) async {
       tester.view.physicalSize = const Size(800, 1400);
       tester.view.devicePixelRatio = 1;
@@ -87,6 +92,44 @@ void main() {
         expect(find.byType(PowerWaveformChart), findsNothing);
         expect(tester.takeException(), isNull);
       }
+    },
+  );
+
+  testWidgets(
+    'Buck keeps Java-parseable NaN graph labels at the 100% duty boundary',
+    (tester) async {
+      tester.view.physicalSize = const Size(800, 1400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(const MaterialApp(
+        locale: Locale('en'),
+        supportedLocales: [Locale('en'), Locale('ar')],
+        home: Scaffold(body: BuckScreen()),
+      ));
+      await tester.pumpAndSettle();
+
+      final outputVoltageField = find.byType(TextField).at(2);
+      await tester.ensureVisible(outputVoltageField);
+      await tester.enterText(outputVoltageField, '18');
+      await tester.pumpAndSettle();
+
+      final customToggle = find.text('Use custom inductor value');
+      await tester.ensureVisible(customToggle);
+      await tester.tap(customToggle);
+      await tester.pumpAndSettle();
+
+      final inductanceField = find.byType(TextField).last;
+      await tester.ensureVisible(inductanceField);
+      await tester.enterText(inductanceField, '33');
+      await tester.pumpAndSettle();
+
+      expect(find.byType(BuckDeviceWaveformsView), findsOneWidget);
+      expect(find.byType(PowerWaveformChart), findsOneWidget);
+      expect(find.text('NaN'), findsWidgets);
+      expect(find.text('Waveform plots are hidden because the plotted values include Infinity.'), findsNothing);
+      expect(tester.takeException(), isNull);
     },
   );
 }

@@ -42,10 +42,10 @@ output-capacitor RMS currents. The inductance field remained unhighlighted:
 
 The original inductor label method returned the infinity symbol for its
 infinite values and `NaN` for the non-number value. A separate Java check
-confirmed that `Double.parseDouble("∞")` throws `NumberFormatException`.
-Since the original `Graph` constructor parses every formatted label this way,
-the original graph cannot be created for this non-finite case even though
-`Buck` itself completes its calculation.
+confirmed that `Double.parseDouble("∞")` throws `NumberFormatException`,
+whereas `Double.parseDouble("NaN")` succeeds. Since the original `Graph`
+constructor parses every formatted label, an infinity label prevents graph
+construction; NaN labels remain parseable and must not alone suppress graphs.
 
 At 1e-320 µH, division by 1,000,000 underflows the selected inductance to
 zero; the original `checkInductance()` then highlights the field.
@@ -56,8 +56,9 @@ The Flutter engine keeps the same finite-positive acceptance rule and
 non-finite calculation results; no Buck equation is changed. Result labels
 render infinity as `∞` and NaN as `NaN`, matching the original
 `DecimalFormat` special-value strings. Device and synchronized waveform
-panels are hidden only when their plotted samples or metrics are non-finite,
-because the original Java graph path cannot parse its infinity label. Other
+panels are hidden only when their plotted samples or metrics contain infinity,
+because the original Java graph path cannot parse its infinity label. NaN
+metrics remain visible/parseable, including the 100% duty boundary. Other
 calculated result rows remain visible.
 
 Finite-number rounding is intentionally unchanged here. Full finite-value
