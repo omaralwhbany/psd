@@ -73,8 +73,10 @@ void main() {
       expect(rippleWarning, findsOneWidget);
       expect(tester.takeException(), isNull);
     },
+  );
 
-  testWidgets('Buck highlights invalid ripple targets like PSD5', (tester) async {
+  testWidgets(
+    'Buck highlights invalid ripple targets like PSD5',, (tester) async {
     await tester.pumpWidget(
       const MaterialApp(home: Scaffold(body: BuckScreen())),
     );
@@ -95,5 +97,4 @@ void main() {
     }
     expect(tester.takeException(), isNull);
   });
-  );
 }
