@@ -604,3 +604,66 @@ retain its current curated automatic-inductance preset is a functional
 product decision. Exact startup-default parity remains open and must not be
 silently treated as complete. This does not invalidate the fixed-point
 Java-oracle regressions, which supply explicit inputs.
+
+
+## 2026-11-18: extremely small positive selected-inductance runtime case
+
+The extracted `Buck.java` and matching `PSD5.jar` bytecode were checked
+before adding this regression. `getUserModifiedValues()` parses the selected
+inductance in microhenries and divides by `1e6`. `checkInductance()` accepts
+any value satisfying `dLout > 0 && dLout <= 0.0022`; it does not impose a
+positive engineering minimum or compare the selected value with calculated
+`Lmin`. The bytecode for `checkForCCMDCCM()`, `onofftimes()`, and
+`actualValues()` confirms that the selected inductance is used directly in
+the CCM/DCM test and DCM peak-current equation, with no clamp.
+
+The original `Buck` class in `PSD5.jar` was executed under OpenJDK 21 with
+`xvfb-run`. The Swing inductance field was set to `1e-90 µH`, which the
+original parser converts to `1e-96 H`; the other inputs were
+Vin(min)=18 V, Vin(max)=36 V, Vo=12 V, Iout=5 A, fs=200 kHz, ripple=30%,
+Vf=0.5 V, with the default 0% input-voltage slider and 100% load slider.
+After two actual `calculate()` calls, the original class returned:
+
+| Java field/result | Original-JAR runtime value |
+|---|---:|
+| Selected inductance | `1e-96 H` |
+| Calculated Lmin | `27.397260273972603 µH` |
+| `iripple_buck` design estimate | `2.0270270270270274e91 A` |
+| Mode | DCM |
+| DCM peak / displayed current excursion | `1.4237369936287484e46 A` |
+| ON time | `2.3728949893812472e-51 s` |
+| OFF time | `1.1389895949029985e-51 s` |
+| Zero-current time | `5e-6 s` |
+| Inductor average / RMS | `4.999999999999999 A` / `2.1784834125516066e23 A` |
+| MOSFET average / RMS | `3.3783783783783776 A` / `1.790702334425015e23 A` |
+| Diode average / RMS | `1.621621621621621 A` / `1.2406349697825283e23 A` |
+| Input-capacitor RMS | `1.790702334425015e23 A` |
+| Output-capacitor RMS | `2.1784834125516066e23 A` |
+| Output / diode loss / input power | `60 W` / `0.8108108108108105 W` / `60.81081081081081 W` |
+
+The original Swing component backgrounds were also inspected after the
+calculation: the ripple input was red because `checkCurrentRipple()` flags
+the enormous actual excursion, while the selected-inductance field remained
+white because the positive value is inside the source's numeric range. The
+source continues calculating and displaying the device values. This is an
+intentionally extreme numeric stress case, not a physically usable design.
+
+A new isolated regression file,
+`test/buck_tiny_inductor_runtime_test.dart`, pins these Java-runtime values
+for the Flutter engine and asserts that the ripple-limit violation remains a
+warning while the selected-inductance input itself is accepted. The file was
+added to the CI Dart-format gate. No Buck equation or validation limit was
+changed.
+
+The same Java run invoked the original private
+`inductorGetLabelsValuesCurrent()` method. For the peak-current label,
+`DecimalFormat("#0.00####")` returned
+`14237369936287484000000000000000000000000000000.00`. The exact-binary
+BigInt formatter currently proposed on PR #13 would instead expand the
+binary64 integer to
+`14237369936287484250555471765466363743556337664.00`. That second string
+is derived from the proposed formatter's exact-rational algorithm, not from
+a Dart runtime execution. The discrepancy is a display-conversion mismatch,
+not a Buck calculation mismatch; PR #13 remains unaccepted until its
+formatter is corrected and tested against the original Java output for this
+large-value case.
