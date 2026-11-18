@@ -76,7 +76,8 @@ void main() {
   );
 
   testWidgets(
-    'Buck highlights invalid ripple targets like PSD5',, (tester) async {
+    'Buck highlights invalid ripple targets like PSD5',
+    (tester) async {
     await tester.pumpWidget(
       const MaterialApp(home: Scaffold(body: BuckScreen())),
     );
