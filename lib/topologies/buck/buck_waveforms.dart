@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'buck_inputs.dart';
+import 'buck_format.dart';
 
 /// Mirrors Buck.java's six-decimal side-label rounding and Graph.java's
 /// negated >= 1 comparison. NaN therefore does not trigger the V/A prefix.
@@ -495,31 +496,31 @@ class _BuckDeviceMetricsView extends StatelessWidget {
     final entries = <(String, String)>[
       (
         'minimumVoltage',
-        '${(metrics.minimumVoltage * voltageScale).toStringAsFixed(2)} $voltageUnit'
+        '${(metrics.minimumVoltage * voltageScale).toTiDisplayStringAsFixed(2)} $voltageUnit'
       ),
       (
         'maximumVoltage',
-        '${(metrics.maximumVoltage * voltageScale).toStringAsFixed(2)} $voltageUnit'
+        '${(metrics.maximumVoltage * voltageScale).toTiDisplayStringAsFixed(2)} $voltageUnit'
       ),
       (
         'minimumCurrent',
-        '${(metrics.minimumCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+        '${(metrics.minimumCurrent * currentScale).toTiDisplayStringAsFixed(2)} $currentUnit'
       ),
       (
         'maximumCurrent',
-        '${(metrics.maximumCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+        '${(metrics.maximumCurrent * currentScale).toTiDisplayStringAsFixed(2)} $currentUnit'
       ),
       (
         'rmsCurrent',
-        '${(metrics.rmsCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+        '${(metrics.rmsCurrent * currentScale).toTiDisplayStringAsFixed(2)} $currentUnit'
       ),
       (
         'averageCurrent',
-        '${(metrics.averageCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+        '${(metrics.averageCurrent * currentScale).toTiDisplayStringAsFixed(2)} $currentUnit'
       ),
       (
         'acCurrent',
-        '${(metrics.acCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+        '${(metrics.acCurrent * currentScale).toTiDisplayStringAsFixed(2)} $currentUnit'
       ),
     ];
     final style = Theme.of(context).textTheme.labelSmall;
@@ -594,9 +595,9 @@ class _BuckTracePainter extends CustomPainter {
 
     final middleValue = maxValue / 2;
     final middleY = (zeroY + top) / 2;
-    drawRightAligned(maxValue.toStringAsFixed(2), top);
-    drawRightAligned(middleValue.toStringAsFixed(2), middleY);
-    drawRightAligned(minValue.toStringAsFixed(2), plotBottom);
+    drawRightAligned(maxValue.toTiDisplayStringAsFixed(2), top);
+    drawRightAligned(middleValue.toTiDisplayStringAsFixed(2), middleY);
+    drawRightAligned(minValue.toTiDisplayStringAsFixed(2), plotBottom);
     canvas.drawLine(Offset(left - 4, middleY), Offset(left + 4, middleY), axis);
 
     var lastLabelRight = -1000.0;
@@ -611,7 +612,7 @@ class _BuckTracePainter extends CustomPainter {
                   points[index].timeMicroseconds,
                   plotRight - left,
                 )
-                .toStringAsFixed(2),
+                .toTiDisplayStringAsFixed(2),
             style: textStyle),
         textDirection: TextDirection.ltr,
       )..layout();
@@ -621,7 +622,7 @@ class _BuckTracePainter extends CustomPainter {
       lastLabelRight = start + 30;
     }
     final maxPainter = TextPainter(
-      text: TextSpan(text: timeMax.toStringAsFixed(2), style: textStyle),
+      text: TextSpan(text: timeMax.toTiDisplayStringAsFixed(2), style: textStyle),
       textDirection: TextDirection.ltr,
     )..layout();
     final maxStart = plotRight - maxPainter.width / 2;

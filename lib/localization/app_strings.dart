@@ -68,6 +68,9 @@ class AppStrings {
   String get inputPower => isArabic ? 'قدرة الدخل' : 'Input power';
   String get synchronizedWaveforms => isArabic ? 'الأشكال الموجية المتزامنة' : 'Synchronized waveforms';
   String get deviceWaveforms => isArabic ? 'موجات عناصر دائرة Buck (مطابقة لمصدر TI)' : 'Buck device waveforms (PSD5 source model)';
+  String get waveformsUnavailableNonFinite => isArabic
+      ? 'تم إخفاء الرسوم الموجية لأن بعض القيم المحسوبة تتضمن اللانهاية أو NaN.'
+      : 'Waveform plots are hidden because the calculated values include Infinity or NaN.';
   String get voltage => isArabic ? 'الجهد' : 'Voltage';
   String get current => isArabic ? 'التيار' : 'Current';
   String get timeScale => isArabic ? 'المقياس الزمني (µs)' : 'Time Scale (µs)';
