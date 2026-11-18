@@ -667,3 +667,36 @@ a Dart runtime execution. The discrepancy is a display-conversion mismatch,
 not a Buck calculation mismatch; PR #13 remains unaccepted until its
 formatter is corrected and tested against the original Java output for this
 large-value case.
+
+
+## 2026-11-18: smallest positive subnormal selected inductance
+
+A second original-JAR runtime probe used a Swing inductance value of
+5e-318 µH. getUserModifiedValues() divides this by 1e6, leaving the smallest
+positive binary64 value, 4.9e-324 H. The original checkInductance() still
+accepts it because it is strictly positive and below 0.0022 H.
+
+Running the original Buck class under OpenJDK 21 produced:
+
+| Java field/result | Original-JAR runtime value |
+|---|---:|
+| Selected inductance | 4.9e-324 H |
+| Design ripple estimate | Infinity |
+| CCM/DCM | DCM |
+| ON / OFF / zero-current time | 0 / 0 / 5e-6 s |
+| DCM peak current | NaN |
+| Inductor average / RMS | NaN / NaN |
+| MOSFET average / RMS | NaN / NaN |
+| Diode average / RMS | NaN / NaN |
+| Input/output capacitor RMS | NaN / NaN |
+| Output power | 60 W |
+| Diode loss / input power / input current | NaN / NaN / NaN |
+
+This is the source's unguarded IEEE-754 underflow path: DCM timing underflows
+to zero, then the peak-current expression evaluates Infinity * 0 and returns
+NaN. The source continues to display these values and flags the requested
+ripple input red; it does not reject the positive subnormal inductance. This
+is a numeric stress case, not a physically usable design.
+
+The new runtime regression pins the finite/Infinity/NaN classifications and
+the source warning without substituting a mathematically idealized result.
