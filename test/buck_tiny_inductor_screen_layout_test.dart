@@ -35,7 +35,11 @@ void main() {
       );
 
       final customInductor = find.byType(SwitchListTile);
-      await tester.ensureVisible(customInductor);
+      await tester.scrollUntilVisible(
+        customInductor,
+        280,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.tap(customInductor);
       await tester.pumpAndSettle();
 
