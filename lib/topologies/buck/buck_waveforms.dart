@@ -556,9 +556,8 @@ class _BuckTracePainter extends CustomPainter {
     final plotBottom = size.height - bottom;
     if (plotRight <= left || plotBottom <= top) return;
 
-    final values = points
-        .map((point) => point.value * scale)
-        .toList(growable: false);
+    final values =
+        points.map((point) => point.value * scale).toList(growable: false);
     // GraphPanel initializes each bound from the first sample and only
     // replaces it after a strict comparison. This preserves its NaN behavior:
     // a first NaN pins the bounds, while later NaN samples are ignored.
