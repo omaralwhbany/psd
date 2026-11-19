@@ -67,6 +67,9 @@ class AppStrings {
   String get diodeLoss => isArabic ? 'فقد الدايود' : 'Diode loss';
   String get inputPower => isArabic ? 'قدرة الدخل' : 'Input power';
   String get synchronizedWaveforms => isArabic ? 'الأشكال الموجية المتزامنة' : 'Synchronized waveforms';
+  String get waveformUnavailableForNonFiniteResults => isArabic
+      ? 'لا يمكن رسم الموجات لأن بعض النتائج غير منتهية (NaN أو ∞).'
+      : 'Waveforms cannot be plotted because some results are non-finite (NaN or ∞).';
   String get deviceWaveforms => isArabic ? 'موجات عناصر دائرة Buck (مطابقة لمصدر TI)' : 'Buck device waveforms (PSD5 source model)';
   String get voltage => isArabic ? 'الجهد' : 'Voltage';
   String get current => isArabic ? 'التيار' : 'Current';

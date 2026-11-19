@@ -116,4 +116,63 @@ void main() {
       );
     },
   );
+
+  test(
+    'Buck preserves PSD5 underflow and NaN results at the smallest positive inductor',
+    () {
+      const input = BuckInputs(
+        inputVoltageMin: 18,
+        inputVoltageMax: 36,
+        outputVoltage: 12,
+        outputCurrent: 5,
+        switchingFrequency: 200e3,
+        rippleFraction: 0.30,
+        diodeForwardVoltage: 0.5,
+        operatingInputVoltage: 18,
+        selectedInductance: 5e-324,
+      );
+
+      final result = const BuckEngine().calculate(input);
+      expect(result.isValid, isTrue);
+      expect(result.errors, isEmpty);
+      expect(result.values['inductanceUsed'], double.minPositive);
+      expect(
+        result.values['minimumInductance'],
+        closeTo(2.7397260273972603e-5, 1e-18),
+      );
+      expect(result.values['designRippleCurrent'], double.infinity);
+      expect(result.values['isCcm'], 0);
+      expect(result.values['onTime'], 0);
+      expect(result.values['offTime'], 0);
+      expect(result.values['idleTime'], closeTo(5e-6, 1e-18));
+      expect(result.values['dutyCycle'], 0);
+      expect(result.values['minimumCurrent'], 0);
+
+      // Original Buck.java underflows the DCM on/off interval to zero, then
+      // evaluates Infinity * 0 in the peak-current expression, producing NaN.
+      for (final key in [
+        'peakCurrent',
+        'rippleCurrent',
+        'ripplePercent',
+        'inductorAverageCurrent',
+        'inductorRmsCurrent',
+        'mosfetAverageCurrent',
+        'mosfetRmsCurrent',
+        'diodeAverageCurrent',
+        'diodeRmsCurrent',
+        'inputCapacitorRmsCurrent',
+        'outputCapacitorRmsCurrent',
+        'diodeLosses',
+        'inputPower',
+        'inputAverageCurrent',
+      ]) {
+        expect(result.values[key]!.isNaN, isTrue, reason: key);
+      }
+      expect(result.values['outputPower'], 60);
+      expect(
+        result.warnings,
+        contains('Actual inductor ripple exceeds the requested ripple target.'),
+      );
+    },
+  );
 }

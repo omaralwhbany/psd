@@ -667,3 +667,84 @@ a Dart runtime execution. The discrepancy is a display-conversion mismatch,
 not a Buck calculation mismatch; PR #13 remains unaccepted until its
 formatter is corrected and tested against the original Java output for this
 large-value case.
+
+
+## 2026-11-18: smallest positive subnormal selected inductance
+
+A second original-JAR runtime probe used a Swing inductance value of
+5e-318 µH. getUserModifiedValues() divides this by 1e6, leaving the smallest
+positive binary64 value, 4.9e-324 H. The original checkInductance() still
+accepts it because it is strictly positive and below 0.0022 H.
+
+Running the original Buck class under OpenJDK 21 produced:
+
+| Java field/result | Original-JAR runtime value |
+|---|---:|
+| Selected inductance | 4.9e-324 H |
+| Design ripple estimate | Infinity |
+| CCM/DCM | DCM |
+| ON / OFF / zero-current time | 0 / 0 / 5e-6 s |
+| DCM peak current | NaN |
+| Inductor average / RMS | NaN / NaN |
+| MOSFET average / RMS | NaN / NaN |
+| Diode average / RMS | NaN / NaN |
+| Input/output capacitor RMS | NaN / NaN |
+| Output power | 60 W |
+| Diode loss / input power / input current | NaN / NaN / NaN |
+
+This is the source's unguarded IEEE-754 underflow path: DCM timing underflows
+to zero, then the peak-current expression evaluates Infinity * 0 and returns
+NaN. The source continues to display these values and flags the requested
+ripple input red; it does not reject the positive subnormal inductance. This
+is a numeric stress case, not a physically usable design.
+
+The new runtime regression pins the finite/Infinity/NaN classifications and
+the source warning without substituting a mathematically idealized result.
+
+
+## 2026-11-18: invalid ripple-target field highlighting
+
+The original Buck.java checkCurrentRipple() flags the ripple input when the
+requested fraction is not in (0, 1], and showErrors() paints the input red.
+This is separate from the actual-ripple-over-target condition. Direct runs
+of the original Buck class under OpenJDK 21 with ripple targets 0% and 101%
+both left the ripple field red, while the selected 33 µH inductor field
+remained white.
+
+Flutter already returned the matching validation errors, but BuckScreen
+did not use those errors to highlight the ripple input. The screen now maps
+both source conditions to the same warning fill: actual ripple above target,
+or a ripple-fraction validation error. A widget regression covers 0% and
+101% without changing any calculation or validation rule.
+
+
+## 2026-11-18: rendering the smallest-positive-inductor NaN waveforms
+
+The new narrow-screen widget regression entered a selected inductance of
+5e-318 µH, which the original Buck parser converts to the smallest positive
+binary64 value. The engine correctly preserves the original Java underflow
+results, including NaN current metrics. The first UI test exposed a separate
+Flutter rendering defect: the Buck trace painter passed a NaN y-coordinate
+to Canvas.drawLine, which throws `Offset argument contained a NaN value`.
+
+The original GraphPanel.getMinimumY() and getMaximumY() initialize their
+bounds from the first sample and update them only through strict comparisons.
+For a first NaN sample, both bounds remain NaN. A direct OpenJDK 21 runtime
+probe instantiated the original GraphPanel from PSD5.jar with all-NaN
+current samples and painted it into a BufferedImage; painting completed.
+The Java renderer casts non-finite double coordinates to integer zero
+rather than rejecting them.
+
+The Buck trace painter now uses the same strict-comparison extrema order and
+a finite zero-coordinate fallback so Flutter Canvas never receives NaN
+Offsets. The additional synchronized Flutter chart is not a PSD5 source
+graph; when its required current values are non-finite, the screen replaces
+it with a localized Arabic/English explanation instead of passing NaN into
+its painter. The calculation result map is unchanged: Infinity and NaN
+remain visible in numeric result labels, and no Buck equation or validation
+limit was altered.
+
+The narrow Arabic screen regression scrolls through the result, five-device
+waveform section and synchronized-waveform fallback, then asserts that no
+rendering exception occurs. This is a display-safety adaptation, not a claim
+that the original Java graph uses the same fallback drawing.

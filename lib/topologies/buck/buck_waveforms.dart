@@ -556,9 +556,17 @@ class _BuckTracePainter extends CustomPainter {
     final plotBottom = size.height - bottom;
     if (plotRight <= left || plotBottom <= top) return;
 
-    final values = points.map((point) => point.value * scale);
-    var minValue = values.reduce((a, b) => a < b ? a : b);
-    var maxValue = values.reduce((a, b) => a > b ? a : b);
+    final values =
+        points.map((point) => point.value * scale).toList(growable: false);
+    // GraphPanel initializes each bound from the first sample and only
+    // replaces it after a strict comparison. This preserves its NaN behavior:
+    // a first NaN pins the bounds, while later NaN samples are ignored.
+    var minValue = values.first;
+    var maxValue = values.first;
+    for (final value in values.skip(1)) {
+      if (minValue > value) minValue = value;
+      if (maxValue < value) maxValue = value;
+    }
     if (minValue > 0) minValue = 0;
     if (maxValue < 0) maxValue = 0;
     final valueSpan = maxValue - minValue;
@@ -567,13 +575,28 @@ class _BuckTracePainter extends CustomPainter {
     final timeRange = BuckGraphTimeRange.fromPoints(points);
     final timeMax = timeRange.maximumMicroseconds;
     final timeSpan = timeRange.spanMicroseconds;
-    if (timeSpan <= 0) return;
+    if (!timeSpan.isFinite || timeSpan <= 0) return;
 
-    double x(double time) =>
-        left + timeRange.graphPanelXOffset(time, plotRight - left);
-    double y(double value) => valueSpan == 0
-        ? plotBottom
-        : plotBottom - (value - minValue) / valueSpan * (plotBottom - top);
+    double x(double time) {
+      if (!time.isFinite) return 0;
+      final mapped = left + timeRange.graphPanelXOffset(time, plotRight - left);
+      return mapped.isFinite ? mapped : 0;
+    }
+
+    double y(double value) {
+      // Java2D casts NaN coordinates to integer zero. Flutter's Canvas rejects
+      // NaN Offsets, so retain the source's finite zero-coordinate fallback.
+      if (!value.isFinite ||
+          !minValue.isFinite ||
+          !maxValue.isFinite ||
+          !valueSpan.isFinite) {
+        return 0;
+      }
+      return valueSpan == 0
+          ? plotBottom
+          : plotBottom - (value - minValue) / valueSpan * (plotBottom - top);
+    }
+
     final zeroY = y(0);
 
     final axis = Paint()
