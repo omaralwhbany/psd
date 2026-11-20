@@ -92,7 +92,8 @@ class BuckEngine {
     }
     if (!input.diodeForwardVoltage.isFinite) {
       errors.add('Diode forward voltage must be between 0 and 5 V.');
-    } else if (input.diodeForwardVoltage < 0 || input.diodeForwardVoltage > 5) {
+    } else if (input.diodeForwardVoltage < 0 ||
+        input.diodeForwardVoltage > 5) {
       postCalculationErrors.add(
         'Diode forward voltage must be between 0 and 5 V.',
       );
@@ -322,56 +323,64 @@ class BuckEngine {
       warnings
           .add('Actual inductor ripple exceeds the requested ripple target.');
     }
-    return CalculationResult(values: {
-      'operatingInputVoltage': vin,
-      'operatingLoadPercent': input.operatingLoadPercent,
-      'operatingOutputCurrent': iout,
-      'inputAverageCurrent': inputAverage,
-      'inputPower': inputPower,
-      'outputPower': outputPower,
-      'diodeLosses': diodeLoss,
-      'dutyCycle': duty,
-      'minimumInductance': minimumInductance,
-      'inductanceUsed': inductance,
-      // TI PSD's iripple_buck is the CCM design-ripple estimate even in DCM.
-      'designRippleCurrent': rippleCcm,
-      // Physical excursion: peak-to-valley in CCM, zero-to-peak in DCM.
-      'rippleCurrent': ripple,
-      'ripplePercent': ripple / iout * 100.0,
-      'peakCurrent': peak,
-      'minimumCurrent': minimum,
-      'isCcm': isCcm ? 1 : 0,
-      'onFraction': onFraction,
-      'offFraction': offFraction,
-      'idleFraction': idleFraction,
-      'onTime': ton,
-      'offTime': toff,
-      'idleTime': tidle,
-      'inductorAverageCurrent': inductorAverage,
-      'inductorRmsCurrent': inductorRms,
-      'inductorPeakCurrent': peak,
-      'mosfetAverageCurrent': fetAverage,
-      'mosfetRmsCurrent': fetRms,
-      'mosfetPeakCurrent': peak,
-      'mosfetVoltageMin': 0.0,
-      'mosfetVoltageMax': vin + vf,
-      'mosfetVoltageAtZeroCurrent': vin - vo,
-      'diodeAverageCurrent': diodeAverage,
-      'diodeRmsCurrent': diodeRms,
-      'diodePeakCurrent': peak,
-      'diodeVoltageMin': -vin,
-      'diodeVoltageMax': vf,
-      'diodeVoltageAtZeroCurrent': -vo,
-      'inputCapacitorVoltageMin': vin,
-      'inputCapacitorVoltageMax': vin,
-      'outputCapacitorVoltageMin': vo,
-      'outputCapacitorVoltageMax': vo,
-      'inputCapacitorAverageCurrent': 0.0,
-      'inputCapacitorRmsCurrent': inputCapRms,
-      'outputCapacitorAverageCurrent': 0.0,
-      'outputCapacitorRmsCurrent': outputCapRms,
-      'inductorVoltageMin': -vo - vf,
-      'inductorVoltageMax': vin - vo,
-    }, warnings: warnings, errors: [...postCalculationErrors, ...rippleErrors]);
+    return CalculationResult(
+      values: {
+        'operatingInputVoltage': vin,
+        'operatingLoadPercent': input.operatingLoadPercent,
+        'operatingOutputCurrent': iout,
+        'inputAverageCurrent': inputAverage,
+        'inputPower': inputPower,
+        'outputPower': outputPower,
+        'diodeLosses': diodeLoss,
+        'dutyCycle': duty,
+        'minimumInductance': minimumInductance,
+        'inductanceUsed': inductance,
+        // TI PSD's iripple_buck is the CCM design-ripple estimate even in DCM.
+        'designRippleCurrent': rippleCcm,
+        // Physical excursion: peak-to-valley in CCM, zero-to-peak in DCM.
+        'rippleCurrent': ripple,
+        'ripplePercent': ripple / iout * 100.0,
+        'peakCurrent': peak,
+        'minimumCurrent': minimum,
+        'isCcm': isCcm ? 1 : 0,
+        'onFraction': onFraction,
+        'offFraction': offFraction,
+        'idleFraction': idleFraction,
+        'onTime': ton,
+        'offTime': toff,
+        'idleTime': tidle,
+        'inductorAverageCurrent': inductorAverage,
+        'inductorRmsCurrent': inductorRms,
+        'inductorPeakCurrent': peak,
+        'mosfetAverageCurrent': fetAverage,
+        'mosfetRmsCurrent': fetRms,
+        'mosfetPeakCurrent': peak,
+        'mosfetVoltageMin': 0.0,
+        'mosfetVoltageMax': vin + vf,
+        'mosfetVoltageAtZeroCurrent': vin - vo,
+        'diodeAverageCurrent': diodeAverage,
+        'diodeRmsCurrent': diodeRms,
+        'diodePeakCurrent': peak,
+        'diodeVoltageMin': -vin,
+        'diodeVoltageMax': vf,
+        'diodeVoltageAtZeroCurrent': -vo,
+        'inputCapacitorVoltageMin': vin,
+        'inputCapacitorVoltageMax': vin,
+        'outputCapacitorVoltageMin': vo,
+        'outputCapacitorVoltageMax': vo,
+        'inputCapacitorAverageCurrent': 0.0,
+        'inputCapacitorRmsCurrent': inputCapRms,
+        'outputCapacitorAverageCurrent': 0.0,
+        'outputCapacitorRmsCurrent': outputCapRms,
+        'inductorVoltageMin': -vo - vf,
+        'inductorVoltageMax': vin - vo,
+
+      },
+      warnings: warnings,
+      errors: [
+        ...postCalculationErrors,
+        ...rippleErrors,
+      ],
+    );
   }
 }
