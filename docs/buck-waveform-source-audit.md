@@ -748,3 +748,41 @@ The narrow Arabic screen regression scrolls through the result, five-device
 waveform section and synchronized-waveform fallback, then asserts that no
 rendering exception occurs. This is a display-safety adaptation, not a claim
 that the original Java graph uses the same fallback drawing.
+
+
+## 2026-11-20: distinguish actual-ripple warning from invalid ripple target
+
+The extracted `Buck.java` source and matching `PSD5.jar` bytecode were
+rechecked before this screen change. `checkCurrentRipple()` maintains two
+separate error states:
+
+- `currentripple` is set when the requested ripple fraction is outside
+  `(0, 1]`.
+- `currentRippleInput` is set when
+  `!(iripple * 0.99 < dIout * dcurrent_ripple)`, meaning the actual ripple
+  exceeds the requested target under the source's 0.99 comparison.
+
+In `showErrors()`, the ripple input field is red when either state is set,
+but `jLabelCurrentRipplePercent` is red only when
+`currentRippleInput` is set. Thus a 101% target makes the input red while
+the actual-ripple result remains unhighlighted; an actual over-target case
+highlights both.
+
+This distinction was confirmed by executing the original `Buck` class from
+`PSD5.jar` under OpenJDK 21 with Vin(min/max)=18/36 V, Vo=12 V,
+Iout=5 A, fs=200 kHz, Vf=0.5 V, and L=10 µH. At a 30% ripple target,
+the original result label displayed `40.54` with a red background. At a
+101% target, the input remained red but the result label was white; at 0%,
+both were red.
+
+Flutter already highlighted the ripple input for the combined conditions.
+It now keeps a separate `actualRippleExceedsTarget` flag and applies the
+existing result-warning style to the actual-ripple percentage only for the
+source's `currentRippleInput` condition. A widget regression pins the
+Java-runtime value `40.54 %` and verifies the result highlight.
+
+Remaining parity gap: Flutter's engine currently returns an invalid result
+without calculated values for ripple fractions outside its accepted range,
+whereas PSD5 runs the calculation first and then marks the relevant input
+state in `runChecks()`. This patch does not alter engine validation or claim
+to close that separate behavior difference.
