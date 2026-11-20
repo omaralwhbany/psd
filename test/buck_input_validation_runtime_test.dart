@@ -205,7 +205,7 @@ void main() {
         theme.colorScheme.error,
       );
       expect(
-        tester.widget<Text>(find.text('27.40 µH')).style!.color,
+        tester.widget<Text>(find.text('33.28 µH')).style!.color,
         theme.colorScheme.error,
       );
       expect(
