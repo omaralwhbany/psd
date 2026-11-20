@@ -231,4 +231,78 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets(
+    'Buck shows PSD5 results while highlighting invalid 0% and 101% ripple targets',
+    (tester) async {
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      const locale = Locale('ar');
+      await tester.pumpWidget(
+        const MaterialApp(
+          locale: locale,
+          supportedLocales: [Locale('en'), Locale('ar')],
+          localizationsDelegates: [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: Scaffold(body: BuckScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final strings = AppStrings(locale);
+      final customInductor = find.byType(SwitchListTile);
+      await tester.tap(customInductor);
+      await tester.pumpAndSettle();
+
+      final inductanceField = find.byType(TextField).last;
+      await tester.enterText(inductanceField, '10');
+      await tester.pumpAndSettle();
+
+      final rippleField = find.byType(TextField).at(6);
+      final theme = Theme.of(tester.element(rippleField));
+      final actualRipple = find.text('40.54 %');
+
+      for (final scenario in [
+        (
+          input: '0',
+          error: 'Ripple fraction must be a finite value greater than zero.',
+          actualRippleIsWarning: true,
+        ),
+        (
+          input: '101',
+          error: 'Ripple fraction must not exceed 1 (100%).',
+          actualRippleIsWarning: false,
+        ),
+      ]) {
+        await tester.enterText(rippleField, scenario.input);
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text(strings.localizeBuckError(scenario.error)),
+          findsOneWidget,
+        );
+        expect(find.text(strings.outputPower), findsOneWidget);
+        expect(find.text('60.00 W'), findsOneWidget);
+        expect(actualRipple, findsOneWidget);
+
+        final rippleInput = tester.widget<TextField>(rippleField);
+        expect(rippleInput.decoration!.filled, isTrue);
+        expect(rippleInput.decoration!.fillColor, theme.colorScheme.error);
+
+        final actualRippleText = tester.widget<Text>(actualRipple);
+        expect(
+          actualRippleText.style?.color == theme.colorScheme.error,
+          scenario.actualRippleIsWarning,
+        );
+        expect(tester.takeException(), isNull);
+      }
+    },
+  );
+
 }
