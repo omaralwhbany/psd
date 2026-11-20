@@ -374,7 +374,6 @@ class BuckEngine {
         'outputCapacitorRmsCurrent': outputCapRms,
         'inductorVoltageMin': -vo - vf,
         'inductorVoltageMax': vin - vo,
-
       },
       warnings: warnings,
       errors: [
