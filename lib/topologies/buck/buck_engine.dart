@@ -68,9 +68,6 @@ class BuckEngine {
     if (input.switchingFrequency > 1e7) {
       errors.add('Switching frequency must not exceed 10 MHz.');
     }
-    if (input.rippleFraction > 1) {
-      errors.add('Ripple fraction must not exceed 1 (100%).');
-    }
     if (!input.operatingLoadPercent.isFinite ||
         input.operatingLoadPercent < 0 ||
         input.operatingLoadPercent > 100) {
