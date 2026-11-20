@@ -75,7 +75,14 @@ class _BuckScreenState extends State<BuckScreen> {
     final hasResults = result.values.isNotEmpty;
     final onTimeWarning = result.warnings.contains(BuckEngine.psdOnTimeWarning);
     final offTimeWarning = result.warnings.contains(BuckEngine.psdOffTimeWarning);
-    final inductanceWarning = onTimeWarning || offTimeWarning;
+    final selectedInductanceWarning = result.errors.any(
+      (error) => error.startsWith('Selected inductance'),
+    );
+    final diodeDropWarning = result.errors.any(
+      (error) => error.startsWith('Diode forward voltage'),
+    );
+    final inductanceWarning =
+        onTimeWarning || offTimeWarning || selectedInductanceWarning;
     final actualRippleExceedsTarget = result.warnings.contains(
       'Actual inductor ripple exceeds the requested ripple target.',
     );
@@ -107,7 +114,7 @@ class _BuckScreenState extends State<BuckScreen> {
         _field(s.outputCurrent, 'iout', 'A'),
         _field(s.switchingFrequency, 'fsw', 'kHz'),
         _field(s.ripplePercent, 'ripple', '%', warning: rippleWarning),
-        _field(s.diodeDrop, 'vf', 'V'),
+        _field(s.diodeDrop, 'vf', 'V', warning: diodeDropWarning),
         Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Row(children: [
             Expanded(child: Text(s.loadLevel)),
