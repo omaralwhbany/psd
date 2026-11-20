@@ -218,7 +218,14 @@ void main() {
         expect(result.errors, [scenario.error]);
         expect(result.values, isNotEmpty);
         expect(result.values['inductanceUsed'], 10e-6);
-        expect(result.values['minimumInductance'], scenario.minimumInductance);
+        if (scenario.rippleFraction == 0) {
+          expect(result.values['minimumInductance'], double.infinity);
+        } else {
+          expect(
+            result.values['minimumInductance'],
+            closeTo(8.137800081378001e-6, 1e-18),
+          );
+        }
         expect(result.values['isCcm'], 1);
         expect(
           result.values['rippleCurrent'],

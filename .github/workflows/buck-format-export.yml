@@ -1,0 +1,25 @@
+name: Temporary Buck formatter export
+
+on:
+  push:
+    branches:
+      - maintenance/buck-ripple-validation-results-2026-11-20
+
+jobs:
+  format-export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.9'
+      - name: Format Buck runtime regression tests
+        run: |
+          dart format test/buck_tiny_inductor_runtime_test.dart test/buck_tiny_inductor_screen_layout_test.dart
+          mkdir -p /tmp/buck-formatted
+          cp test/buck_tiny_inductor_runtime_test.dart /tmp/buck-formatted/
+          cp test/buck_tiny_inductor_screen_layout_test.dart /tmp/buck-formatted/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: buck-formatted-tests
+          path: /tmp/buck-formatted/
