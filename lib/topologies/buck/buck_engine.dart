@@ -167,14 +167,22 @@ class BuckEngine {
     if (selected == null && !minimumInductance.isFinite) {
       return CalculationResult(
         values: const {},
-        errors: [...rippleErrors, automaticInductanceNonFiniteError],
+        errors: [
+          ...postCalculationErrors,
+          ...rippleErrors,
+          automaticInductanceNonFiniteError,
+        ],
         warnings: warnings,
       );
     }
     if (selected == null && minimumInductance == 0) {
       return CalculationResult(
         values: const {},
-        errors: [...rippleErrors, automaticInductanceZeroError],
+        errors: [
+          ...postCalculationErrors,
+          ...rippleErrors,
+          automaticInductanceZeroError,
+        ],
         warnings: warnings,
       );
     }
@@ -205,6 +213,7 @@ class BuckEngine {
         return CalculationResult(
           values: const {},
           errors: [
+            ...postCalculationErrors,
             ...rippleErrors,
             'The selected inductance does not produce a valid Buck DCM cycle at this operating point.',
           ],
