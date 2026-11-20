@@ -496,31 +496,38 @@ class _BuckDeviceMetricsView extends StatelessWidget {
     final entries = <(String, String)>[
       (
         'minimumVoltage',
-        formatBuckJavaGraphMetric(metrics.minimumVoltage, voltageScale) + ' $voltageUnit'
+        formatBuckJavaGraphMetric(metrics.minimumVoltage, voltageScale) +
+            ' $voltageUnit'
       ),
       (
         'maximumVoltage',
-        formatBuckJavaGraphMetric(metrics.maximumVoltage, voltageScale) + ' $voltageUnit'
+        formatBuckJavaGraphMetric(metrics.maximumVoltage, voltageScale) +
+            ' $voltageUnit'
       ),
       (
         'minimumCurrent',
-        formatBuckJavaGraphMetric(metrics.minimumCurrent, currentScale) + ' $currentUnit'
+        formatBuckJavaGraphMetric(metrics.minimumCurrent, currentScale) +
+            ' $currentUnit'
       ),
       (
         'maximumCurrent',
-        formatBuckJavaGraphMetric(metrics.maximumCurrent, currentScale) + ' $currentUnit'
+        formatBuckJavaGraphMetric(metrics.maximumCurrent, currentScale) +
+            ' $currentUnit'
       ),
       (
         'rmsCurrent',
-        formatBuckJavaGraphMetric(metrics.rmsCurrent, currentScale) + ' $currentUnit'
+        formatBuckJavaGraphMetric(metrics.rmsCurrent, currentScale) +
+            ' $currentUnit'
       ),
       (
         'averageCurrent',
-        formatBuckJavaGraphMetric(metrics.averageCurrent, currentScale) + ' $currentUnit'
+        formatBuckJavaGraphMetric(metrics.averageCurrent, currentScale) +
+            ' $currentUnit'
       ),
       (
         'acCurrent',
-        formatBuckJavaGraphMetric(metrics.acCurrent, currentScale) + ' $currentUnit'
+        formatBuckJavaGraphMetric(metrics.acCurrent, currentScale) +
+            ' $currentUnit'
       ),
     ];
     final style = Theme.of(context).textTheme.labelSmall;

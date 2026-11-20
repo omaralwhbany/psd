@@ -1,16 +1,100 @@
 import 'dart:typed_data';
 
 const List<int> _n5Bits = <int>[
-  0, 3, 5, 7, 10, 12, 14, 17, 19, 21, 24, 26, 28, 31,
-  33, 35, 38, 40, 42, 45, 47, 49, 52, 54, 56, 59, 61,
+  0,
+  3,
+  5,
+  7,
+  10,
+  12,
+  14,
+  17,
+  19,
+  21,
+  24,
+  26,
+  28,
+  31,
+  33,
+  35,
+  38,
+  40,
+  42,
+  45,
+  47,
+  49,
+  52,
+  54,
+  56,
+  59,
+  61,
 ];
 
 const List<int> _insignificantDigitsNumber = <int>[
-  0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3, 4, 4,
-  4, 5, 5, 5, 6, 6, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9,
-  9, 9, 10, 10, 10, 11, 11, 11, 12, 12, 12, 12, 13,
-  13, 13, 14, 14, 14, 15, 15, 15, 15, 16, 16, 16, 17,
-  17, 17, 18, 18, 18, 19,
+  0,
+  0,
+  0,
+  0,
+  1,
+  1,
+  1,
+  2,
+  2,
+  2,
+  3,
+  3,
+  3,
+  3,
+  4,
+  4,
+  4,
+  5,
+  5,
+  5,
+  6,
+  6,
+  6,
+  6,
+  7,
+  7,
+  7,
+  8,
+  8,
+  8,
+  9,
+  9,
+  9,
+  9,
+  10,
+  10,
+  10,
+  11,
+  11,
+  11,
+  12,
+  12,
+  12,
+  12,
+  13,
+  13,
+  13,
+  14,
+  14,
+  14,
+  15,
+  15,
+  15,
+  15,
+  16,
+  16,
+  16,
+  17,
+  17,
+  17,
+  18,
+  18,
+  18,
+  19,
 ];
 
 final List<BigInt> _powersOfFive = List<BigInt>.generate(
@@ -55,8 +139,7 @@ String formatBuckJavaDecimal(
   final negative = bits.isNegative;
   if (value == 0.0) {
     final fraction = List<String>.filled(minFractionDigits, '0').join();
-    return (negative ? '-0' : '0') +
-        (fraction.isEmpty ? '' : '.' + fraction);
+    return (negative ? '-0' : '0') + (fraction.isEmpty ? '' : '.' + fraction);
   }
 
   final converted = _floatingDecimalDigits(bits);
@@ -208,8 +291,7 @@ String _formatDigitList(
       '0',
     ).join();
   }
-  return integerPart +
-      (fractionPart.isEmpty ? '' : '.' + fractionPart);
+  return integerPart + (fractionPart.isEmpty ? '' : '.' + fractionPart);
 }
 
 _FloatingDecimalDigits _floatingDecimalDigits(int bits) {
@@ -250,8 +332,7 @@ _FloatingDecimalDigits _floatingDecimalDigits(int bits) {
     var insignificantDigits = 0;
     if (binaryExponent > significantBits) {
       final powerOfTwo = binaryExponent - significantBits - 1;
-      if (powerOfTwo > 1 &&
-          powerOfTwo < _insignificantDigitsNumber.length) {
+      if (powerOfTwo > 1 && powerOfTwo < _insignificantDigitsNumber.length) {
         insignificantDigits = _insignificantDigitsNumber[powerOfTwo];
       }
     }
@@ -436,9 +517,7 @@ _FloatingDecimalDigits _floatingDecimalDigits(int bits) {
       high = b + m >= tenS;
       digits.add(quotient);
     }
-    lowDigitDifference = low && high
-        ? (b << 1) - tenS
-        : BigInt.zero;
+    lowDigitDifference = low && high ? (b << 1) - tenS : BigInt.zero;
     exact = b == BigInt.zero;
   }
 
@@ -484,8 +563,7 @@ _FloatingDecimalDigits _floatingDecimalDigits(int bits) {
 }
 
 int _estimateDecimalExponent(int fractionBits, int binaryExponent) {
-  final d2Bits =
-      (0x3ff << 52) | (fractionBits & 0x000fffffffffffff);
+  final d2Bits = (0x3ff << 52) | (fractionBits & 0x000fffffffffffff);
   final data = ByteData(8)..setUint64(0, d2Bits, Endian.big);
   final d2 = data.getFloat64(0, Endian.big);
   final estimate = (d2 - 1.5) * 0.289529654 +
