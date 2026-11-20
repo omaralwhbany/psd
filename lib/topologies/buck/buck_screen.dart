@@ -72,6 +72,7 @@ class _BuckScreenState extends State<BuckScreen> {
     final s = AppStrings(Localizations.localeOf(context));
     final input = _input;
     final result = _engine.calculate(input);
+    final hasResults = result.values.isNotEmpty;
     final onTimeWarning = result.warnings.contains(BuckEngine.psdOnTimeWarning);
     final offTimeWarning = result.warnings.contains(BuckEngine.psdOffTimeWarning);
     final inductanceWarning = onTimeWarning || offTimeWarning;
@@ -81,7 +82,7 @@ class _BuckScreenState extends State<BuckScreen> {
     final rippleWarning = actualRippleExceedsTarget ||
         result.errors.any((error) => error.startsWith('Ripple fraction'));
     final inputRangeWarning = input.outputVoltage > input.inputVoltageMin;
-    final canRenderSynchronizedWaveforms = result.isValid &&
+    final canRenderSynchronizedWaveforms = hasResults &&
         [
           'operatingOutputCurrent',
           'rippleCurrent',
@@ -131,9 +132,10 @@ class _BuckScreenState extends State<BuckScreen> {
           onPressed: () => setState(() {}), icon: const Icon(Icons.calculate), label: Text(s.results))),
       ])),
       const SizedBox(height: 14),
-      _panel(s.results, result.isValid ? Column(
+      _panel(s.results, hasResults ? Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (result.errors.isNotEmpty) _errors(result.errors, const [], s),
           for (final warning in result.warnings)
             Container(
               margin: const EdgeInsets.only(bottom: 12),
@@ -215,7 +217,7 @@ class _BuckScreenState extends State<BuckScreen> {
           _result(s.inputCurrent, '${result.values['inputAverageCurrent']!.toStringAsFixed(3)} A'),
         ],
       ) : _errors(result.errors, result.warnings, s)),
-      if (result.isValid) ...[
+      if (hasResults) ...[
         const SizedBox(height: 14),
         _panel(s.deviceWaveforms, BuckDeviceWaveformsView(
           waveforms: BuckWaveformSet.fromCalculation(input: input, values: result.values),

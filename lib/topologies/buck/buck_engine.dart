@@ -28,9 +28,38 @@ class BuckEngine {
       'Output voltage': input.outputVoltage,
       'Output current': input.outputCurrent,
       'Switching frequency': input.switchingFrequency,
-      'Ripple fraction': input.rippleFraction,
     });
     final warnings = <String>[];
+    // PSD5 runs checkCurrentRipple() after userCalculate() has completed the
+    // numeric calculation. Keep the 0% and >100% field errors separate from
+    // blocking input errors so a positive custom inductor still yields the
+    // same numeric results and device waveforms as the original Java sheet.
+    final rippleErrors = <String>[];
+    if (input.rippleFraction == 0) {
+      rippleErrors.add(
+        'Ripple fraction must be a finite value greater than zero.',
+      );
+    } else if (input.rippleFraction.isNaN || input.rippleFraction < 0) {
+      const rippleError =
+          'Ripple fraction must be a finite value greater than zero.';
+      final candidateInductance = input.selectedInductance;
+      final hasValidCustomInductance = candidateInductance != null &&
+          candidateInductance.isFinite &&
+          candidateInductance > 0 &&
+          candidateInductance <= 0.0022;
+      if (hasValidCustomInductance) {
+        // PSD5's checkCurrentRipple() runs after the calculation. With a
+        // positive custom L, negative/NaN ripple targets still produce the
+        // source's numeric operating results; retain the field error without
+        // suppressing those values. Automatic L remains blocking here.
+        rippleErrors.add(rippleError);
+      } else {
+        errors.add(rippleError);
+      }
+    }
+    if (input.rippleFraction > 1) {
+      rippleErrors.add('Ripple fraction must not exceed 1 (100%).');
+    }
     // Buck.java checkOutputVolt() flags both fields after calculating; it does
     // not abort when the selected operating input voltage is still sufficient.
     if (input.outputVoltage > input.inputVoltageMin) {
@@ -51,9 +80,6 @@ class BuckEngine {
     }
     if (input.switchingFrequency > 1e7) {
       errors.add('Switching frequency must not exceed 10 MHz.');
-    }
-    if (input.rippleFraction > 1) {
-      errors.add('Ripple fraction must not exceed 1 (100%).');
     }
     if (!input.operatingLoadPercent.isFinite ||
         input.operatingLoadPercent < 0 ||
@@ -83,7 +109,7 @@ class BuckEngine {
     if (errors.isNotEmpty) {
       return CalculationResult(
         values: const {},
-        errors: errors,
+        errors: [...errors, ...rippleErrors],
         warnings: warnings,
       );
     }
@@ -118,7 +144,8 @@ class BuckEngine {
       if (fs < unsupportedOnTime) warnings.add(psdOnTimeWarning);
       return CalculationResult(
         values: const {},
-        errors: const [
+        errors: [
+          ...rippleErrors,
           'Buck duty cycle must not exceed 100% at the selected operating point.',
         ],
         warnings: warnings,
@@ -132,14 +159,14 @@ class BuckEngine {
     if (selected == null && !minimumInductance.isFinite) {
       return CalculationResult(
         values: const {},
-        errors: const [automaticInductanceNonFiniteError],
+        errors: [...rippleErrors, automaticInductanceNonFiniteError],
         warnings: warnings,
       );
     }
     if (selected == null && minimumInductance == 0) {
       return CalculationResult(
         values: const {},
-        errors: const [automaticInductanceZeroError],
+        errors: [...rippleErrors, automaticInductanceZeroError],
         warnings: warnings,
       );
     }
@@ -169,7 +196,8 @@ class BuckEngine {
       if (!ton.isFinite || !toff.isFinite) {
         return CalculationResult(
           values: const {},
-          errors: const [
+          errors: [
+            ...rippleErrors,
             'The selected inductance does not produce a valid Buck DCM cycle at this operating point.',
           ],
           warnings: warnings,
@@ -327,6 +355,6 @@ class BuckEngine {
       'outputCapacitorRmsCurrent': outputCapRms,
       'inductorVoltageMin': -vo - vf,
       'inductorVoltageMax': vin - vo,
-    }, warnings: warnings);
+    }, warnings: warnings, errors: rippleErrors);
   }
 }

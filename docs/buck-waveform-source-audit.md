@@ -793,3 +793,74 @@ ripple fractions outside `(0, 1]` before producing numeric results, while
 PSD5 calculates first and marks the relevant fields in `runChecks()`.
 That engine-validation behavior remains open for a separately scoped audit;
 this patch does not claim to resolve it.
+
+
+## 2026-11-20: invalid ripple targets retain PSD5 calculated results
+
+The original `Buck.userCalculate()` calls `getUserModifiedValues()`,
+`checkForCCMDCCM()`, `onofftimes()`, `actualValues()`,
+`singleValues()`, `general()`, `updateImportantOutput()`, and only then
+`runChecks()`, `showErrors()`, and `repaintGraphs()`. The extracted
+`Buck.java` source and the `PSD5.jar` bytecode both confirm this order.
+In `checkCurrentRipple()`, the source records two independent states:
+the requested fraction is invalid unless it is in `(0, 1]`, while the
+actual-ripple label is flagged only when
+`!(iripple * 0.99 < dIout * dcurrent_ripple)`. `showErrors()` always
+highlights the ripple input for either state, but highlights the displayed
+actual-ripple percentage only for the second state.
+
+A direct OpenJDK 21 runtime probe instantiated the original `Buck` class
+from `PSD5.jar` under Xvfb. Inputs were Vin(min/max)=18/36 V, Vo=12 V,
+Iout=5 A, fs=200 kHz, Vf=0.5 V, selected L=10 µH, Vin slider=0%, and load
+slider=100%. After two original `calculate()` calls, Java returned the
+following for requested ripple targets 0% and 101%:
+
+| Original-JAR result | 0% target | 101% target |
+|---|---:|---:|
+| Actual ripple label | 40.54% (red) | 40.54% (normal) |
+| Ripple input field | red | red |
+| Calculated Lmin | Infinity | 8.137800081378001 µH |
+| Mode | CCM | CCM |
+| Actual current excursion | 2.0270270270270263 A | 2.0270270270270263 A |
+| Actual ripple percentage | 40.540540540540526% | 40.540540540540526% |
+| Inductor RMS | 5.033620540612438 A | 5.033620540612438 A |
+| MOSFET RMS | 4.13761059678065 A | 4.13761059678065 A |
+| Diode RMS | 2.866620710223788 A | 2.866620710223788 A |
+| Input capacitor RMS | 2.389280899087459 A | 2.389280899087459 A |
+| Output capacitor RMS | 0.5851522998543502 A | 0.5851522998543502 A |
+| Output / diode loss / input power | 60 / 0.8108108108108105 / 60.81081081081081 W | same |
+
+Flutter previously treated both ripple cases as blocking errors, returned an
+empty value map, and hid the results and graphs. The engine now keeps the
+0% and above-100% ripple errors separate from unrelated blocking errors;
+with a positive selected custom inductor it returns the Java-runtime numeric
+results together with the validation error. The screen displays those errors
+alongside the available results and waveform sections. The actual-ripple
+percentage is highlighted only for 0%, matching the source's separate
+`currentRippleInput` state.
+
+The automatic-inductance mode remains a Flutter-specific behavior: at 0%
+target its calculated Lmin is Infinity, so its existing finite-L guard still
+reports that no finite automatic inductance is available. The parity fixture
+uses a positive custom 10 µH inductor, as the original TI sheet does. Negative
+and non-finite ripple text inputs remain outside this narrowly scoped fix and
+are still handled by the earlier blocking validation path. No Buck equation,
+device stress equation, or waveform sample was changed.
+
+
+## 2026-11-20: negative and non-finite ripple targets with a positive custom inductor
+
+The original Buck.getUserValues() parses the ripple text with Double.parseDouble() and divides it by 100. calcMinInductance() stores the corresponding result in lmin_buck, but userCalculate() continues through checkForCCMDCCM(), onofftimes(), actualValues(), singleValues(), and general() before runChecks() calls checkCurrentRipple(). The source and matching JAR bytecode therefore do not make a negative or non-finite ripple target a calculation abort when a positive custom inductance is selected.
+
+This was verified by directly executing the original Buck class from PSD5.jar under OpenJDK 21/Xvfb. Inputs remained Vin(min/max)=18/36 V, Vo=12 V, Iout=5 A, fs=200 kHz, Vf=0.5 V, selected L=10 µH, Vin slider=0%, and load slider=100%; only the ripple text changed. After two calculate() calls, Java returned:
+
+| Ripple text | Calculated Lmin | Mode | Actual ripple | Actual ripple label | Ripple input |
+|---|---:|---|---:|---|---|
+| -10 | -82.19178082191781 µH | CCM | 40.540540540540526% | red | red |
+| NaN | NaN | CCM | 40.540540540540526% | red | red |
+| Infinity | 0 µH | CCM | 40.540540540540526% | normal | red |
+| -Infinity | -0 µH | CCM | 40.540540540540526% | red | red |
+
+All four cases retained the same Java runtime operating values: 2.0270270270270263 A actual current excursion, 5.033620540612438 A inductor RMS, 4.13761059678065 A MOSFET RMS, 2.866620710223788 A diode RMS, 2.389280899087459 A input-capacitor RMS, 0.5851522998543502 A output-capacitor RMS, 60 W output power, and 60.810810810810814 W input power.
+
+Flutter now keeps the invalid ripple message non-blocking only when a valid positive custom inductance is selected, so the same source-calculated values remain visible. The automatic-inductance path retains its existing blocking guard for negative/non-finite design inductance. Regression fixtures pin the fixed Java runtime values and the separate input/result warning states. No Buck equation, RMS integral, or waveform sample was changed.
