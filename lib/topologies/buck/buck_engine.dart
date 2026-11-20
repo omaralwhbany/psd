@@ -92,8 +92,7 @@ class BuckEngine {
     }
     if (!input.diodeForwardVoltage.isFinite) {
       errors.add('Diode forward voltage must be between 0 and 5 V.');
-    } else if (input.diodeForwardVoltage < 0 ||
-        input.diodeForwardVoltage > 5) {
+    } else if (input.diodeForwardVoltage < 0 || input.diodeForwardVoltage > 5) {
       postCalculationErrors.add(
         'Diode forward voltage must be between 0 and 5 V.',
       );
