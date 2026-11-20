@@ -30,6 +30,9 @@ class BuckEngine {
       'Switching frequency': input.switchingFrequency,
     });
     final warnings = <String>[];
+    // These PSD5 range checks run after calculation; retain numeric results
+    // for finite out-of-range diode drops and positive over-limit inductors.
+    final postCalculationErrors = <String>[];
     // PSD5 runs checkCurrentRipple() after userCalculate() has completed the
     // numeric calculation. Keep the 0% and >100% field errors separate from
     // blocking input errors so a positive custom inductor still yields the
@@ -87,10 +90,12 @@ class BuckEngine {
         input.operatingLoadPercent > 100) {
       errors.add('Operating load percentage must be between 0 and 100.');
     }
-    if (input.diodeForwardVoltage < 0 ||
-        input.diodeForwardVoltage > 5 ||
-        !input.diodeForwardVoltage.isFinite) {
+    if (!input.diodeForwardVoltage.isFinite) {
       errors.add('Diode forward voltage must be between 0 and 5 V.');
+    } else if (input.diodeForwardVoltage < 0 || input.diodeForwardVoltage > 5) {
+      postCalculationErrors.add(
+        'Diode forward voltage must be between 0 and 5 V.',
+      );
     }
     final vin = input.operatingInputVoltage ?? input.inputVoltageMin;
     if (!vin.isFinite ||
@@ -103,14 +108,15 @@ class BuckEngine {
     final selected = input.selectedInductance;
     if (selected != null && (!selected.isFinite || selected <= 0)) {
       errors.add('Selected inductance must be greater than zero.');
-    }
-    if (selected != null && selected > 0.0022) {
-      errors.add('Selected inductance must not exceed 2200 µH.');
+    } else if (selected != null && selected > 0.0022) {
+      postCalculationErrors.add(
+        'Selected inductance must not exceed 2200 µH.',
+      );
     }
     if (errors.isNotEmpty) {
       return CalculationResult(
         values: const {},
-        errors: [...errors, ...rippleErrors],
+        errors: [...errors, ...postCalculationErrors, ...rippleErrors],
         warnings: warnings,
       );
     }
@@ -146,6 +152,7 @@ class BuckEngine {
       return CalculationResult(
         values: const {},
         errors: [
+          ...postCalculationErrors,
           ...rippleErrors,
           'Buck duty cycle must not exceed 100% at the selected operating point.',
         ],
@@ -356,6 +363,6 @@ class BuckEngine {
       'outputCapacitorRmsCurrent': outputCapRms,
       'inductorVoltageMin': -vo - vf,
       'inductorVoltageMax': vin - vo,
-    }, warnings: warnings, errors: rippleErrors);
+    }, warnings: warnings, errors: [...postCalculationErrors, ...rippleErrors]);
   }
 }
