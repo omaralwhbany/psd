@@ -177,7 +177,9 @@ void main() {
   testWidgets(
     'Buck highlights actual ripple percentage when measured ripple exceeds target',
     (tester) async {
-      tester.view.physicalSize = const Size(320, 720);
+      // Keep the full input and result sections in the test viewport so the
+      // interaction does not depend on scroll gesture hit-testing.
+      tester.view.physicalSize = const Size(800, 2400);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
@@ -197,22 +199,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final scrollable = find.byType(Scrollable).first;
       final customInductor = find.byType(SwitchListTile);
-      await tester.scrollUntilVisible(
-        customInductor,
-        280,
-        scrollable: scrollable,
-      );
       await tester.tap(customInductor);
       await tester.pumpAndSettle();
 
       final inductanceField = find.byType(TextField).last;
-      await tester.scrollUntilVisible(
-        inductanceField,
-        280,
-        scrollable: scrollable,
-      );
       await tester.enterText(inductanceField, '10');
       await tester.pumpAndSettle();
 
@@ -223,11 +214,6 @@ void main() {
       final strings = AppStrings(locale);
       final actualRippleLabel = find.text(strings.actualRipplePercent);
       final actualRippleValue = find.text('40.54 %');
-      await tester.scrollUntilVisible(
-        actualRippleValue,
-        280,
-        scrollable: scrollable,
-      );
 
       expect(actualRippleLabel, findsOneWidget);
       expect(actualRippleValue, findsOneWidget);
