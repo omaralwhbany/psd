@@ -173,4 +173,62 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets(
+    'Buck highlights actual ripple percentage when measured ripple exceeds target',
+    (tester) async {
+      // Keep the input and result sections in view; this test checks the
+      // result warning style, not scroll gesture hit-testing.
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      const locale = Locale('en');
+      await tester.pumpWidget(
+        const MaterialApp(
+          locale: locale,
+          supportedLocales: [Locale('en'), Locale('ar')],
+          localizationsDelegates: [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: Scaffold(body: BuckScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final customInductor = find.byType(SwitchListTile);
+      await tester.tap(customInductor);
+      await tester.pumpAndSettle();
+
+      final inductanceField = find.byType(TextField).last;
+      await tester.enterText(inductanceField, '10');
+      await tester.pumpAndSettle();
+
+      // Actual Buck runtime from PSD5.jar / OpenJDK 21:
+      // Vin(min/max)=18/36 V, Vo=12 V, Iout=5 A, fs=200 kHz,
+      // Vf=0.5 V, ripple target=30%, L=10 µH, Vin slider=0%,
+      // load slider=100%. The displayed actual ripple is 40.54%.
+      final strings = AppStrings(locale);
+      final actualRippleLabel = find.text(strings.actualRipplePercent);
+      final actualRippleValue = find.text('40.54 %');
+
+      expect(actualRippleLabel, findsOneWidget);
+      expect(actualRippleValue, findsOneWidget);
+      final theme = Theme.of(tester.element(actualRippleValue));
+      expect(
+        tester.widget<Text>(actualRippleValue).style?.color,
+        theme.colorScheme.error,
+      );
+
+      final rippleField = find.byType(TextField).at(6);
+      expect(
+        tester.widget<TextField>(rippleField).decoration!.fillColor,
+        theme.colorScheme.error,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

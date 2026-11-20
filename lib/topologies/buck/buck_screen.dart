@@ -75,10 +75,10 @@ class _BuckScreenState extends State<BuckScreen> {
     final onTimeWarning = result.warnings.contains(BuckEngine.psdOnTimeWarning);
     final offTimeWarning = result.warnings.contains(BuckEngine.psdOffTimeWarning);
     final inductanceWarning = onTimeWarning || offTimeWarning;
-    final rippleWarning =
-        result.warnings.contains(
-          'Actual inductor ripple exceeds the requested ripple target.',
-        ) ||
+    final actualRippleExceedsTarget = result.warnings.contains(
+      'Actual inductor ripple exceeds the requested ripple target.',
+    );
+    final rippleWarning = actualRippleExceedsTarget ||
         result.errors.any((error) => error.startsWith('Ripple fraction'));
     final inputRangeWarning = input.outputVoltage > input.inputVoltageMin;
     final canRenderSynchronizedWaveforms = result.isValid &&
@@ -177,7 +177,11 @@ class _BuckScreenState extends State<BuckScreen> {
             _result(s.designRippleCurrent, '${result.values['designRippleCurrent']!.toStringAsFixed(3)} A'),
           _result(result.values['isCcm'] == 0 ? s.actualCurrentExcursion : s.rippleCurrent,
             '${result.values['rippleCurrent']!.toStringAsFixed(3)} A'),
-          _result(s.actualRipplePercent, '${result.values['ripplePercent']!.toStringAsFixed(2)} %'),
+          _result(
+            s.actualRipplePercent,
+            '${result.values['ripplePercent']!.toStringAsFixed(2)} %',
+            warning: actualRippleExceedsTarget,
+          ),
           _result(s.graphAverageCurrent, '${result.values['inductorAverageCurrent']!.toStringAsFixed(3)} A'),
           _result(s.graphRmsCurrent, '${result.values['inductorRmsCurrent']!.toStringAsFixed(3)} A'),
           _result(s.peakCurrent, '${result.values['inductorPeakCurrent']!.toStringAsFixed(3)} A'),

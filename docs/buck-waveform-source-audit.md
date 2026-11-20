@@ -748,3 +748,48 @@ The narrow Arabic screen regression scrolls through the result, five-device
 waveform section and synchronized-waveform fallback, then asserts that no
 rendering exception occurs. This is a display-safety adaptation, not a claim
 that the original Java graph uses the same fallback drawing.
+
+
+## 2026-11-20: actual-ripple result highlight follows the separate PSD5 error state
+
+The extracted `Buck.java` source and the matching `PSD5.jar` bytecode were
+rechecked before this screen change. `checkCurrentRipple()` maintains two
+separate error states:
+
+- `currentripple` is set when the requested ripple fraction is outside
+  `(0, 1]`.
+- `currentRippleInput` is set when
+  `!(iripple * 0.99 < dIout * dcurrent_ripple)`, meaning the actual
+  inductor-current excursion exceeds the requested target under the
+  source's 0.99 comparison.
+
+In `showErrors()`, `jLabelCurrentRipplePercent` is highlighted only when
+`currentRippleInput` is set. The ripple input field is highlighted when
+either `currentripple` or `currentRippleInput` is set. The distinction is
+present in the JAR bytecode as well as the extracted source.
+
+A direct OpenJDK 21 runtime probe instantiated the original `Buck` class,
+set Vin(min/max)=18/36 V, Vo=12 V, Iout=5 A, fs=200 kHz, Vf=0.5 V,
+selected L=10 µH, Vin slider=0%, and load slider=100%, then called
+`calculate()` twice. The actual-ripple label displayed `40.54` in all
+three cases below:
+
+| Requested ripple | Actual-ripple label | Ripple input field |
+|---:|---|---|
+| 30% | red | red |
+| 101% | normal/white | red |
+| 0% | red | red |
+
+The Flutter screen previously highlighted the ripple input for both
+conditions but never applied the actual-over-target state to the displayed
+actual-ripple percentage. It now keeps the two flags separate and applies
+the result warning style only to the actual-over-target condition. A widget
+regression pins the Java-runtime `40.54 %` value and checks both the result
+style and input warning.
+
+This is a display-only correction; no Buck calculation or validation rule
+was changed. A separate parity gap remains: Flutter currently rejects
+ripple fractions outside `(0, 1]` before producing numeric results, while
+PSD5 calculates first and marks the relevant fields in `runChecks()`.
+That engine-validation behavior remains open for a separately scoped audit;
+this patch does not claim to resolve it.
