@@ -179,6 +179,7 @@ class _BuckScreenState extends State<BuckScreen> {
           _result(
             s.minimumInductance,
             _formatTiInductance(result.values['minimumInductance']!),
+            warning: selectedInductanceWarning,
           ),
           _result(s.inductanceUsed, '${Units.baseToMicro(result.values['inductanceUsed']!).toStringAsFixed(2)} µH',
             warning: inductanceWarning),
