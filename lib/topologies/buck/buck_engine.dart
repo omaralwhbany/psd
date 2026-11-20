@@ -39,7 +39,7 @@ class BuckEngine {
       rippleErrors.add(
         'Ripple fraction must be a finite value greater than zero.',
       );
-    } else if (!input.rippleFraction.isFinite || input.rippleFraction < 0) {
+    } else if (input.rippleFraction.isNaN || input.rippleFraction < 0) {
       const rippleError =
           'Ripple fraction must be a finite value greater than zero.';
       final candidateInductance = input.selectedInductance;
