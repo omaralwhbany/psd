@@ -893,8 +893,9 @@ In all three cases the original Swing field was red while the numeric
 calculation remained available. The engine now reports finite diode-drop
 range violations and positive selected inductances above 2200 µH as
 post-calculation errors, retaining the source-derived values. The screen
-also highlights the corresponding diode-drop and selected-inductance
-fields while keeping results and device waveforms visible.
+also highlights the diode-drop and selected-inductance fields and the
+calculated Lmin result (PSD5 decrements both chooseinduc and calcinduc)
+while keeping results and device waveforms visible.
 
 This is deliberately limited. Non-finite diode drops, zero/negative
 selected inductance, core input ranges, and over-duty behavior still have
