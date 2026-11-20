@@ -1,5 +1,8 @@
 name: Flutter CI
 
+permissions:
+  contents: write
+
 on:
   push:
     branches: [maintenance/buck-java-floatingdecimal-2026-11-20]
@@ -20,8 +23,17 @@ jobs:
         run: rm -f test/widget_test.dart
       - name: Install dependencies
         run: flutter pub get
-      - name: Dart format check (Buck audit files)
-        run: dart format --output=none --set-exit-if-changed lib/topologies/buck/buck_engine.dart lib/topologies/buck/buck_schematic.dart lib/topologies/buck/buck_waveforms.dart lib/topologies/buck/buck_java_decimal_format.dart test/buck_java_rounding_regression_test.dart test/buck_schematic_orientation_test.dart test/buck_graph_java_oracle_test.dart test/buck_infinite_lmin_display_test.dart test/buck_screen_narrow_layout_test.dart test/buck_java_runtime_cycle_regression_test.dart test/buck_tiny_inductor_runtime_test.dart test/buck_tiny_inductor_screen_layout_test.dart test/buck_java_decimal_format_test.dart
+      - name: Dart format (Buck audit files)
+        run: dart format lib/topologies/buck/buck_engine.dart lib/topologies/buck/buck_schematic.dart lib/topologies/buck/buck_waveforms.dart lib/topologies/buck/buck_java_decimal_format.dart test/buck_java_rounding_regression_test.dart test/buck_schematic_orientation_test.dart test/buck_graph_java_oracle_test.dart test/buck_infinite_lmin_display_test.dart test/buck_screen_narrow_layout_test.dart test/buck_java_runtime_cycle_regression_test.dart test/buck_tiny_inductor_runtime_test.dart test/buck_tiny_inductor_screen_layout_test.dart test/buck_java_decimal_format_test.dart
+      - name: Commit Dart formatter output
+        run: |
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add lib/topologies/buck/buck_waveforms.dart lib/topologies/buck/buck_java_decimal_format.dart test/buck_java_decimal_format_test.dart
+            git commit -m "style(buck): format OpenJDK decimal formatter"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
       - name: Analyze
         run: flutter analyze
       - name: Test
