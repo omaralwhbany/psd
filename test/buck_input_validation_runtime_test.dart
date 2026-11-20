@@ -106,8 +106,8 @@ void main() {
   test(
     'Buck retains PSD5 results while flagging a positive selected inductor above 2200 µH',
     () {
-      final result = BuckEngine().calculate(
-        BuckInputs(
+      final result = const BuckEngine().calculate(
+        const BuckInputs(
           inputVoltageMin: 18,
           inputVoltageMax: 36,
           outputVoltage: 12,
