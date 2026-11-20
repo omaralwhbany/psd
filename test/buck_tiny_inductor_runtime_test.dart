@@ -177,7 +177,7 @@ void main() {
   );
 
   test(
-    'Buck retains PSD5 numeric results for 0% and 101% ripple targets',
+    'Buck retains PSD5 numeric results for invalid ripple targets with a positive custom inductor',
     () {
       // These are fixed values read after two calculate() calls on the
       // original Buck class in PSD5.jar under OpenJDK 21. The selected
@@ -194,6 +194,30 @@ void main() {
           error: 'Ripple fraction must not exceed 1 (100%).',
           minimumInductance: 8.137800081378001e-6,
           actualRippleWarning: false,
+        ),
+        (
+          rippleFraction: -0.1,
+          error: 'Ripple fraction must be a finite value greater than zero.',
+          minimumInductance: -8.219178082191781e-5,
+          actualRippleWarning: true,
+        ),
+        (
+          rippleFraction: double.nan,
+          error: 'Ripple fraction must be a finite value greater than zero.',
+          minimumInductance: double.nan,
+          actualRippleWarning: true,
+        ),
+        (
+          rippleFraction: double.infinity,
+          error: 'Ripple fraction must not exceed 1 (100%).',
+          minimumInductance: 0.0,
+          actualRippleWarning: false,
+        ),
+        (
+          rippleFraction: double.negativeInfinity,
+          error: 'Ripple fraction must be a finite value greater than zero.',
+          minimumInductance: -0.0,
+          actualRippleWarning: true,
         ),
       ];
 
@@ -218,12 +242,15 @@ void main() {
         expect(result.errors, [scenario.error]);
         expect(result.values, isNotEmpty);
         expect(result.values['inductanceUsed'], 10e-6);
-        if (scenario.rippleFraction == 0) {
-          expect(result.values['minimumInductance'], double.infinity);
+        final minimumInductance = result.values['minimumInductance']!;
+        if (scenario.minimumInductance.isNaN) {
+          expect(minimumInductance.isNaN, isTrue);
+        } else if (scenario.minimumInductance.isInfinite) {
+          expect(minimumInductance, scenario.minimumInductance);
         } else {
           expect(
-            result.values['minimumInductance'],
-            closeTo(8.137800081378001e-6, 1e-18),
+            minimumInductance,
+            closeTo(scenario.minimumInductance, 1e-18),
           );
         }
         expect(result.values['isCcm'], 1);

@@ -279,6 +279,26 @@ void main() {
           error: 'Ripple fraction must not exceed 1 (100%).',
           actualRippleIsWarning: false,
         ),
+        (
+          input: '-10',
+          error: 'Ripple fraction must be a finite value greater than zero.',
+          actualRippleIsWarning: true,
+        ),
+        (
+          input: 'NaN',
+          error: 'Ripple fraction must be a finite value greater than zero.',
+          actualRippleIsWarning: true,
+        ),
+        (
+          input: 'Infinity',
+          error: 'Ripple fraction must not exceed 1 (100%).',
+          actualRippleIsWarning: false,
+        ),
+        (
+          input: '-Infinity',
+          error: 'Ripple fraction must be a finite value greater than zero.',
+          actualRippleIsWarning: true,
+        ),
       ]) {
         await tester.enterText(rippleField, scenario.input);
         await tester.pumpAndSettle();

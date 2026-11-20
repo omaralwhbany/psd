@@ -40,9 +40,22 @@ class BuckEngine {
         'Ripple fraction must be a finite value greater than zero.',
       );
     } else if (!input.rippleFraction.isFinite || input.rippleFraction < 0) {
-      errors.add(
-        'Ripple fraction must be a finite value greater than zero.',
-      );
+      const rippleError =
+          'Ripple fraction must be a finite value greater than zero.';
+      final candidateInductance = input.selectedInductance;
+      final hasValidCustomInductance = candidateInductance != null &&
+          candidateInductance.isFinite &&
+          candidateInductance > 0 &&
+          candidateInductance <= 0.0022;
+      if (hasValidCustomInductance) {
+        // PSD5's checkCurrentRipple() runs after the calculation. With a
+        // positive custom L, negative/NaN ripple targets still produce the
+        // source's numeric operating results; retain the field error without
+        // suppressing those values. Automatic L remains blocking here.
+        rippleErrors.add(rippleError);
+      } else {
+        errors.add(rippleError);
+      }
     }
     if (input.rippleFraction > 1) {
       rippleErrors.add('Ripple fraction must not exceed 1 (100%).');

@@ -846,3 +846,21 @@ uses a positive custom 10 µH inductor, as the original TI sheet does. Negative
 and non-finite ripple text inputs remain outside this narrowly scoped fix and
 are still handled by the earlier blocking validation path. No Buck equation,
 device stress equation, or waveform sample was changed.
+
+
+## 2026-11-20: negative and non-finite ripple targets with a positive custom inductor
+
+The original Buck.getUserValues() parses the ripple text with Double.parseDouble() and divides it by 100. calcMinInductance() stores the corresponding result in lmin_buck, but userCalculate() continues through checkForCCMDCCM(), onofftimes(), actualValues(), singleValues(), and general() before runChecks() calls checkCurrentRipple(). The source and matching JAR bytecode therefore do not make a negative or non-finite ripple target a calculation abort when a positive custom inductance is selected.
+
+This was verified by directly executing the original Buck class from PSD5.jar under OpenJDK 21/Xvfb. Inputs remained Vin(min/max)=18/36 V, Vo=12 V, Iout=5 A, fs=200 kHz, Vf=0.5 V, selected L=10 µH, Vin slider=0%, and load slider=100%; only the ripple text changed. After two calculate() calls, Java returned:
+
+| Ripple text | Calculated Lmin | Mode | Actual ripple | Actual ripple label | Ripple input |
+|---|---:|---|---:|---|---|
+| -10 | -82.19178082191781 µH | CCM | 40.540540540540526% | red | red |
+| NaN | NaN | CCM | 40.540540540540526% | red | red |
+| Infinity | 0 µH | CCM | 40.540540540540526% | normal | red |
+| -Infinity | -0 µH | CCM | 40.540540540540526% | red | red |
+
+All four cases retained the same Java runtime operating values: 2.0270270270270263 A actual current excursion, 5.033620540612438 A inductor RMS, 4.13761059678065 A MOSFET RMS, 2.866620710223788 A diode RMS, 2.389280899087459 A input-capacitor RMS, 0.5851522998543502 A output-capacitor RMS, 60 W output power, and 60.810810810810814 W input power.
+
+Flutter now keeps the invalid ripple message non-blocking only when a valid positive custom inductance is selected, so the same source-calculated values remain visible. The automatic-inductance path retains its existing blocking guard for negative/non-finite design inductance. Regression fixtures pin the fixed Java runtime values and the separate input/result warning states. No Buck equation, RMS integral, or waveform sample was changed.
