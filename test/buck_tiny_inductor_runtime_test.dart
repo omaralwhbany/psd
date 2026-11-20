@@ -237,7 +237,7 @@ void main() {
         );
 
         // PSD5 flags the ripple field but does not discard its calculated
-        // values. The selected positive L keeps the 0% case computable too.
+        // values while a positive custom L keeps the operating point computable.
         expect(result.isValid, isFalse);
         expect(result.errors, [scenario.error]);
         expect(result.values, isNotEmpty);

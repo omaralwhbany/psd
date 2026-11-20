@@ -842,10 +842,12 @@ percentage is highlighted only for 0%, matching the source's separate
 The automatic-inductance mode remains a Flutter-specific behavior: at 0%
 target its calculated Lmin is Infinity, so its existing finite-L guard still
 reports that no finite automatic inductance is available. The parity fixture
-uses a positive custom 10 µH inductor, as the original TI sheet does. Negative
-and non-finite ripple text inputs remain outside this narrowly scoped fix and
-are still handled by the earlier blocking validation path. No Buck equation,
-device stress equation, or waveform sample was changed.
+uses a positive custom 10 µH inductor, as the original TI sheet does. At the
+time of this initial 0%/101% fixture, negative and non-finite ripple text
+inputs still followed the blocking validation path; the following section
+records the later original-JAR runtime extension for those values with a
+positive custom inductor. No Buck equation, device stress equation, or
+waveform sample was changed.
 
 
 ## 2026-11-20: negative and non-finite ripple targets with a positive custom inductor

@@ -51,7 +51,8 @@ class BuckEngine {
         // PSD5's checkCurrentRipple() runs after the calculation. With a
         // positive custom L, negative/NaN ripple targets still produce the
         // source's numeric operating results; retain the field error without
-        // suppressing those values. Automatic L remains blocking here.
+        // suppressing those values. The app's automatic-L option is
+        // Flutter-specific; without a valid custom L, keep this blocking.
         rippleErrors.add(rippleError);
       } else {
         errors.add(rippleError);

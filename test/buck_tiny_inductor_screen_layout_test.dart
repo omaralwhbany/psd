@@ -233,7 +233,7 @@ void main() {
   );
 
   testWidgets(
-    'Buck shows PSD5 results while highlighting invalid 0% and 101% ripple targets',
+    'Buck shows PSD5 results while highlighting invalid ripple targets with a custom inductor',
     (tester) async {
       tester.view.physicalSize = const Size(800, 2400);
       tester.view.devicePixelRatio = 1;
