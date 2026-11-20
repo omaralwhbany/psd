@@ -177,6 +177,11 @@ void main() {
   testWidgets(
     'Buck highlights actual ripple percentage when measured ripple exceeds target',
     (tester) async {
+      tester.view.physicalSize = const Size(320, 720);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       const locale = Locale('en');
       await tester.pumpWidget(
         const MaterialApp(
@@ -192,13 +197,22 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      final scrollable = find.byType(Scrollable).first;
       final customInductor = find.byType(SwitchListTile);
-      await tester.ensureVisible(customInductor);
+      await tester.scrollUntilVisible(
+        customInductor,
+        280,
+        scrollable: scrollable,
+      );
       await tester.tap(customInductor);
       await tester.pumpAndSettle();
 
       final inductanceField = find.byType(TextField).last;
-      await tester.ensureVisible(inductanceField);
+      await tester.scrollUntilVisible(
+        inductanceField,
+        280,
+        scrollable: scrollable,
+      );
       await tester.enterText(inductanceField, '10');
       await tester.pumpAndSettle();
 
@@ -209,8 +223,11 @@ void main() {
       final strings = AppStrings(locale);
       final actualRippleLabel = find.text(strings.actualRipplePercent);
       final actualRippleValue = find.text('40.54 %');
-      await tester.ensureVisible(actualRippleValue);
-      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        actualRippleValue,
+        280,
+        scrollable: scrollable,
+      );
 
       expect(actualRippleLabel, findsOneWidget);
       expect(actualRippleValue, findsOneWidget);
