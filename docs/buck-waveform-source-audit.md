@@ -866,3 +866,20 @@ This was verified by directly executing the original Buck class from PSD5.jar un
 All four cases retained the same Java runtime operating values: 2.0270270270270263 A actual current excursion, 5.033620540612438 A inductor RMS, 4.13761059678065 A MOSFET RMS, 2.866620710223788 A diode RMS, 2.389280899087459 A input-capacitor RMS, 0.5851522998543502 A output-capacitor RMS, 60 W output power, and 60.810810810810814 W input power.
 
 Flutter now keeps the invalid ripple message non-blocking only when a valid positive custom inductance is selected, so the same source-calculated values remain visible. The automatic-inductance path retains its existing blocking guard for negative/non-finite design inductance. Regression fixtures pin the fixed Java runtime values and the separate input/result warning states. No Buck equation, RMS integral, or waveform sample was changed.
+
+
+## OpenJDK 21 DecimalFormat compatibility follow-up — 2026-11-20
+
+The previous BigInt-only formatter rounded the exact binary64 rational value. That is mathematically precise, but it is not the same operation as the OpenJDK 21 formatter used in the PSD5 runtime. Buck.java calls `DecimalFormat("#0.00####")` for graph side labels; Graph.java parses those strings and then applies `DecimalFormat("#0.00")`. OpenJDK 21's legacy `FloatingDecimal` compatibility path includes separate 32-bit, signed-64-bit, and FDBigInteger conversion branches before DigitList applies HALF_EVEN rounding. The signed overflow behavior in the 32/64-bit branches is observable and must not be replaced by an exact-BigInt-only shortcut.
+
+The original `Buck` class from `PSD5.jar` was executed under OpenJDK 21 with a reflection harness that set the same numeric fields and ran the source calculation sequence twice before invoking `inductorGetLabelsValuesCurrent()`. For Vin(min/max)=18/36 V, Vo=12 V, Iout=5 A, fs=200 kHz, Vf=0.5 V, ripple=30%, and selected L=1e-90 µH (stored as 1e-96 H), the original class returned `iind_max=1.4237369936287484E46` and the exact side-label text:
+
+```text
+14237369936287484000000000000000000000000000000.00
+```
+
+The prior exact-rational BigInt proposal instead emitted `14237369936287484250555471765466363743556337664.00`, so it is not an acceptable replacement. A second OpenJDK 21 probe exercises the signed-long overflow branch with `2.5253627982831803E25`; DecimalFormat emits `25253627982831802000000000.00`.
+
+The Buck waveform formatter now ports the OpenJDK 21 compatibility conversion and DigitList rounding behavior, including the 32-bit/64-bit signed-wrap branches and the BigInt fallback. A standalone Python reference implementation was compared with OpenJDK 21 DecimalFormat for 300,000 randomly generated finite binary64 values using both `#0.00####` and `#0.00`; it produced zero mismatches. This is a reference-algorithm cross-check, not a Flutter runtime test and not a claim of JDK-version-independent behavior.
+
+Regression tests pin the original Buck large-current label, the signed-long overflow case, two-stage label parsing, HALF_EVEN ties (1.125 → 1.12 and 1.375 → 1.38), and non-finite symbols. The source references are [OpenJDK 21 FloatingDecimal](https://github.com/openjdk/jdk/blob/jdk-21%2B35/src/java.base/share/classes/jdk/internal/math/FloatingDecimal.java), [DigitList](https://github.com/openjdk/jdk/blob/jdk-21%2B35/src/java.base/share/classes/java/text/DigitList.java), and [FDBigInteger](https://github.com/openjdk/jdk/blob/jdk-21%2B35/src/java.base/share/classes/jdk/internal/math/FDBigInteger.java). No Buck electrical equation, RMS integral, or waveform sample was changed.
