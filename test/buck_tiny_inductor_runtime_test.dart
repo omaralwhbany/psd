@@ -175,4 +175,134 @@ void main() {
       );
     },
   );
+
+  test(
+    'Buck retains PSD5 numeric results for invalid ripple targets with a positive custom inductor',
+    () {
+      // These are fixed values read after two calculate() calls on the
+      // original Buck class in PSD5.jar under OpenJDK 21. The selected
+      // Swing inductance is 10 µH; all other inputs match the fixture below.
+      const scenarios = [
+        (
+          rippleFraction: 0.0,
+          error: 'Ripple fraction must be a finite value greater than zero.',
+          minimumInductance: double.infinity,
+          actualRippleWarning: true,
+        ),
+        (
+          rippleFraction: 1.01,
+          error: 'Ripple fraction must not exceed 1 (100%).',
+          minimumInductance: 8.137800081378001e-6,
+          actualRippleWarning: false,
+        ),
+        (
+          rippleFraction: -0.1,
+          error: 'Ripple fraction must be a finite value greater than zero.',
+          minimumInductance: -8.219178082191781e-5,
+          actualRippleWarning: true,
+        ),
+        (
+          rippleFraction: double.nan,
+          error: 'Ripple fraction must be a finite value greater than zero.',
+          minimumInductance: double.nan,
+          actualRippleWarning: true,
+        ),
+        (
+          rippleFraction: double.infinity,
+          error: 'Ripple fraction must not exceed 1 (100%).',
+          minimumInductance: 0.0,
+          actualRippleWarning: false,
+        ),
+        (
+          rippleFraction: double.negativeInfinity,
+          error: 'Ripple fraction must be a finite value greater than zero.',
+          minimumInductance: -0.0,
+          actualRippleWarning: true,
+        ),
+      ];
+
+      for (final scenario in scenarios) {
+        final result = const BuckEngine().calculate(
+          BuckInputs(
+            inputVoltageMin: 18,
+            inputVoltageMax: 36,
+            outputVoltage: 12,
+            outputCurrent: 5,
+            switchingFrequency: 200e3,
+            rippleFraction: scenario.rippleFraction,
+            diodeForwardVoltage: 0.5,
+            operatingInputVoltage: 18,
+            selectedInductance: 10e-6,
+          ),
+        );
+
+        // PSD5 flags the ripple field but does not discard its calculated
+        // values. The selected positive L keeps the 0% case computable too.
+        expect(result.isValid, isFalse);
+        expect(result.errors, [scenario.error]);
+        expect(result.values, isNotEmpty);
+        expect(result.values['inductanceUsed'], 10e-6);
+        final minimumInductance = result.values['minimumInductance']!;
+        if (scenario.minimumInductance.isNaN) {
+          expect(minimumInductance.isNaN, isTrue);
+        } else if (scenario.minimumInductance.isInfinite) {
+          expect(minimumInductance, scenario.minimumInductance);
+        } else {
+          expect(
+            minimumInductance,
+            closeTo(scenario.minimumInductance, 1e-18),
+          );
+        }
+        expect(result.values['isCcm'], 1);
+        expect(
+          result.values['rippleCurrent'],
+          closeTo(2.0270270270270263, 1e-14),
+        );
+        expect(
+          result.values['ripplePercent'],
+          closeTo(40.540540540540526, 1e-12),
+        );
+        expect(result.values['inductorAverageCurrent'], 5.0);
+        expect(
+          result.values['inductorRmsCurrent'],
+          closeTo(5.033620540612438, 1e-12),
+        );
+        expect(
+          result.values['mosfetRmsCurrent'],
+          closeTo(4.13761059678065, 1e-12),
+        );
+        expect(
+          result.values['diodeRmsCurrent'],
+          closeTo(2.866620710223788, 1e-12),
+        );
+        expect(
+          result.values['inputCapacitorRmsCurrent'],
+          closeTo(2.389280899087459, 1e-12),
+        );
+        expect(
+          result.values['outputCapacitorRmsCurrent'],
+          closeTo(0.5851522998543502, 1e-12),
+        );
+        expect(result.values['outputPower'], 60.0);
+        expect(
+          result.values['diodeLosses'],
+          closeTo(0.8108108108108105, 1e-14),
+        );
+        expect(
+          result.values['inputPower'],
+          closeTo(60.81081081081081, 1e-12),
+        );
+        expect(
+          result.values['inputAverageCurrent'],
+          closeTo(3.378378378378378, 1e-14),
+        );
+        expect(
+          result.warnings.contains(
+            'Actual inductor ripple exceeds the requested ripple target.',
+          ),
+          scenario.actualRippleWarning,
+        );
+      }
+    },
+  );
 }
