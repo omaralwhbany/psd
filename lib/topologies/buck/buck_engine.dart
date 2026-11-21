@@ -30,6 +30,9 @@ class BuckEngine {
       'Switching frequency': input.switchingFrequency,
     });
     final warnings = <String>[];
+    // These PSD5 range checks run after calculation; retain numeric results
+    // for finite out-of-range diode drops and positive over-limit inductors.
+    final postCalculationErrors = <String>[];
     // PSD5 runs checkCurrentRipple() after userCalculate() has completed the
     // numeric calculation. Keep the 0% and >100% field errors separate from
     // blocking input errors so a positive custom inductor still yields the
@@ -45,14 +48,14 @@ class BuckEngine {
       final candidateInductance = input.selectedInductance;
       final hasValidCustomInductance = candidateInductance != null &&
           candidateInductance.isFinite &&
-          candidateInductance > 0 &&
-          candidateInductance <= 0.0022;
+          candidateInductance > 0;
       if (hasValidCustomInductance) {
-        // PSD5's checkCurrentRipple() runs after the calculation. With a
-        // positive custom L, negative/NaN ripple targets still produce the
-        // source's numeric operating results; retain the field error without
+        // PSD5 checks ripple and the selected-L range after calculation.
+        // Any finite positive custom L, including one above 2200 µH, still
+        // produces source numeric results; retain both field errors without
         // suppressing those values. The app's automatic-L option is
-        // Flutter-specific; without a valid custom L, keep this blocking.
+        // Flutter-specific; without a finite positive custom L, keep this
+        // invalid-ripple path blocking.
         rippleErrors.add(rippleError);
       } else {
         errors.add(rippleError);
@@ -87,10 +90,12 @@ class BuckEngine {
         input.operatingLoadPercent > 100) {
       errors.add('Operating load percentage must be between 0 and 100.');
     }
-    if (input.diodeForwardVoltage < 0 ||
-        input.diodeForwardVoltage > 5 ||
-        !input.diodeForwardVoltage.isFinite) {
+    if (!input.diodeForwardVoltage.isFinite) {
       errors.add('Diode forward voltage must be between 0 and 5 V.');
+    } else if (input.diodeForwardVoltage < 0 || input.diodeForwardVoltage > 5) {
+      postCalculationErrors.add(
+        'Diode forward voltage must be between 0 and 5 V.',
+      );
     }
     final vin = input.operatingInputVoltage ?? input.inputVoltageMin;
     if (!vin.isFinite ||
@@ -103,14 +108,15 @@ class BuckEngine {
     final selected = input.selectedInductance;
     if (selected != null && (!selected.isFinite || selected <= 0)) {
       errors.add('Selected inductance must be greater than zero.');
-    }
-    if (selected != null && selected > 0.0022) {
-      errors.add('Selected inductance must not exceed 2200 µH.');
+    } else if (selected != null && selected > 0.0022) {
+      postCalculationErrors.add(
+        'Selected inductance must not exceed 2200 µH.',
+      );
     }
     if (errors.isNotEmpty) {
       return CalculationResult(
         values: const {},
-        errors: [...errors, ...rippleErrors],
+        errors: [...errors, ...postCalculationErrors, ...rippleErrors],
         warnings: warnings,
       );
     }
@@ -146,6 +152,7 @@ class BuckEngine {
       return CalculationResult(
         values: const {},
         errors: [
+          ...postCalculationErrors,
           ...rippleErrors,
           'Buck duty cycle must not exceed 100% at the selected operating point.',
         ],
@@ -160,14 +167,22 @@ class BuckEngine {
     if (selected == null && !minimumInductance.isFinite) {
       return CalculationResult(
         values: const {},
-        errors: [...rippleErrors, automaticInductanceNonFiniteError],
+        errors: [
+          ...postCalculationErrors,
+          ...rippleErrors,
+          automaticInductanceNonFiniteError,
+        ],
         warnings: warnings,
       );
     }
     if (selected == null && minimumInductance == 0) {
       return CalculationResult(
         values: const {},
-        errors: [...rippleErrors, automaticInductanceZeroError],
+        errors: [
+          ...postCalculationErrors,
+          ...rippleErrors,
+          automaticInductanceZeroError,
+        ],
         warnings: warnings,
       );
     }
@@ -198,6 +213,7 @@ class BuckEngine {
         return CalculationResult(
           values: const {},
           errors: [
+            ...postCalculationErrors,
             ...rippleErrors,
             'The selected inductance does not produce a valid Buck DCM cycle at this operating point.',
           ],
@@ -306,56 +322,63 @@ class BuckEngine {
       warnings
           .add('Actual inductor ripple exceeds the requested ripple target.');
     }
-    return CalculationResult(values: {
-      'operatingInputVoltage': vin,
-      'operatingLoadPercent': input.operatingLoadPercent,
-      'operatingOutputCurrent': iout,
-      'inputAverageCurrent': inputAverage,
-      'inputPower': inputPower,
-      'outputPower': outputPower,
-      'diodeLosses': diodeLoss,
-      'dutyCycle': duty,
-      'minimumInductance': minimumInductance,
-      'inductanceUsed': inductance,
-      // TI PSD's iripple_buck is the CCM design-ripple estimate even in DCM.
-      'designRippleCurrent': rippleCcm,
-      // Physical excursion: peak-to-valley in CCM, zero-to-peak in DCM.
-      'rippleCurrent': ripple,
-      'ripplePercent': ripple / iout * 100.0,
-      'peakCurrent': peak,
-      'minimumCurrent': minimum,
-      'isCcm': isCcm ? 1 : 0,
-      'onFraction': onFraction,
-      'offFraction': offFraction,
-      'idleFraction': idleFraction,
-      'onTime': ton,
-      'offTime': toff,
-      'idleTime': tidle,
-      'inductorAverageCurrent': inductorAverage,
-      'inductorRmsCurrent': inductorRms,
-      'inductorPeakCurrent': peak,
-      'mosfetAverageCurrent': fetAverage,
-      'mosfetRmsCurrent': fetRms,
-      'mosfetPeakCurrent': peak,
-      'mosfetVoltageMin': 0.0,
-      'mosfetVoltageMax': vin + vf,
-      'mosfetVoltageAtZeroCurrent': vin - vo,
-      'diodeAverageCurrent': diodeAverage,
-      'diodeRmsCurrent': diodeRms,
-      'diodePeakCurrent': peak,
-      'diodeVoltageMin': -vin,
-      'diodeVoltageMax': vf,
-      'diodeVoltageAtZeroCurrent': -vo,
-      'inputCapacitorVoltageMin': vin,
-      'inputCapacitorVoltageMax': vin,
-      'outputCapacitorVoltageMin': vo,
-      'outputCapacitorVoltageMax': vo,
-      'inputCapacitorAverageCurrent': 0.0,
-      'inputCapacitorRmsCurrent': inputCapRms,
-      'outputCapacitorAverageCurrent': 0.0,
-      'outputCapacitorRmsCurrent': outputCapRms,
-      'inductorVoltageMin': -vo - vf,
-      'inductorVoltageMax': vin - vo,
-    }, warnings: warnings, errors: rippleErrors);
+    return CalculationResult(
+      values: {
+        'operatingInputVoltage': vin,
+        'operatingLoadPercent': input.operatingLoadPercent,
+        'operatingOutputCurrent': iout,
+        'inputAverageCurrent': inputAverage,
+        'inputPower': inputPower,
+        'outputPower': outputPower,
+        'diodeLosses': diodeLoss,
+        'dutyCycle': duty,
+        'minimumInductance': minimumInductance,
+        'inductanceUsed': inductance,
+        // TI PSD's iripple_buck is the CCM design-ripple estimate even in DCM.
+        'designRippleCurrent': rippleCcm,
+        // Physical excursion: peak-to-valley in CCM, zero-to-peak in DCM.
+        'rippleCurrent': ripple,
+        'ripplePercent': ripple / iout * 100.0,
+        'peakCurrent': peak,
+        'minimumCurrent': minimum,
+        'isCcm': isCcm ? 1 : 0,
+        'onFraction': onFraction,
+        'offFraction': offFraction,
+        'idleFraction': idleFraction,
+        'onTime': ton,
+        'offTime': toff,
+        'idleTime': tidle,
+        'inductorAverageCurrent': inductorAverage,
+        'inductorRmsCurrent': inductorRms,
+        'inductorPeakCurrent': peak,
+        'mosfetAverageCurrent': fetAverage,
+        'mosfetRmsCurrent': fetRms,
+        'mosfetPeakCurrent': peak,
+        'mosfetVoltageMin': 0.0,
+        'mosfetVoltageMax': vin + vf,
+        'mosfetVoltageAtZeroCurrent': vin - vo,
+        'diodeAverageCurrent': diodeAverage,
+        'diodeRmsCurrent': diodeRms,
+        'diodePeakCurrent': peak,
+        'diodeVoltageMin': -vin,
+        'diodeVoltageMax': vf,
+        'diodeVoltageAtZeroCurrent': -vo,
+        'inputCapacitorVoltageMin': vin,
+        'inputCapacitorVoltageMax': vin,
+        'outputCapacitorVoltageMin': vo,
+        'outputCapacitorVoltageMax': vo,
+        'inputCapacitorAverageCurrent': 0.0,
+        'inputCapacitorRmsCurrent': inputCapRms,
+        'outputCapacitorAverageCurrent': 0.0,
+        'outputCapacitorRmsCurrent': outputCapRms,
+        'inductorVoltageMin': -vo - vf,
+        'inductorVoltageMax': vin - vo,
+      },
+      warnings: warnings,
+      errors: [
+        ...postCalculationErrors,
+        ...rippleErrors,
+      ],
+    );
   }
 }
