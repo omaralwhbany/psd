@@ -902,3 +902,48 @@ selected inductance, core input ranges, and over-duty behavior still have
 separate blocking or adaptation paths; this patch does not claim complete
 validation parity. No Buck equation, RMS integral, CCM/DCM decision, or
 waveform sample was changed.
+
+
+## 2026-11-21: negative ripple combined with an over-limit positive custom inductor
+
+The original `Buck.userCalculate()` runs `checkForCCMDCCM()`,
+`onofftimes()`, `actualValues()`, `singleValues()`, and `general()`
+before `runChecks()`. The original `checkCurrentRipple()` and
+`checkInductance()` methods only decrement their respective error states;
+neither aborts the completed numeric calculation. The matching
+`PSD5.jar` bytecode was inspected for this run and confirms the same
+call order and post-calculation checks.
+
+A direct OpenJDK 21/Xvfb probe instantiated the original `Buck` class,
+set Vin(min/max)=18/36 V, Vout=12 V, Iout=5 A, fs=200 kHz, Vf=0.5 V,
+ripple=-10%, selected L=2200.1 µH, input slider=0%, and load slider=100%,
+then called `calculate()` twice. The original class marked both the
+ripple input and selected-inductance input red while retaining:
+
+| Original-JAR result | Value |
+|---|---:|
+| Calculated Lmin | -82.19178082191781 µH |
+| Mode | CCM |
+| Design ripple | 0.009213340425558053 A |
+| Actual current excursion | 0.00921334042555877 A |
+| Actual ripple percentage | 0.18426680851117538% |
+| ON / OFF / idle time | 3.3783783783783788 / 1.6216216216216216 µs / 1 ns |
+| Inductor RMS | 4.999500782297074 A |
+| MOSFET RMS | 4.109564328209903 A |
+| Diode RMS | 2.8471896853728844 A |
+| Input / output capacitor RMS | 2.3403761945140253 / 0.0026596622874160082 A |
+| Output / diode loss / input power | 60 / 0.8108108108108109 / 60.810810810810814 W |
+
+The post-calculation range-error change already retained values for a
+positive selected inductor above 2200 µH, but its negative/NaN-ripple
+exception still required the selected inductor to be at or below 2200 µH.
+That condition incorrectly hid the results when both errors occurred
+together. The exception now requires only a finite positive custom
+inductance; the separate 2200 µH range error remains visible. This does
+not alter any Buck equation, CCM/DCM classification, RMS integral, or
+waveform sample.
+
+A regression test pins the combined case to the original-JAR runtime
+values and independently checks the CCM timing and stress equations from
+`Buck.java`. A screen test verifies both fields remain highlighted while
+the calculated results stay visible.
