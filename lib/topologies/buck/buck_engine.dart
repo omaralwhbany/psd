@@ -48,14 +48,14 @@ class BuckEngine {
       final candidateInductance = input.selectedInductance;
       final hasValidCustomInductance = candidateInductance != null &&
           candidateInductance.isFinite &&
-          candidateInductance > 0 &&
-          candidateInductance <= 0.0022;
+          candidateInductance > 0;
       if (hasValidCustomInductance) {
-        // PSD5's checkCurrentRipple() runs after the calculation. With a
-        // positive custom L, negative/NaN ripple targets still produce the
-        // source's numeric operating results; retain the field error without
+        // PSD5 checks ripple and the selected-L range after calculation.
+        // Any finite positive custom L, including one above 2200 µH, still
+        // produces source numeric results; retain both field errors without
         // suppressing those values. The app's automatic-L option is
-        // Flutter-specific; without a valid custom L, keep this blocking.
+        // Flutter-specific; without a finite positive custom L, keep this
+        // invalid-ripple path blocking.
         rippleErrors.add(rippleError);
       } else {
         errors.add(rippleError);
