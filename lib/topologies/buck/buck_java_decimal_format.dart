@@ -139,7 +139,8 @@ String formatBuckJavaDecimal(
   final negative = bits.isNegative;
   if (value == 0.0) {
     final fraction = List<String>.filled(minFractionDigits, '0').join();
-    return (negative ? '-0' : '0') + (fraction.isEmpty ? '' : '.' + fraction);
+    final zero = negative ? '-0' : '0';
+    return fraction.isEmpty ? zero : '$zero.$fraction';
   }
 
   final converted = _floatingDecimalDigits(bits);
@@ -260,7 +261,7 @@ String _formatDigitList(
 ) {
   if (digits.isEmpty || (digits.length == 1 && digits.single == 0)) {
     final fraction = List<String>.filled(minFractionDigits, '0').join();
-    return '0' + (fraction.isEmpty ? '' : '.' + fraction);
+    return fraction.isEmpty ? '0' : '0.$fraction';
   }
 
   final digitText = digits.join();
@@ -291,7 +292,7 @@ String _formatDigitList(
       '0',
     ).join();
   }
-  return integerPart + (fractionPart.isEmpty ? '' : '.' + fractionPart);
+  return fractionPart.isEmpty ? integerPart : '$integerPart.$fractionPart';
 }
 
 _FloatingDecimalDigits _floatingDecimalDigits(int bits) {
