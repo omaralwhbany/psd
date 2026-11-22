@@ -115,7 +115,9 @@ class BuckEngine {
     // !(L > 0) and !(L <= 0.0022) checks flag zero, negative, NaN, and
     // out-of-range values without aborting the calculation.
     if (selected != null && !(selected > 0)) {
-      postCalculationErrors.add('Selected inductance must be greater than zero.');
+      postCalculationErrors.add(
+        'Selected inductance must be greater than zero.',
+      );
     } else if (selected != null && !(selected <= 0.0022)) {
       postCalculationErrors.add(
         'Selected inductance must not exceed 2200 µH.',
