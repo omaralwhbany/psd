@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import '../../core/calculation_result.dart';
-import '../../core/validation.dart';
 import 'buck_inputs.dart';
 
 /// Ideal non-synchronous Buck model aligned with TI PSD's Java Buck model.
@@ -22,18 +21,39 @@ class BuckEngine {
   const BuckEngine();
 
   CalculationResult calculate(BuckInputs input) {
-    final errors = Validation.positiveValues({
-      'Input voltage minimum': input.inputVoltageMin,
-      'Input voltage maximum': input.inputVoltageMax,
-      'Output voltage': input.outputVoltage,
-      'Output current': input.outputCurrent,
-      'Switching frequency': input.switchingFrequency,
-    });
+    final errors = <String>[];
     final warnings = <String>[];
     // PSD5 applies these range checks after completing the numeric calculation.
     // Preserve results for reversed Vin bounds, out-of-range diode drops, and
     // selected inductances outside the source's (0, 2200 µH] range.
     final postCalculationErrors = <String>[];
+    // Buck.java calculates first, then marks these core ranges in runChecks().
+    // Literal comparisons intentionally make NaN fail the same checks as Java.
+    if (!(input.inputVoltageMin > 0)) {
+      postCalculationErrors.add(
+        'Input voltage minimum must be a finite value greater than zero.',
+      );
+    }
+    if (!(input.inputVoltageMax > 0)) {
+      postCalculationErrors.add(
+        'Input voltage maximum must be a finite value greater than zero.',
+      );
+    }
+    if (!(input.outputVoltage > 0)) {
+      postCalculationErrors.add(
+        'Output voltage must be a finite value greater than zero.',
+      );
+    }
+    if (!(input.outputCurrent > 0)) {
+      postCalculationErrors.add(
+        'Output current must be a finite value greater than zero.',
+      );
+    }
+    if (!(input.switchingFrequency > 0)) {
+      postCalculationErrors.add(
+        'Switching frequency must be a finite value greater than zero.',
+      );
+    }
     // PSD5 runs checkCurrentRipple() after userCalculate() has completed the
     // numeric calculation. Keep the 0% and >100% field errors separate from
     // blocking input errors so a positive custom inductor still yields the
@@ -72,16 +92,16 @@ class BuckEngine {
     }
     // Match the input limits enforced by the original PSD5 Buck.java checks.
     if (input.inputVoltageMin > 10000 || input.inputVoltageMax > 10000) {
-      errors.add('Input voltage must not exceed 10000 V.');
+      postCalculationErrors.add('Input voltage must not exceed 10000 V.');
     }
     if (input.outputVoltage > 10000) {
-      errors.add('Output voltage must not exceed 10000 V.');
+      postCalculationErrors.add('Output voltage must not exceed 10000 V.');
     }
     if (input.outputCurrent > 1000) {
-      errors.add('Output current must not exceed 1000 A.');
+      postCalculationErrors.add('Output current must not exceed 1000 A.');
     }
     if (input.switchingFrequency > 1e7) {
-      errors.add('Switching frequency must not exceed 10 MHz.');
+      postCalculationErrors.add('Switching frequency must not exceed 10 MHz.');
     }
     if (!input.operatingLoadPercent.isFinite ||
         input.operatingLoadPercent < 0 ||
@@ -152,10 +172,10 @@ class BuckEngine {
         ((vo + vf) / (vinDesign + vf)) *
         (1 / rippleTarget);
     final dutyCcm = (vo + vf) / (vin + vf);
-    // Java checks negative OFF time after calculating. For an over-duty point,
-    // preserve those source warnings/highlights but do not expose its negative
-    // time or potentially NaN device values in Flutter's numeric result.
-    if (dutyCcm > 1) {
+    // PSD5 calculates custom-inductor over-duty points and only then flags
+    // negative OFF time and duty > 100%. The automatic-L mode is a Flutter
+    // adaptation with no direct PSD5 equivalent, so retain its safety guard.
+    if (dutyCcm > 1 && selected == null) {
       final unsupportedOnTime = dutyCcm * period;
       warnings.add(psdOffTimeWarning);
       if (fs < unsupportedOnTime) warnings.add(psdOnTimeWarning);
@@ -312,6 +332,12 @@ class BuckEngine {
     final outputCapRms = math.sqrt(capOutRmsSquared);
 
     final duty = ton * fs;
+    // Buck.checkDutyCycle() uses !(duty_cycle <= 1.0), so NaN is also flagged.
+    if (!(duty <= 1.0)) {
+      postCalculationErrors.add(
+        'Buck duty cycle must not exceed 100% at the selected operating point.',
+      );
+    }
     // Buck.java checkCurrentRipple() flags the ripple input when
     // !(iripple * 0.99 < Iout * rippleFraction). The original still
     // calculates and displays results, so preserve it as a warning.
