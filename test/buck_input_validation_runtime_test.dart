@@ -806,7 +806,13 @@ void main() {
     );
 
     expect(result.isValid, isFalse);
-    expect(result.errors, ['Selected inductance must be greater than zero.']);
+    expect(
+      result.errors,
+      [
+        'Selected inductance must be greater than zero.',
+        'Buck duty cycle must not exceed 100% at the selected operating point.',
+      ],
+    );
     expect(result.values, isNotEmpty);
     expect(result.values['isCcm'], 0);
     expect(result.values['onTime']!.isNaN, isTrue);
@@ -863,13 +869,21 @@ void main() {
           reason: '$diodeDrop',
         );
         if (diodeDrop.isNaN) {
-          // Buck.checkForwardVoltageDrop() uses only >5 or <0; NaN passes
-          // both comparisons, exactly as in the original Java implementation.
-          expect(result.errors, isEmpty);
+          // The diode comparison passes NaN, but checkDutyCycle() flags the
+          // resulting NaN duty value after the original calculation.
+          expect(
+            result.errors,
+            [
+              'Buck duty cycle must not exceed 100% at the selected operating point.',
+            ],
+          );
         } else {
           expect(
             result.errors,
-            ['Diode forward voltage must be between 0 and 5 V.'],
+            [
+              'Diode forward voltage must be between 0 and 5 V.',
+              'Buck duty cycle must not exceed 100% at the selected operating point.',
+            ],
           );
         }
       }
