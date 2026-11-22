@@ -30,9 +30,9 @@ class BuckEngine {
       'Switching frequency': input.switchingFrequency,
     });
     final warnings = <String>[];
-    // These PSD5 range checks run after calculation; retain numeric results
-    // for reversed Vin bounds, finite out-of-range diode drops, and positive
-    // over-limit inductors.
+    // PSD5 applies these range checks after completing the numeric calculation.
+    // Preserve results for reversed Vin bounds, out-of-range diode drops, and
+    // selected inductances outside the source's (0, 2200 µH] range.
     final postCalculationErrors = <String>[];
     // PSD5 runs checkCurrentRipple() after userCalculate() has completed the
     // numeric calculation. Keep the 0% and >100% field errors separate from
@@ -46,17 +46,14 @@ class BuckEngine {
     } else if (input.rippleFraction.isNaN || input.rippleFraction < 0) {
       const rippleError =
           'Ripple fraction must be a finite value greater than zero.';
-      final candidateInductance = input.selectedInductance;
-      final hasValidCustomInductance = candidateInductance != null &&
-          candidateInductance.isFinite &&
-          candidateInductance > 0;
-      if (hasValidCustomInductance) {
-        // PSD5 checks ripple and the selected-L range after calculation.
-        // Any finite positive custom L, including one above 2200 µH, still
-        // produces source numeric results; retain both field errors without
-        // suppressing those values. The app's automatic-L option is
-        // Flutter-specific; without a finite positive custom L, keep this
-        // invalid-ripple path blocking.
+      final hasCustomInductance = input.selectedInductance != null;
+      if (hasCustomInductance) {
+        // PSD5 checks ripple and selected-L ranges after calculation. Any
+        // explicit custom value, including zero, negative, NaN, or infinity,
+        // follows the original arithmetic before its field error is shown.
+        // Automatic inductance is Flutter-specific; keep that path blocking
+        // for invalid ripple targets because the original sheet has no
+        // automatic/custom mode switch.
         rippleErrors.add(rippleError);
       } else {
         errors.add(rippleError);
@@ -91,9 +88,10 @@ class BuckEngine {
         input.operatingLoadPercent > 100) {
       errors.add('Operating load percentage must be between 0 and 100.');
     }
-    if (!input.diodeForwardVoltage.isFinite) {
-      errors.add('Diode forward voltage must be between 0 and 5 V.');
-    } else if (input.diodeForwardVoltage < 0 || input.diodeForwardVoltage > 5) {
+    // Match Buck.checkForwardVoltageDrop() literally: +Infinity and
+    // -Infinity fail the comparisons, while NaN does not. The source check
+    // runs after calculation and therefore must not suppress the result map.
+    if (input.diodeForwardVoltage > 5 || input.diodeForwardVoltage < 0) {
       postCalculationErrors.add(
         'Diode forward voltage must be between 0 and 5 V.',
       );
@@ -113,9 +111,12 @@ class BuckEngine {
       );
     }
     final selected = input.selectedInductance;
-    if (selected != null && (!selected.isFinite || selected <= 0)) {
-      errors.add('Selected inductance must be greater than zero.');
-    } else if (selected != null && selected > 0.0022) {
+    // Buck.checkInductance() executes after actualValues()/general(). Its
+    // !(L > 0) and !(L <= 0.0022) checks flag zero, negative, NaN, and
+    // out-of-range values without aborting the calculation.
+    if (selected != null && !(selected > 0)) {
+      postCalculationErrors.add('Selected inductance must be greater than zero.');
+    } else if (selected != null && !(selected <= 0.0022)) {
       postCalculationErrors.add(
         'Selected inductance must not exceed 2200 µH.',
       );
@@ -216,17 +217,9 @@ class BuckEngine {
           2 * iout * inductance * ((vo + vf) / (fs * (vin - vo) * (vin + vf))));
       toff = ton * ((vin + vf) / (vo + vf)) - ton;
       tidle = period - ton - toff;
-      if (!ton.isFinite || !toff.isFinite) {
-        return CalculationResult(
-          values: const {},
-          errors: [
-            ...postCalculationErrors,
-            ...rippleErrors,
-            'The selected inductance does not produce a valid Buck DCM cycle at this operating point.',
-          ],
-          warnings: warnings,
-        );
-      }
+      // Buck.java does not reject non-finite DCM times here. It continues
+      // through actualValues(), general(), runChecks(), and graph repainting;
+      // preserve its NaN/Infinity result values for invalid parsed inputs.
       peak = (1 / inductance) * (vin - vo) * ton;
       minimum = 0;
     }
