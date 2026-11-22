@@ -427,8 +427,11 @@ void main() {
           contains('Selected inductance must not exceed 2200 µH.'),
           reason: scenario.label,
         );
-        expect(result.errors, contains(scenario.rippleError),
-            reason: scenario.label);
+        expect(
+          result.errors,
+          contains(scenario.rippleError),
+          reason: scenario.label,
+        );
         expect(result.values, isNotEmpty, reason: scenario.label);
         expect(result.values['isCcm'], 1, reason: scenario.label);
         expect(
@@ -906,5 +909,4 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
-
 }
