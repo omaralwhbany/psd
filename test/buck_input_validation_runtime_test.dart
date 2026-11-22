@@ -854,7 +854,9 @@ void main() {
         );
         expect(
           result.warnings,
-          contains('Actual inductor ripple exceeds the requested ripple target.'),
+          contains(
+            'Actual inductor ripple exceeds the requested ripple target.',
+          ),
           reason: '$diodeDrop',
         );
         if (diodeDrop.isNaN) {
