@@ -11,6 +11,8 @@ class BuckEngine {
       'Automatic inductance is zero at the 100% duty boundary; choose a positive custom inductance.';
   static const String automaticInductanceNonFiniteError =
       'Automatic inductance is not finite for the requested ripple target; choose a finite custom inductance.';
+  static const String automaticInductanceNegativeError =
+      'Automatic inductance is negative for the selected input range; choose a positive custom inductance.';
   static const String outputAboveMinimumInputWarning =
       'PSD5 flags output voltage and minimum input voltage when output voltage exceeds minimum input voltage.';
   static const String psdOffTimeWarning =
@@ -190,10 +192,10 @@ class BuckEngine {
       );
     }
     // In automatic mode, Vin(max) == Vo makes the source Lmin expression
-    // exactly zero. A negative Lmin is not this boundary; with valid input
-    // ranges it has already been handled by the over-duty guard above.
-    // TI keeps selected L separate; a positive custom L still produces the
-    // source's valid 100%-duty CCM result at the exact boundary.
+    // exactly zero. Reversed/invalid Vin bounds can instead make Lmin negative
+    // while the selected operating Vin still gives duty <= 100%. PSD5 keeps
+    // selected L separate; Flutter must not reuse that negative design label
+    // as the actual inductor value in its automatic-L extension.
     if (selected == null && !minimumInductance.isFinite) {
       return CalculationResult(
         values: const {},
@@ -212,6 +214,17 @@ class BuckEngine {
           ...postCalculationErrors,
           ...rippleErrors,
           automaticInductanceZeroError,
+        ],
+        warnings: warnings,
+      );
+    }
+    if (selected == null && minimumInductance < 0) {
+      return CalculationResult(
+        values: const {},
+        errors: [
+          ...postCalculationErrors,
+          ...rippleErrors,
+          automaticInductanceNegativeError,
         ],
         warnings: warnings,
       );
