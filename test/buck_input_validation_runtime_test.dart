@@ -791,7 +791,7 @@ void main() {
 
   test('Buck retains PSD5 NaN results for a NaN selected inductance', () {
     final result = engine.calculate(
-      BuckInputs(
+      const BuckInputs(
         inputVoltageMin: 18,
         inputVoltageMax: 36,
         outputVoltage: 12,
