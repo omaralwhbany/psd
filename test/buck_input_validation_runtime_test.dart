@@ -517,7 +517,6 @@ void main() {
     },
   );
 
-
   test(
     'Buck retains PSD5 results when Vin minimum exceeds maximum',
     () {
@@ -570,7 +569,10 @@ void main() {
         );
 
         expect(result.isValid, isFalse);
-        expect(result.errors, ['Input voltage minimum cannot exceed maximum.']);
+        expect(
+          result.errors,
+          ['Input voltage minimum cannot exceed maximum.'],
+        );
         expect(result.values, isNotEmpty);
         expect(result.values['operatingInputVoltage'], scenario.vin);
         expect(result.values['isCcm'], 1);
