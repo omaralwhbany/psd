@@ -673,4 +673,236 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  test(
+    'Buck retains PSD5 results for zero, negative, and infinite selected inductance',
+    () {
+      BuckInputs withInductance(double inductance) => BuckInputs(
+            inputVoltageMin: 18,
+            inputVoltageMax: 36,
+            outputVoltage: 12,
+            outputCurrent: 5,
+            switchingFrequency: 200e3,
+            rippleFraction: 0.30,
+            diodeForwardVoltage: 0.5,
+            operatingInputVoltage: 18,
+            operatingLoadPercent: 100,
+            selectedInductance: inductance,
+          );
+
+      // Actual values captured by running the original Buck class from
+      // PSD5.jar under OpenJDK 21. checkInductance() runs after calculation.
+      final zero = engine.calculate(withInductance(0));
+      expect(zero.isValid, isFalse);
+      expect(zero.errors, ['Selected inductance must be greater than zero.']);
+      expect(zero.values, isNotEmpty);
+      expect(zero.values['isCcm'], 0);
+      expect(zero.values['designRippleCurrent']!.isInfinite, isTrue);
+      expect(zero.values['onTime'], 0);
+      expect(zero.values['offTime'], 0);
+      expect(zero.values['idleTime'], closeTo(5e-6, 1e-18));
+      expect(zero.values['peakCurrent']!.isNaN, isTrue);
+      expect(zero.values['inductorRmsCurrent']!.isNaN, isTrue);
+      expect(zero.values['outputPower'], 60);
+      expect(zero.values['inputPower']!.isNaN, isTrue);
+      expect(
+        zero.warnings,
+        contains('Actual inductor ripple exceeds the requested ripple target.'),
+      );
+
+      final negative = engine.calculate(withInductance(-10e-6));
+      expect(negative.isValid, isFalse);
+      expect(
+        negative.errors,
+        ['Selected inductance must be greater than zero.'],
+      );
+      expect(negative.values['isCcm'], 1);
+      expect(
+        negative.values['peakCurrent'],
+        closeTo(3.986486486486487, 1e-12),
+      );
+      expect(
+        negative.values['minimumCurrent'],
+        closeTo(6.013513513513513, 1e-12),
+      );
+      expect(
+        negative.values['rippleCurrent'],
+        closeTo(-2.0270270270270263, 1e-12),
+      );
+      expect(
+        negative.values['inductorRmsCurrent'],
+        closeTo(5.033620540612438, 1e-12),
+      );
+      expect(
+        negative.values['mosfetRmsCurrent'],
+        closeTo(4.13761059678065, 1e-12),
+      );
+      expect(
+        negative.values['diodeRmsCurrent'],
+        closeTo(2.866620710223788, 1e-12),
+      );
+      expect(
+        negative.values['inputCapacitorRmsCurrent'],
+        closeTo(2.389280899087459, 1e-12),
+      );
+      expect(
+        negative.values['outputCapacitorRmsCurrent'],
+        closeTo(0.5851522998543502, 1e-12),
+      );
+      expect(
+        negative.values['inputPower'],
+        closeTo(60.810810810810814, 1e-12),
+      );
+
+      final positiveInfinity = engine.calculate(
+        withInductance(double.infinity),
+      );
+      expect(positiveInfinity.isValid, isFalse);
+      expect(
+        positiveInfinity.errors,
+        ['Selected inductance must not exceed 2200 µH.'],
+      );
+      expect(positiveInfinity.values['isCcm'], 1);
+      expect(positiveInfinity.values['designRippleCurrent'], 0);
+      expect(positiveInfinity.values['peakCurrent'], 5);
+      expect(positiveInfinity.values['minimumCurrent'], 5);
+      expect(
+        positiveInfinity.values['inductorRmsCurrent'],
+        closeTo(4.999500074987503, 1e-12),
+      );
+      expect(
+        positiveInfinity.values['mosfetRmsCurrent'],
+        closeTo(4.109563746805016, 1e-12),
+      );
+      expect(
+        positiveInfinity.values['diodeRmsCurrent'],
+        closeTo(2.8471892825637637, 1e-12),
+      );
+      expect(
+        positiveInfinity.values['inputCapacitorRmsCurrent'],
+        closeTo(2.340375173600748, 1e-12),
+      );
+      expect(positiveInfinity.values['outputCapacitorRmsCurrent'], 0);
+    },
+  );
+
+  test('Buck retains PSD5 NaN results for a NaN selected inductance', () {
+    final result = engine.calculate(
+      BuckInputs(
+        inputVoltageMin: 18,
+        inputVoltageMax: 36,
+        outputVoltage: 12,
+        outputCurrent: 5,
+        switchingFrequency: 200e3,
+        rippleFraction: 0.30,
+        diodeForwardVoltage: 0.5,
+        operatingInputVoltage: 18,
+        operatingLoadPercent: 100,
+        selectedInductance: double.nan,
+      ),
+    );
+
+    expect(result.isValid, isFalse);
+    expect(result.errors, ['Selected inductance must be greater than zero.']);
+    expect(result.values, isNotEmpty);
+    expect(result.values['isCcm'], 0);
+    expect(result.values['onTime']!.isNaN, isTrue);
+    expect(result.values['offTime']!.isNaN, isTrue);
+    expect(result.values['idleTime']!.isNaN, isTrue);
+    expect(result.values['peakCurrent']!.isNaN, isTrue);
+    expect(result.values['inductorRmsCurrent']!.isNaN, isTrue);
+    expect(result.values['outputPower'], 60);
+    expect(result.values['inputPower']!.isNaN, isTrue);
+  });
+
+  test(
+    'Buck mirrors PSD5 non-finite diode-drop comparisons without blocking results',
+    () {
+      BuckInputs withDiodeDrop(double diodeDrop) => BuckInputs(
+            inputVoltageMin: 18,
+            inputVoltageMax: 36,
+            outputVoltage: 12,
+            outputCurrent: 5,
+            switchingFrequency: 200e3,
+            rippleFraction: 0.30,
+            diodeForwardVoltage: diodeDrop,
+            operatingInputVoltage: 18,
+            operatingLoadPercent: 100,
+            selectedInductance: 10e-6,
+          );
+
+      for (final diodeDrop in [
+        double.nan,
+        double.infinity,
+        double.negativeInfinity,
+      ]) {
+        final result = engine.calculate(withDiodeDrop(diodeDrop));
+        expect(result.values, isNotEmpty, reason: '$diodeDrop');
+        expect(result.values['isCcm'], 0, reason: '$diodeDrop');
+        expect(result.values['onTime']!.isNaN, isTrue, reason: '$diodeDrop');
+        expect(result.values['offTime']!.isNaN, isTrue, reason: '$diodeDrop');
+        expect(
+          result.values['inductorRmsCurrent']!.isNaN,
+          isTrue,
+          reason: '$diodeDrop',
+        );
+        expect(result.values['outputPower'], 60, reason: '$diodeDrop');
+        expect(
+          result.values['inputPower']!.isNaN,
+          isTrue,
+          reason: '$diodeDrop',
+        );
+        expect(
+          result.warnings,
+          contains('Actual inductor ripple exceeds the requested ripple target.'),
+          reason: '$diodeDrop',
+        );
+        if (diodeDrop.isNaN) {
+          // Buck.checkForwardVoltageDrop() uses only >5 or <0; NaN passes
+          // both comparisons, exactly as in the original Java implementation.
+          expect(result.errors, isEmpty);
+        } else {
+          expect(
+            result.errors,
+            ['Diode forward voltage must be between 0 and 5 V.'],
+          );
+        }
+      }
+    },
+  );
+
+  testWidgets(
+    'Buck renders source-calculated zero-inductance NaNs alongside the range error',
+    (tester) async {
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        const MaterialApp(home: Scaffold(body: BuckScreen())),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(SwitchListTile));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).last, '0');
+      await tester.pumpAndSettle();
+
+      final inductanceField = find.byType(TextField).last;
+      final theme = Theme.of(tester.element(inductanceField));
+      expect(
+        tester.widget<TextField>(inductanceField).decoration!.fillColor,
+        theme.colorScheme.error,
+      );
+      expect(
+        find.text('Selected inductance must be greater than zero.'),
+        findsOneWidget,
+      );
+      expect(find.text('60.00 W'), findsOneWidget);
+      expect(find.text('NaN W'), findsNWidgets(2));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
 }
