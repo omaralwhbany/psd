@@ -1215,6 +1215,4 @@ void main() {
       );
       expect(tester.takeException(), isNull);
     },
-  );
-
-}
+  );}
