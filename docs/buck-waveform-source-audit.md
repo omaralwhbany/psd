@@ -1080,3 +1080,21 @@ the Flutter over-duty early return was removed so the source's negative
 OFF-time and device results remain observable; the synchronized idealized
 chart is withheld for invalid timing while the five source-derived device
 graphs remain visible.
+
+
+### Source-matched input field highlighting
+
+The Buck screen now derives the two Vin field warning states from the same
+predicates as the original checks:
+
+- `checkMinMaxVolt()`: `!(Vin_min > 0 && Vin_min <= 10000 && Vin_min <= Vin_max)`
+  marks both minimum and maximum fields.
+- `checkMaxVoltage()`: `!(Vin_max > 0 && Vin_max <= 10000)`
+  marks the maximum field independently.
+
+Consequently, a bad minimum or reversed/NaN range marks both fields, while a
+valid minimum paired only with an over-limit maximum marks the maximum field.
+The output, current, frequency, and duty fields are highlighted from their
+corresponding post-calculation errors. The synchronized idealized chart is
+withheld when timing is negative or outside one cycle; the five PSD5-derived
+device plots remain rendered.
