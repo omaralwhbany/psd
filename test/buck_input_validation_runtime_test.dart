@@ -1234,4 +1234,39 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  test(
+    'Buck blocks negative automatic inductance for reversed Vin bounds below Vout',
+    () {
+      // Buck.calcMinInductance() in the original Java source and JAR bytecode
+      // returns a negative Lmin when Vin(max) < Vout. PSD5 keeps that design
+      // label separate from the selected inductor; the Flutter automatic-L
+      // extension must not feed the negative label into its operating model.
+      final result = engine.calculate(
+        const BuckInputs(
+          inputVoltageMin: 36,
+          inputVoltageMax: 18,
+          outputVoltage: 24,
+          outputCurrent: 5,
+          switchingFrequency: 200e3,
+          rippleFraction: 0.30,
+          diodeForwardVoltage: 0.5,
+          operatingInputVoltage: 36,
+          operatingLoadPercent: 100,
+        ),
+      );
+
+      expect(result.isValid, isFalse);
+      expect(result.values, isEmpty);
+      expect(
+        result.errors,
+        contains('Input voltage minimum cannot exceed maximum.'),
+      );
+      expect(
+        result.errors,
+        contains(BuckEngine.automaticInductanceNegativeError),
+      );
+    },
+  );
+
 }
