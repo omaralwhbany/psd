@@ -102,7 +102,27 @@ class _BuckScreenState extends State<BuckScreen> {
         input.inputVoltageMin > input.inputVoltageMax;
     final outputAboveMinimumInputWarning =
         input.outputVoltage > input.inputVoltageMin;
-    final canRenderSynchronizedWaveforms = hasResults &&
+    final inputVoltageUpperLimitWarning =
+        result.errors.contains('Input voltage must not exceed 10000 V.');
+    final inputVoltageMinWarning = inputRangeOrderWarning ||
+        outputAboveMinimumInputWarning ||
+        inputVoltageUpperLimitWarning ||
+        result.errors.any((error) => error.startsWith('Input voltage minimum'));
+    final inputVoltageMaxWarning = inputRangeOrderWarning ||
+        inputVoltageUpperLimitWarning ||
+        result.errors.any((error) => error.startsWith('Input voltage maximum'));
+    final operatingInputVoltageWarning = result.errors
+        .any((error) => error.startsWith('Operating input voltage'));
+    final outputVoltageWarning = outputAboveMinimumInputWarning ||
+        result.errors.any((error) => error.startsWith('Output voltage'));
+    final outputCurrentWarning =
+        result.errors.any((error) => error.startsWith('Output current'));
+    final switchingFrequencyWarning =
+        result.errors.any((error) => error.startsWith('Switching frequency'));
+    final dutyCycleWarning = result.errors.contains(
+      'Buck duty cycle must not exceed 100% at the selected operating point.',
+    );
+    final synchronizedWaveformValuesFinite = hasResults &&
         [
           'operatingOutputCurrent',
           'rippleCurrent',
@@ -112,6 +132,17 @@ class _BuckScreenState extends State<BuckScreen> {
           'idleFraction',
           'operatingInputVoltage',
         ].every((key) => result.values[key]?.isFinite ?? false);
+    final canRenderSynchronizedWaveforms =
+        synchronizedWaveformValuesFinite &&
+            result.values['dutyCycle']! >= 0 &&
+            result.values['dutyCycle']! <= 1 &&
+            result.values['onFraction']! >= 0 &&
+            result.values['offFraction']! >= 0 &&
+            result.values['idleFraction']! >= 0;
+    final synchronizedWaveformUnavailableMessage =
+        synchronizedWaveformValuesFinite
+            ? s.waveformUnavailableForInvalidTiming
+            : s.waveformUnavailableForNonFiniteResults;
     return ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
         children: [
@@ -133,15 +164,17 @@ class _BuckScreenState extends State<BuckScreen> {
               s.inputs,
               Column(children: [
                 _field(s.inputVoltageMin, 'vinMin', 'V',
-                    warning: inputRangeOrderWarning ||
-                        outputAboveMinimumInputWarning),
+                    warning: inputVoltageMinWarning),
                 _field(s.inputVoltageMax, 'vinMax', 'V',
-                    warning: inputRangeOrderWarning),
-                _field(s.operatingInputVoltage, 'vinOperating', 'V'),
+                    warning: inputVoltageMaxWarning),
+                _field(s.operatingInputVoltage, 'vinOperating', 'V',
+                    warning: operatingInputVoltageWarning),
                 _field(s.outputVoltage, 'vout', 'V',
-                    warning: outputAboveMinimumInputWarning),
-                _field(s.outputCurrent, 'iout', 'A'),
-                _field(s.switchingFrequency, 'fsw', 'kHz'),
+                    warning: outputVoltageWarning),
+                _field(s.outputCurrent, 'iout', 'A',
+                    warning: outputCurrentWarning),
+                _field(s.switchingFrequency, 'fsw', 'kHz',
+                    warning: switchingFrequencyWarning),
                 _field(s.ripplePercent, 'ripple', '%', warning: rippleWarning),
                 _field(s.diodeDrop, 'vf', 'V', warning: diodeDropWarning),
                 Column(
@@ -221,8 +254,11 @@ class _BuckScreenState extends State<BuckScreen> {
                             emphasize: true),
                         _result(s.operatingOutputCurrent,
                             '${result.values['operatingOutputCurrent']!.toStringAsFixed(3)} A'),
-                        _result(s.dutyCycle,
-                            '${(result.values['dutyCycle']! * 100).toStringAsFixed(2)} %'),
+                        _result(
+                          s.dutyCycle,
+                          '${(result.values['dutyCycle']! * 100).toStringAsFixed(2)} %',
+                          warning: dutyCycleWarning,
+                        ),
                         _result(s.switchingPeriod,
                             '${Units.baseToMicro(1 / input.switchingFrequency).toStringAsFixed(2)} µs',
                             warning: onTimeWarning),
@@ -371,7 +407,7 @@ class _BuckScreenState extends State<BuckScreen> {
                 s.synchronizedWaveforms,
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Text(s.waveformUnavailableForNonFiniteResults),
+                  child: Text(synchronizedWaveformUnavailableMessage),
                 ),
               ),
           ],
