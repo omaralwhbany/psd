@@ -909,4 +909,298 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+  test(
+    'Buck preserves PSD5 calculations before core range and duty checks',
+    () {
+      final zeroMinimum = engine.calculate(
+        const BuckInputs(
+          inputVoltageMin: 0,
+          inputVoltageMax: 36,
+          outputVoltage: 12,
+          outputCurrent: 5,
+          switchingFrequency: 200e3,
+          rippleFraction: 0.30,
+          diodeForwardVoltage: 0.5,
+          operatingInputVoltage: 0,
+          operatingLoadPercent: 100,
+          selectedInductance: 10e-6,
+        ),
+      );
+
+      expect(zeroMinimum.isValid, isFalse);
+      expect(
+        zeroMinimum.errors,
+        contains(
+          'Input voltage minimum must be a finite value greater than zero.',
+        ),
+      );
+      expect(
+        zeroMinimum.errors,
+        contains(
+          'Buck duty cycle must not exceed 100% at the selected operating point.',
+        ),
+      );
+      expect(zeroMinimum.values, isNotEmpty);
+      expect(zeroMinimum.values['operatingInputVoltage'], 0);
+      expect(zeroMinimum.values['isCcm'], 1);
+      expect(zeroMinimum.values['onTime'], closeTo(125e-6, 1e-18));
+      expect(zeroMinimum.values['offTime'], closeTo(-120e-6, 1e-18));
+      expect(zeroMinimum.values['rippleCurrent'], -150);
+      expect(
+        zeroMinimum.values['inductorRmsCurrent'],
+        closeTo(43.584631190189086, 1e-12),
+      );
+      expect(zeroMinimum.values['outputPower'], 60);
+      expect(
+        zeroMinimum.warnings,
+        contains(BuckEngine.psdOffTimeWarning),
+      );
+
+      final overDuty = engine.calculate(
+        const BuckInputs(
+          inputVoltageMin: 18,
+          inputVoltageMax: 36,
+          outputVoltage: 20,
+          outputCurrent: 5,
+          switchingFrequency: 200e3,
+          rippleFraction: 0.30,
+          diodeForwardVoltage: 0.5,
+          operatingInputVoltage: 18,
+          operatingLoadPercent: 100,
+          selectedInductance: 10e-6,
+        ),
+      );
+
+      expect(overDuty.isValid, isFalse);
+      expect(
+        overDuty.errors,
+        contains(
+          'Buck duty cycle must not exceed 100% at the selected operating point.',
+        ),
+      );
+      expect(overDuty.values, isNotEmpty);
+      expect(overDuty.values['isCcm'], 1);
+      expect(
+        overDuty.values['dutyCycle'],
+        closeTo(1.108108108108108, 1e-12),
+      );
+      expect(
+        overDuty.values['offTime'],
+        closeTo(-0.5405405405405403e-6, 1e-18),
+      );
+      expect(
+        overDuty.values['inductorRmsCurrent'],
+        closeTo(5.009721133666407, 1e-12),
+      );
+      expect(overDuty.values['diodeRmsCurrent']!.isNaN, isTrue);
+      expect(overDuty.values['outputPower'], 100);
+      expect(
+        overDuty.values['inputPower'],
+        closeTo(99.72972972972973, 1e-12),
+      );
+      expect(overDuty.warnings, contains(BuckEngine.psdOffTimeWarning));
+
+      final zeroFrequency = engine.calculate(
+        const BuckInputs(
+          inputVoltageMin: 18,
+          inputVoltageMax: 36,
+          outputVoltage: 12,
+          outputCurrent: 5,
+          switchingFrequency: 0,
+          rippleFraction: 0.30,
+          diodeForwardVoltage: 0.5,
+          operatingInputVoltage: 18,
+          operatingLoadPercent: 100,
+          selectedInductance: 10e-6,
+        ),
+      );
+
+      expect(zeroFrequency.isValid, isFalse);
+      expect(
+        zeroFrequency.errors,
+        contains(
+          'Switching frequency must be a finite value greater than zero.',
+        ),
+      );
+      expect(zeroFrequency.values, isNotEmpty);
+      expect(zeroFrequency.values['isCcm'], 0);
+      expect(zeroFrequency.values['onTime']!.isInfinite, isTrue);
+      expect(zeroFrequency.values['offTime']!.isNaN, isTrue);
+      expect(zeroFrequency.values['idleTime']!.isNaN, isTrue);
+      expect(zeroFrequency.values['outputPower'], 60);
+      expect(zeroFrequency.values['inputPower']!.isNaN, isTrue);
+
+      final zeroCurrent = engine.calculate(
+        const BuckInputs(
+          inputVoltageMin: 18,
+          inputVoltageMax: 36,
+          outputVoltage: 12,
+          outputCurrent: 0,
+          switchingFrequency: 200e3,
+          rippleFraction: 0.30,
+          diodeForwardVoltage: 0.5,
+          operatingInputVoltage: 18,
+          operatingLoadPercent: 100,
+          selectedInductance: 10e-6,
+        ),
+      );
+
+      expect(zeroCurrent.isValid, isFalse);
+      expect(
+        zeroCurrent.errors,
+        contains(
+          'Output current must be a finite value greater than zero.',
+        ),
+      );
+      expect(zeroCurrent.values, isNotEmpty);
+      expect(zeroCurrent.values['isCcm'], 0);
+      expect(zeroCurrent.values['onTime'], 0);
+      expect(zeroCurrent.values['offTime'], 0);
+      expect(zeroCurrent.values['idleTime'], closeTo(5e-6, 1e-18));
+      expect(zeroCurrent.values['inductorRmsCurrent'], 0);
+      expect(zeroCurrent.values['outputPower'], 0);
+      expect(zeroCurrent.values['inputPower'], 0);
+    },
+  );
+
+  test(
+    'Buck reports PSD5 upper input, current, and frequency limits after calculating',
+    () {
+      final highMaximumInput = engine.calculate(
+        const BuckInputs(
+          inputVoltageMin: 18,
+          inputVoltageMax: 10001,
+          outputVoltage: 12,
+          outputCurrent: 5,
+          switchingFrequency: 200e3,
+          rippleFraction: 0.30,
+          diodeForwardVoltage: 0.5,
+          operatingInputVoltage: 18,
+          operatingLoadPercent: 100,
+          selectedInductance: 10e-6,
+        ),
+      );
+
+      expect(highMaximumInput.isValid, isFalse);
+      expect(
+        highMaximumInput.errors,
+        contains('Input voltage must not exceed 10000 V.'),
+      );
+      expect(highMaximumInput.values, isNotEmpty);
+      expect(
+        highMaximumInput.values['minimumInductance'],
+        closeTo(41.614591144661635e-6, 1e-18),
+      );
+      expect(
+        highMaximumInput.values['inputPower'],
+        closeTo(60.810810810810814, 1e-12),
+      );
+
+      final highOutputCurrent = engine.calculate(
+        const BuckInputs(
+          inputVoltageMin: 18,
+          inputVoltageMax: 36,
+          outputVoltage: 12,
+          outputCurrent: 1001,
+          switchingFrequency: 200e3,
+          rippleFraction: 0.30,
+          diodeForwardVoltage: 0.5,
+          operatingInputVoltage: 18,
+          operatingLoadPercent: 100,
+          selectedInductance: 10e-6,
+        ),
+      );
+
+      expect(highOutputCurrent.isValid, isFalse);
+      expect(
+        highOutputCurrent.errors,
+        contains('Output current must not exceed 1000 A.'),
+      );
+      expect(highOutputCurrent.values, isNotEmpty);
+      expect(highOutputCurrent.values['outputPower'], 12012);
+      expect(
+        highOutputCurrent.values['inputPower'],
+        closeTo(12174.324324324325, 1e-9),
+      );
+
+      final highFrequency = engine.calculate(
+        const BuckInputs(
+          inputVoltageMin: 18,
+          inputVoltageMax: 36,
+          outputVoltage: 12,
+          outputCurrent: 5,
+          switchingFrequency: 10001e3,
+          rippleFraction: 0.30,
+          diodeForwardVoltage: 0.5,
+          operatingInputVoltage: 18,
+          operatingLoadPercent: 100,
+          selectedInductance: 10e-6,
+        ),
+      );
+
+      expect(highFrequency.isValid, isFalse);
+      expect(
+        highFrequency.errors,
+        contains('Switching frequency must not exceed 10 MHz.'),
+      );
+      expect(highFrequency.values, isNotEmpty);
+      expect(
+        highFrequency.values['onTime'],
+        closeTo(6.756081148641892e-8, 1e-20),
+      );
+      expect(
+        highFrequency.values['offTime'],
+        closeTo(3.242918951348109e-8, 1e-20),
+      );
+      expect(
+        highFrequency.values['inductorRmsCurrent'],
+        closeTo(4.975197113495087, 1e-12),
+      );
+    },
+  );
+
+  testWidgets(
+    'Buck keeps PSD5 over-duty values and device graphs visible',
+    (tester) async {
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        const MaterialApp(home: Scaffold(body: BuckScreen())),
+      );
+      await tester.pumpAndSettle();
+
+      final initialFields = find.byType(TextField);
+      await tester.enterText(initialFields.at(3), '20');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(SwitchListTile));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).last, '10');
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Buck duty cycle must not exceed 100% at the selected operating point.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('110.81 %'), findsOneWidget);
+      expect(find.text('-540.54 ns'), findsOneWidget);
+      expect(find.text('100.00 W'), findsOneWidget);
+      expect(
+        find.text('Buck device waveforms (PSD5 source model)'),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'The synchronized waveform is unavailable because the calculated timing is outside a valid cycle; detailed Buck device waveforms remain visible.',
+        ),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
 }
