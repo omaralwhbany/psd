@@ -973,3 +973,70 @@ Regression tests pin both endpoint cases to the original-JAR runtime values
 and independently verify the CCM timing, ripple, RMS currents, and power.
 A widget test confirms both range fields are highlighted and the numeric
 results remain visible.
+
+## 2026-11-22: zero/negative/non-finite selected inductance and non-finite diode drop
+
+Re-inspected the extracted PSD5_java/.../sheets/Buck.java and the
+corresponding Buck bytecode in PSD5.jar before changing validation
+behavior. The source and bytecode agree on this order:
+
+1. userCalculate() parses the selected inductance, classifies CCM/DCM,
+   calculates ON/OFF/zero times, evaluates actualValues(), copies
+   singleValues(), computes general(), and updates the labels.
+2. Only afterward does runChecks() call checkCurrentRipple(),
+   checkInductance(), and checkForwardVoltageDrop().
+3. checkInductance() decrements both chooseinduc and calcinduc when
+   !(dLout > 0.0) || !(dLout <= 0.0022). It does not abort or return.
+4. checkForwardVoltageDrop() tests only dVforward > 5.0 ||
+   dVforward < 0.0. Consequently positive/negative infinity are flagged,
+   but NaN passes both comparisons. getUserModifiedValues() and
+   getUserValues() use Double.parseDouble(), so Java accepts the literal
+   strings NaN and Infinity.
+
+These paths were verified by executing the original Buck class from
+PSD5.jar under OpenJDK 21 in headless mode. The harness set the original
+Swing text fields and called calculate() twice. These are actual original-JAR
+runtime observations, not values calculated by the Flutter engine.
+
+For Vin(min/max)=18/36 V, Vout=12 V, Iout=5 A, fs=200 kHz, Vf=0.5 V,
+ripple=30%, and operating Vin=18 V:
+
+| Selected L text | Java CCM/DCM | ON / OFF / zero time | Inductor RMS | MOSFET RMS | Diode RMS | Input / output capacitor RMS | Input power |
+|---|---|---|---:|---:|---:|---:|---:|
+| 0 µH | DCM | 0 / 0 / 5 µs | NaN | NaN | NaN | NaN / NaN | NaN |
+| -10 µH | CCM | 3.378378378 / 1.621621622 / 0.001 µs | 5.033620540612438 A | 4.13761059678065 A | 2.866620710223788 A | 2.389280899087459 / 0.5851522998543502 A | 60.810810810810814 W |
+| Infinity µH | CCM | 3.378378378 / 1.621621622 / 0.001 µs | 4.999500074987503 A | 4.109563746805016 A | 2.8471892825637637 A | 2.340375173600748 / 0 A | 60.810810810810814 W |
+| NaN µH | DCM | NaN / NaN / NaN | NaN | NaN | NaN | NaN / NaN | NaN |
+
+The zero-inductance case still reports 60 W output power and a finite
+27.397260273972603 µH calculated Lmin, while its peak/current/RMS and input
+power values become NaN through the source's Infinity * 0 arithmetic.
+For -10 µH, the original CCM classifier accepts the negative design ripple;
+the displayed minimum current (6.013513513513513 A) is greater than the
+displayed peak current (3.986486486486487 A), and the actual ripple is
+-2.0270270270270263 A. This odd result is the original program's behavior,
+not a physically meaningful operating point. Positive infinity is also
+flagged by the source but produces a zero-ripple CCM result.
+
+For the same operating point with a positive custom 10 µH inductor, setting
+Vf to NaN, +Infinity, or -Infinity makes the original Java DCM times and
+device/capacitor RMS values NaN while retaining 60 W output power and NaN
+input power. The NaN diode field is not highlighted by the original
+checkForwardVoltageDrop() comparison; +Infinity and -Infinity are
+highlighted. In all three cases the actual-ripple check flags the ripple
+input because its comparison receives NaN.
+
+The Flutter engine now mirrors those post-calculation checks: selected
+inductance values outside (0, 2200] µH and infinite diode drops are
+reported alongside retained values; NaN diode drop follows the source's
+comparison behavior; and non-finite DCM times are retained rather than
+being discarded by a Flutter-only finite-time guard. A widget regression
+checks that the zero-inductance error and source-calculated NaN labels remain
+visible without a Flutter canvas exception.
+
+This is an exact-behavior compatibility test, not a recommendation to use
+zero, negative, NaN, or infinite component values in a real converter. It
+does not close the separate validation gaps for non-positive/over-limit
+core input values or the Flutter over-duty safety guard. No Buck equation,
+CCM/DCM comparison, RMS integral, or waveform sample formula was changed.
+
