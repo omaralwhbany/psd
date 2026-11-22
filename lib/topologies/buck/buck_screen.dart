@@ -107,18 +107,27 @@ class _BuckScreenState extends State<BuckScreen> {
     final inputVoltageMinWarning = inputRangeOrderWarning ||
         outputAboveMinimumInputWarning ||
         inputVoltageUpperLimitWarning ||
-        result.errors.any((error) => error.startsWith('Input voltage minimum'));
+        result.errors.any(
+          (error) => error.startsWith('Input voltage minimum'),
+        );
     final inputVoltageMaxWarning = inputRangeOrderWarning ||
         inputVoltageUpperLimitWarning ||
-        result.errors.any((error) => error.startsWith('Input voltage maximum'));
-    final operatingInputVoltageWarning = result.errors
-        .any((error) => error.startsWith('Operating input voltage'));
+        result.errors.any(
+          (error) => error.startsWith('Input voltage maximum'),
+        );
+    final operatingInputVoltageWarning = result.errors.any(
+      (error) => error.startsWith('Operating input voltage'),
+    );
     final outputVoltageWarning = outputAboveMinimumInputWarning ||
-        result.errors.any((error) => error.startsWith('Output voltage'));
-    final outputCurrentWarning =
-        result.errors.any((error) => error.startsWith('Output current'));
-    final switchingFrequencyWarning =
-        result.errors.any((error) => error.startsWith('Switching frequency'));
+        result.errors.any(
+          (error) => error.startsWith('Output voltage'),
+        );
+    final outputCurrentWarning = result.errors.any(
+      (error) => error.startsWith('Output current'),
+    );
+    final switchingFrequencyWarning = result.errors.any(
+      (error) => error.startsWith('Switching frequency'),
+    );
     final dutyCycleWarning = result.errors.contains(
       'Buck duty cycle must not exceed 100% at the selected operating point.',
     );
