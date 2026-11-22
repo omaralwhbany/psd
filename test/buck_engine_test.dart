@@ -523,7 +523,7 @@ void main() {
     expect(result.values['outputCapacitorRmsCurrent'], closeTo(0.17731887874374277, 1e-12));
   });
 
-  test('Buck keeps unsupported over-duty operating points out of numeric results', () {
+  test('Buck preserves PSD5 over-duty results for a custom inductor', () {
     const input = BuckInputs(
       inputVoltageMin: 9,
       inputVoltageMax: 18,
@@ -537,12 +537,49 @@ void main() {
     );
     final result = buck.calculate(input);
     expect(result.isValid, isFalse);
-    expect(result.values, isEmpty);
+    expect(result.values, isNotEmpty);
     expect(
       result.errors,
-      contains('Buck duty cycle must not exceed 100% at the selected operating point.'),
+      contains(
+        'Buck duty cycle must not exceed 100% at the selected operating point.',
+      ),
     );
-    expect(result.warnings, contains(BuckEngine.outputAboveMinimumInputWarning));
+    expect(result.values['isCcm'], 1);
+    expect(
+      result.values['dutyCycle'],
+      closeTo(1.3157894736842108, 1e-12),
+    );
+    expect(
+      result.values['onTime'],
+      closeTo(6.578947368421054e-6, 1e-18),
+    );
+    expect(
+      result.values['offTime'],
+      closeTo(-1.5789473684210534e-6, 1e-18),
+    );
+    expect(
+      result.values['inductorRmsCurrent'],
+      closeTo(5.002479780757953, 1e-12),
+    );
+    expect(
+      result.values['mosfetRmsCurrent'],
+      closeTo(5.738237850376164, 1e-12),
+    );
+    expect(result.values['diodeRmsCurrent']!.isNaN, isTrue);
+    expect(
+      result.values['outputCapacitorRmsCurrent'],
+      closeTo(0.17265259246101228, 1e-12),
+    );
+    expect(result.values['outputPower'], 60);
+    expect(
+      result.values['inputPower'],
+      closeTo(59.21052631578947, 1e-12),
+    );
+    expect(
+      result.warnings,
+      contains(BuckEngine.outputAboveMinimumInputWarning),
+    );
+    expect(result.warnings, contains(BuckEngine.psdOffTimeWarning));
   });
 
   test('Buck rejects invalid operating input voltage', () {
