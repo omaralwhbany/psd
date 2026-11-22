@@ -866,3 +866,235 @@ This was verified by directly executing the original Buck class from PSD5.jar un
 All four cases retained the same Java runtime operating values: 2.0270270270270263 A actual current excursion, 5.033620540612438 A inductor RMS, 4.13761059678065 A MOSFET RMS, 2.866620710223788 A diode RMS, 2.389280899087459 A input-capacitor RMS, 0.5851522998543502 A output-capacitor RMS, 60 W output power, and 60.810810810810814 W input power.
 
 Flutter now keeps the invalid ripple message non-blocking only when a valid positive custom inductance is selected, so the same source-calculated values remain visible. The automatic-inductance path retains its existing blocking guard for negative/non-finite design inductance. Regression fixtures pin the fixed Java runtime values and the separate input/result warning states. No Buck equation, RMS integral, or waveform sample was changed.
+
+
+## 2026-11-20: finite out-of-range diode drop and selected-inductor checks occur after calculation
+
+The original `Buck.userCalculate()` completes `checkForCCMDCCM()`,
+`onofftimes()`, `actualValues()`, `singleValues()`, and `general()`
+before `runChecks()` calls `checkForwardVoltageDrop()` and
+`checkInductance()`. The extracted `Buck.java` source and the matching
+`PSD5.jar` bytecode were both inspected before this validation-parity
+change. The bytecode confirms that these two checks only decrement error
+state; neither returns from the calculation path.
+
+Direct OpenJDK 21/Xvfb execution of the original `Buck` class was used to
+pin three finite out-of-range cases. Each probe set Vin(min/max)=18/36 V,
+Vout=12 V, Iout=5 A, fs=200 kHz, ripple=30%, Vin slider=0%, and load slider
+=100%, then called `calculate()` twice:
+
+| Original-JAR input | Result evidence |
+|---|---|
+| Vf=5.1 V, L=10 µH | CCM; design ripple 2.220779220779221 A; inductor RMS 5.040427281575531 A; MOSFET RMS 4.336700387478913 A; diode RMS 2.568839607700555 A; input/output capacitor RMS 2.2605524875712657 / 0.6410837404638052 A; input power 66.62337662337663 W |
+| Vf=-0.5 V, L=10 µH | CCM; design ripple 1.9714285714285715 A; inductor RMS 5.031780379573691 A; MOSFET RMS 4.078979974489573 A; diode RMS 2.9463089036921777 A; input/output capacitor RMS 2.417502433682974 / 0.5691024082012026 A; input power 59.142857142857146 W |
+| Vf=0.5 V, L=2200.1 µH | CCM; selected L is used despite the range error; actual excursion 0.00921334042555877 A; inductor RMS 4.999500782297074 A; MOSFET RMS 4.109564328209903 A; diode RMS 2.8471896853728844 A; input/output capacitor RMS 2.3403761945140253 / 0.0026596622874160082 A; input power 60.810810810810814 W |
+
+In all three cases the original Swing field was red while the numeric
+calculation remained available. The engine now reports finite diode-drop
+range violations and positive selected inductances above 2200 µH as
+post-calculation errors, retaining the source-derived values. The screen
+also highlights the diode-drop and selected-inductance fields and the
+calculated Lmin result (PSD5 decrements both chooseinduc and calcinduc)
+while keeping results and device waveforms visible.
+
+This is deliberately limited. Non-finite diode drops, zero/negative
+selected inductance, non-positive or over-limit input bounds, and over-duty behavior still have
+separate blocking or adaptation paths; this patch does not claim complete
+validation parity. No Buck equation, RMS integral, CCM/DCM decision, or
+waveform sample was changed.
+
+
+## 2026-11-21: negative ripple combined with an over-limit positive custom inductor
+
+The original `Buck.userCalculate()` runs `checkForCCMDCCM()`,
+`onofftimes()`, `actualValues()`, `singleValues()`, and `general()`
+before `runChecks()`. The original `checkCurrentRipple()` and
+`checkInductance()` methods only decrement their respective error states;
+neither aborts the completed numeric calculation. The matching
+`PSD5.jar` bytecode was inspected for this run and confirms the same
+call order and post-calculation checks.
+
+A direct OpenJDK 21/Xvfb probe instantiated the original `Buck` class,
+set Vin(min/max)=18/36 V, Vout=12 V, Iout=5 A, fs=200 kHz, Vf=0.5 V,
+ripple=-10%, selected L=2200.1 µH, input slider=0%, and load slider=100%,
+then called `calculate()` twice. The original class marked both the
+ripple input and selected-inductance input red while retaining:
+
+| Original-JAR result | Value |
+|---|---:|
+| Calculated Lmin | -82.19178082191781 µH |
+| Mode | CCM |
+| Design ripple | 0.009213340425558053 A |
+| Actual current excursion | 0.00921334042555877 A |
+| Actual ripple percentage | 0.18426680851117538% |
+| ON / OFF / idle time | 3.3783783783783788 / 1.6216216216216216 µs / 1 ns |
+| Inductor RMS | 4.999500782297074 A |
+| MOSFET RMS | 4.109564328209903 A |
+| Diode RMS | 2.8471896853728844 A |
+| Input / output capacitor RMS | 2.3403761945140253 / 0.0026596622874160082 A |
+| Output / diode loss / input power | 60 / 0.8108108108108109 / 60.810810810810814 W |
+
+The post-calculation range-error change already retained values for a
+positive selected inductor above 2200 µH, but its negative/NaN-ripple
+exception still required the selected inductor to be at or below 2200 µH.
+That condition incorrectly hid the results when both errors occurred
+together. The exception now requires only a finite positive custom
+inductance; the separate 2200 µH range error remains visible. This does
+not alter any Buck equation, CCM/DCM classification, RMS integral, or
+waveform sample.
+
+A regression test pins the combined case to the original-JAR runtime
+values and independently checks the CCM timing and stress equations from
+`Buck.java`. A screen test verifies both fields remain highlighted while
+the calculated results stay visible.
+
+
+## 2026-11-22: reversed input-voltage bounds retain PSD5 operating results
+
+Buck.userCalculate() calculates the operating point before calling
+runChecks(). checkForCCMDCCM() interpolates the operating input voltage
+from the two endpoints, while checkMinMaxVolt() later flags both endpoint
+fields when the minimum exceeds the maximum. The original bytecode confirms
+that this validation does not abort the completed calculation.
+
+A direct OpenJDK 21/Xvfb probe executed the original Buck class twice for
+Vin(min/max)=36/18 V, Vout=12 V, Iout=5 A, fs=200 kHz, Vf=0.5 V,
+ripple=30%, and selected L=10 µH. At the 0% input-slider endpoint, Java
+uses Vin=36 V; at 100%, it uses Vin=18 V. Both endpoints retain finite CCM
+results and mark both input-voltage fields red.
+
+The Flutter engine now reports the reversed range as a post-calculation
+error and accepts an operating Vin between the two endpoints, regardless
+of their order. The screen highlights both endpoint fields, while preserving
+the calculated results. This does not change the Buck equations or waveform
+timing; it restores the original range-check order and slider interpolation.
+
+Regression tests pin both endpoint cases to the original-JAR runtime values
+and independently verify the CCM timing, ripple, RMS currents, and power.
+A widget test confirms both range fields are highlighted and the numeric
+results remain visible.
+
+## 2026-11-22: zero/negative/non-finite selected inductance and non-finite diode drop
+
+Re-inspected the extracted PSD5_java/.../sheets/Buck.java and the
+corresponding Buck bytecode in PSD5.jar before changing validation
+behavior. The source and bytecode agree on this order:
+
+1. userCalculate() parses the selected inductance, classifies CCM/DCM,
+   calculates ON/OFF/zero times, evaluates actualValues(), copies
+   singleValues(), computes general(), and updates the labels.
+2. Only afterward does runChecks() call checkCurrentRipple(),
+   checkInductance(), and checkForwardVoltageDrop().
+3. checkInductance() decrements both chooseinduc and calcinduc when
+   !(dLout > 0.0) || !(dLout <= 0.0022). It does not abort or return.
+4. checkForwardVoltageDrop() tests only dVforward > 5.0 ||
+   dVforward < 0.0. Consequently positive/negative infinity are flagged,
+   but NaN passes both comparisons. getUserModifiedValues() and
+   getUserValues() use Double.parseDouble(), so Java accepts the literal
+   strings NaN and Infinity.
+
+These paths were verified by executing the original Buck class from
+PSD5.jar under OpenJDK 21 in headless mode. The harness set the original
+Swing text fields and called calculate() twice. These are actual original-JAR
+runtime observations, not values calculated by the Flutter engine.
+
+For Vin(min/max)=18/36 V, Vout=12 V, Iout=5 A, fs=200 kHz, Vf=0.5 V,
+ripple=30%, and operating Vin=18 V:
+
+| Selected L text | Java CCM/DCM | ON / OFF / zero time | Inductor RMS | MOSFET RMS | Diode RMS | Input / output capacitor RMS | Input power |
+|---|---|---|---:|---:|---:|---:|---:|
+| 0 µH | DCM | 0 / 0 / 5 µs | NaN | NaN | NaN | NaN / NaN | NaN |
+| -10 µH | CCM | 3.378378378 / 1.621621622 / 0.001 µs | 5.033620540612438 A | 4.13761059678065 A | 2.866620710223788 A | 2.389280899087459 / 0.5851522998543502 A | 60.810810810810814 W |
+| Infinity µH | CCM | 3.378378378 / 1.621621622 / 0.001 µs | 4.999500074987503 A | 4.109563746805016 A | 2.8471892825637637 A | 2.340375173600748 / 0 A | 60.810810810810814 W |
+| NaN µH | DCM | NaN / NaN / NaN | NaN | NaN | NaN | NaN / NaN | NaN |
+
+The zero-inductance case still reports 60 W output power and a finite
+27.397260273972603 µH calculated Lmin, while its peak/current/RMS and input
+power values become NaN through the source's Infinity * 0 arithmetic.
+For -10 µH, the original CCM classifier accepts the negative design ripple;
+the displayed minimum current (6.013513513513513 A) is greater than the
+displayed peak current (3.986486486486487 A), and the actual ripple is
+-2.0270270270270263 A. This odd result is the original program's behavior,
+not a physically meaningful operating point. Positive infinity is also
+flagged by the source but produces a zero-ripple CCM result.
+
+For the same operating point with a positive custom 10 µH inductor, setting
+Vf to NaN, +Infinity, or -Infinity makes the original Java DCM times and
+device/capacitor RMS values NaN while retaining 60 W output power and NaN
+input power. The NaN diode field is not highlighted by the original
+checkForwardVoltageDrop() comparison; +Infinity and -Infinity are
+highlighted. In all three cases the actual-ripple check flags the ripple
+input because its comparison receives NaN.
+
+The Flutter engine now mirrors those post-calculation checks: selected
+inductance values outside (0, 2200] µH and infinite diode drops are
+reported alongside retained values; NaN diode drop follows the source's
+comparison behavior; and non-finite DCM times are retained rather than
+being discarded by a Flutter-only finite-time guard. A widget regression
+checks that the zero-inductance error and source-calculated NaN labels remain
+visible without a Flutter canvas exception.
+
+This is an exact-behavior compatibility test, not a recommendation to use
+zero, negative, NaN, or infinite component values in a real converter. It
+does not close the separate validation gaps for non-positive/over-limit
+core input values or the Flutter over-duty safety guard. No Buck equation,
+CCM/DCM comparison, RMS integral, or waveform sample formula was changed.
+
+
+
+## 2026-11-22: core range and over-duty checks are post-calculation in PSD5
+
+Re-inspected the extracted `Buck.java` and `PSD5.jar` bytecode before
+changing the Flutter validation path. In `userCalculate()`, the source
+runs `checkForCCMDCCM()`, `onofftimes()`, `actualValues()`,
+`singleValues()`, `general()`, output/time labels, and graph updates
+before `runChecks()`. The bytecode confirms the same call order.
+
+The source checks are literal comparisons: minimum and maximum input
+voltage, output voltage/current, switching frequency, selected inductance,
+diode drop, and duty/timing conditions update error states after the numeric
+results have already been calculated. They do not return early from
+`userCalculate()`. Flutter now keeps these core range errors alongside
+the computed result map. The automatic-inductance mode remains an explicit
+Flutter-only guard where PSD5 has no matching automatic/custom switch.
+
+Direct execution of the original `Buck` class from `PSD5.jar` under
+OpenJDK 21/Xvfb, after setting the original Swing text fields and calling
+`calculate()` twice, produced these fixed runtime observations:
+
+| Original-JAR input | Original-JAR result |
+|---|---|
+| Vin(min/max)=0/36 V, Vo=12 V, Iout=5 A, fs=200 kHz, Vf=0.5 V, ripple=30%, L=10 µH, Vin slider=0% | CCM; ON/OFF=125/-120 µs; actual ripple=-150 A; inductor RMS=43.584631190189086 A; output power=60 W; input power=-7.105427357601002e-15 W |
+| Vin=18 V, Vo=20 V, Iout=5 A, fs=200 kHz, Vf=0.5 V, ripple=30%, L=10 µH | CCM; duty=110.8108108108108%; ON/OFF=5.540540540540541/-0.5405405405405403 µs; diode RMS=NaN; output/input power=100/99.72972972972973 W |
+| Vin=18 V, Vo=12 V, Iout=5 A, fs=0, Vf=0.5 V, ripple=30%, L=10 µH | DCM; ON=Infinity; OFF/idle=NaN; output power=60 W; input power=NaN |
+| Vin=18 V, Vo=12 V, Iout=0 A, fs=200 kHz, Vf=0.5 V, ripple=30%, L=10 µH | DCM; ON/OFF=0; idle=5 µs; inductor RMS=0 A; output/input power=0 W |
+| Vin(min/max)=18/10001 V, Vo=12 V, Iout=5 A, fs=200 kHz, Vf=0.5 V, ripple=30%, L=10 µH, Vin=18 V | Numeric operating point remains the ordinary 18 V case; calculated Lmin=41.614591144661635 µH, despite the max-input range error |
+| Vin=18 V, Vo=12 V, Iout=1001 A, fs=200 kHz, Vf=0.5 V, ripple=30%, L=10 µH | Output power=12012 W; input power=12174.324324324325 W, despite the output-current range error |
+| Vin=18 V, Vo=12 V, Iout=5 A, fs=10.001 MHz, Vf=0.5 V, ripple=30%, L=10 µH | ON/OFF=67.56081148641892/32.42918951348109 ns; inductor RMS=4.975197113495087 A, despite the switching-frequency range error |
+
+These are direct original-JAR runtime values, not values generated by the
+Flutter engine. Regression tests pin the representative CCM, over-duty,
+zero-frequency, zero-current, and upper-bound cases. No electrical equation,
+RMS integral, or waveform sample formula was changed. For custom inductance,
+the Flutter over-duty early return was removed so the source's negative
+OFF-time and device results remain observable; the synchronized idealized
+chart is withheld for invalid timing while the five source-derived device
+graphs remain visible.
+
+
+### Source-matched input field highlighting
+
+The Buck screen now derives the two Vin field warning states from the same
+predicates as the original checks:
+
+- `checkMinMaxVolt()`: `!(Vin_min > 0 && Vin_min <= 10000 && Vin_min <= Vin_max)`
+  marks both minimum and maximum fields.
+- `checkMaxVoltage()`: `!(Vin_max > 0 && Vin_max <= 10000)`
+  marks the maximum field independently.
+
+Consequently, a bad minimum or reversed/NaN range marks both fields, while a
+valid minimum paired only with an over-limit maximum marks the maximum field.
+The output, current, frequency, and duty fields are highlighted from their
+corresponding post-calculation errors. The synchronized idealized chart is
+withheld when timing is negative or outside one cycle; the five PSD5-derived
+device plots remain rendered.

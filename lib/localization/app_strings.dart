@@ -70,6 +70,9 @@ class AppStrings {
   String get waveformUnavailableForNonFiniteResults => isArabic
       ? 'لا يمكن رسم الموجات لأن بعض النتائج غير منتهية (NaN أو ∞).'
       : 'Waveforms cannot be plotted because some results are non-finite (NaN or ∞).';
+  String get waveformUnavailableForInvalidTiming => isArabic
+      ? 'لا يمكن رسم الموجة المتزامنة لأن توقيت التشغيل خارج المجال الصالح؛ تبقى الرسوم التفصيلية لعناصر Buck معروضة.'
+      : 'The synchronized waveform is unavailable because the calculated timing is outside a valid cycle; detailed Buck device waveforms remain visible.';
   String get deviceWaveforms => isArabic ? 'موجات عناصر دائرة Buck (مطابقة لمصدر TI)' : 'Buck device waveforms (PSD5 source model)';
   String get voltage => isArabic ? 'الجهد' : 'Voltage';
   String get current => isArabic ? 'التيار' : 'Current';
@@ -122,6 +125,7 @@ class AppStrings {
       'The selected inductance does not produce a valid Buck DCM cycle at this operating point.': 'قيمة المحاثة المختارة لا تنتج دورة تشغيل DCM صالحة عند نقطة التشغيل هذه.',
       'Automatic inductance is zero at the 100% duty boundary; choose a positive custom inductance.': 'عند حد التشغيل بنسبة 100% تكون المحاثة المحسوبة تلقائياً صفراً؛ اختر محاثة مخصصة موجبة.',
       'Automatic inductance is not finite for the requested ripple target; choose a finite custom inductance.': 'تعذّر حساب محاثة تلقائية محدودة عند نسبة التموج المطلوبة؛ اختر قيمة محاثة مخصصة محدودة.',
+      'Automatic inductance is negative for the selected input range; choose a positive custom inductance.': 'المحاثة التلقائية سالبة بسبب مجال جهد الدخل المحدد؛ اختر محاثة مخصصة موجبة.',
     };
     return translations[error] ?? error;
   }
