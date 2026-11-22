@@ -70,6 +70,9 @@ class AppStrings {
   String get waveformUnavailableForNonFiniteResults => isArabic
       ? 'لا يمكن رسم الموجات لأن بعض النتائج غير منتهية (NaN أو ∞).'
       : 'Waveforms cannot be plotted because some results are non-finite (NaN or ∞).';
+  String get waveformUnavailableForInvalidTiming => isArabic
+      ? 'لا يمكن رسم الموجة المتزامنة لأن توقيت التشغيل خارج المجال الصالح؛ تبقى الرسوم التفصيلية لعناصر Buck معروضة.'
+      : 'The synchronized waveform is unavailable because the calculated timing is outside a valid cycle; detailed Buck device waveforms remain visible.';
   String get deviceWaveforms => isArabic ? 'موجات عناصر دائرة Buck (مطابقة لمصدر TI)' : 'Buck device waveforms (PSD5 source model)';
   String get voltage => isArabic ? 'الجهد' : 'Voltage';
   String get current => isArabic ? 'التيار' : 'Current';
