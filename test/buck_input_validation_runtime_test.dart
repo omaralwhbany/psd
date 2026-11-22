@@ -1284,7 +1284,10 @@ void main() {
           selectedInductance: 10e-6,
         ),
       );
-      expect(custom.errors, contains('Input voltage minimum cannot exceed maximum.'));
+      expect(
+        custom.errors,
+        contains('Input voltage minimum cannot exceed maximum.'),
+      );
       expect(custom.values, isNotEmpty);
       expect(
         custom.values['minimumInductance'],
