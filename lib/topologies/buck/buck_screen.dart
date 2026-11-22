@@ -98,23 +98,20 @@ class _BuckScreenState extends State<BuckScreen> {
     );
     final rippleWarning = actualRippleExceedsTarget ||
         result.errors.any((error) => error.startsWith('Ripple fraction'));
-    final inputRangeOrderWarning =
-        input.inputVoltageMin > input.inputVoltageMax;
     final outputAboveMinimumInputWarning =
         input.outputVoltage > input.inputVoltageMin;
-    final inputVoltageUpperLimitWarning =
-        result.errors.contains('Input voltage must not exceed 10000 V.');
-    final inputVoltageMinWarning = inputRangeOrderWarning ||
-        outputAboveMinimumInputWarning ||
-        inputVoltageUpperLimitWarning ||
-        result.errors.any(
-          (error) => error.startsWith('Input voltage minimum'),
-        );
-    final inputVoltageMaxWarning = inputRangeOrderWarning ||
-        inputVoltageUpperLimitWarning ||
-        result.errors.any(
-          (error) => error.startsWith('Input voltage maximum'),
-        );
+    // These two predicates reproduce checkMinMaxVolt() and checkMaxVoltage()
+    // separately: an invalid minimum also marks the maximum field, while an
+    // over-limit maximum alone marks only the maximum field.
+    final inputMinimumRangeError = !(input.inputVoltageMin > 0 &&
+        input.inputVoltageMin <= 10000 &&
+        input.inputVoltageMin <= input.inputVoltageMax);
+    final inputMaximumRangeError =
+        !(input.inputVoltageMax > 0 && input.inputVoltageMax <= 10000);
+    final inputVoltageMinWarning =
+        inputMinimumRangeError || outputAboveMinimumInputWarning;
+    final inputVoltageMaxWarning =
+        inputMinimumRangeError || inputMaximumRangeError;
     final operatingInputVoltageWarning = result.errors.any(
       (error) => error.startsWith('Operating input voltage'),
     );
@@ -141,13 +138,12 @@ class _BuckScreenState extends State<BuckScreen> {
           'idleFraction',
           'operatingInputVoltage',
         ].every((key) => result.values[key]?.isFinite ?? false);
-    final canRenderSynchronizedWaveforms =
-        synchronizedWaveformValuesFinite &&
-            result.values['dutyCycle']! >= 0 &&
-            result.values['dutyCycle']! <= 1 &&
-            result.values['onFraction']! >= 0 &&
-            result.values['offFraction']! >= 0 &&
-            result.values['idleFraction']! >= 0;
+    final canRenderSynchronizedWaveforms = synchronizedWaveformValuesFinite &&
+        result.values['dutyCycle']! >= 0 &&
+        result.values['dutyCycle']! <= 1 &&
+        result.values['onFraction']! >= 0 &&
+        result.values['offFraction']! >= 0 &&
+        result.values['idleFraction']! >= 0;
     final synchronizedWaveformUnavailableMessage =
         synchronizedWaveformValuesFinite
             ? s.waveformUnavailableForInvalidTiming

@@ -1203,9 +1203,27 @@ void main() {
       expect(find.text('110.81 %'), findsOneWidget);
       expect(find.text('-540.54 ns'), findsOneWidget);
       expect(find.text('100.00 W'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('Buck device waveforms (PSD5 source model)'),
+        400,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(
         find.text('Buck device waveforms (PSD5 source model)'),
         findsOneWidget,
+      );
+      await tester.scrollUntilVisible(
+        find.text('Input capacitor Ci'),
+        400,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('Input capacitor Ci'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text(
+          'The synchronized waveform is unavailable because the calculated timing is outside a valid cycle; detailed Buck device waveforms remain visible.',
+        ),
+        400,
+        scrollable: find.byType(Scrollable).first,
       );
       expect(
         find.text(
@@ -1215,4 +1233,5 @@ void main() {
       );
       expect(tester.takeException(), isNull);
     },
-  );}
+   );
+}
