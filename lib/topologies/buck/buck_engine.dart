@@ -31,7 +31,8 @@ class BuckEngine {
     });
     final warnings = <String>[];
     // These PSD5 range checks run after calculation; retain numeric results
-    // for finite out-of-range diode drops and positive over-limit inductors.
+    // for reversed Vin bounds, finite out-of-range diode drops, and positive
+    // over-limit inductors.
     final postCalculationErrors = <String>[];
     // PSD5 runs checkCurrentRipple() after userCalculate() has completed the
     // numeric calculation. Keep the 0% and >100% field errors separate from
@@ -70,7 +71,7 @@ class BuckEngine {
       warnings.add(outputAboveMinimumInputWarning);
     }
     if (input.inputVoltageMin > input.inputVoltageMax) {
-      errors.add('Input voltage minimum cannot exceed maximum.');
+      postCalculationErrors.add('Input voltage minimum cannot exceed maximum.');
     }
     // Match the input limits enforced by the original PSD5 Buck.java checks.
     if (input.inputVoltageMin > 10000 || input.inputVoltageMax > 10000) {
@@ -98,9 +99,15 @@ class BuckEngine {
       );
     }
     final vin = input.operatingInputVoltage ?? input.inputVoltageMin;
+    // Buck.java interpolates between the two endpoints even when their order
+    // is invalid; the range error is reported after calculating at that Vin.
+    final operatingVoltageMin =
+        math.min(input.inputVoltageMin, input.inputVoltageMax);
+    final operatingVoltageMax =
+        math.max(input.inputVoltageMin, input.inputVoltageMax);
     if (!vin.isFinite ||
-        vin < input.inputVoltageMin ||
-        vin > input.inputVoltageMax) {
+        vin < operatingVoltageMin ||
+        vin > operatingVoltageMax) {
       errors.add(
         'Operating input voltage must be within the input voltage range.',
       );

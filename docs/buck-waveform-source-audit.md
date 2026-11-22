@@ -947,3 +947,29 @@ A regression test pins the combined case to the original-JAR runtime
 values and independently checks the CCM timing and stress equations from
 `Buck.java`. A screen test verifies both fields remain highlighted while
 the calculated results stay visible.
+
+
+## 2026-11-22: reversed input-voltage bounds retain PSD5 operating results
+
+Buck.userCalculate() calculates the operating point before calling
+runChecks(). checkForCCMDCCM() interpolates the operating input voltage
+from the two endpoints, while checkMinMaxVolt() later flags both endpoint
+fields when the minimum exceeds the maximum. The original bytecode confirms
+that this validation does not abort the completed calculation.
+
+A direct OpenJDK 21/Xvfb probe executed the original Buck class twice for
+Vin(min/max)=36/18 V, Vout=12 V, Iout=5 A, fs=200 kHz, Vf=0.5 V,
+ripple=30%, and selected L=10 µH. At the 0% input-slider endpoint, Java
+uses Vin=36 V; at 100%, it uses Vin=18 V. Both endpoints retain finite CCM
+results and mark both input-voltage fields red.
+
+The Flutter engine now reports the reversed range as a post-calculation
+error and accepts an operating Vin between the two endpoints, regardless
+of their order. The screen highlights both endpoint fields, while preserving
+the calculated results. This does not change the Buck equations or waveform
+timing; it restores the original range-check order and slider interpolation.
+
+Regression tests pin both endpoint cases to the original-JAR runtime values
+and independently verify the CCM timing, ripple, RMS currents, and power.
+A widget test confirms both range fields are highlighted and the numeric
+results remain visible.

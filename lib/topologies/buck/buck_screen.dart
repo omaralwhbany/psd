@@ -98,7 +98,10 @@ class _BuckScreenState extends State<BuckScreen> {
     );
     final rippleWarning = actualRippleExceedsTarget ||
         result.errors.any((error) => error.startsWith('Ripple fraction'));
-    final inputRangeWarning = input.outputVoltage > input.inputVoltageMin;
+    final inputRangeOrderWarning =
+        input.inputVoltageMin > input.inputVoltageMax;
+    final outputAboveMinimumInputWarning =
+        input.outputVoltage > input.inputVoltageMin;
     final canRenderSynchronizedWaveforms = hasResults &&
         [
           'operatingOutputCurrent',
@@ -130,11 +133,13 @@ class _BuckScreenState extends State<BuckScreen> {
               s.inputs,
               Column(children: [
                 _field(s.inputVoltageMin, 'vinMin', 'V',
-                    warning: inputRangeWarning),
-                _field(s.inputVoltageMax, 'vinMax', 'V'),
+                    warning: inputRangeOrderWarning ||
+                        outputAboveMinimumInputWarning),
+                _field(s.inputVoltageMax, 'vinMax', 'V',
+                    warning: inputRangeOrderWarning),
                 _field(s.operatingInputVoltage, 'vinOperating', 'V'),
                 _field(s.outputVoltage, 'vout', 'V',
-                    warning: inputRangeWarning),
+                    warning: outputAboveMinimumInputWarning),
                 _field(s.outputCurrent, 'iout', 'A'),
                 _field(s.switchingFrequency, 'fsw', 'kHz'),
                 _field(s.ripplePercent, 'ripple', '%', warning: rippleWarning),

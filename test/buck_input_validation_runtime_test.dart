@@ -516,4 +516,159 @@ void main() {
       }
     },
   );
+
+
+  test(
+    'Buck retains PSD5 results when Vin minimum exceeds maximum',
+    () {
+      // Values were captured by executing the original PSD5.jar Buck class
+      // with the input slider at 0% and 100%, then checked independently
+      // against Buck.java's CCM timing, RMS integrals, and power equations.
+      const scenarios = [
+        (
+          vin: 36.0,
+          ripple: 4.109589041095891,
+          ripplePercent: 82.19178082191782,
+          onTime: 1.7123287671232877e-6,
+          offTime: 3.2876712328767127e-6,
+          inductorRms: 5.138298656618521,
+          mosfetRms: 3.006961847034842,
+          diodeRms: 4.1665685563884,
+          inputCapacitorRms: 2.4719093914436323,
+          outputCapacitorRms: 1.1863361695677248,
+          inputPower: 61.64383561643836,
+        ),
+        (
+          vin: 18.0,
+          ripple: 2.0270270270270263,
+          ripplePercent: 40.540540540540526,
+          onTime: 3.3783783783783788e-6,
+          offTime: 1.6216216216216216e-6,
+          inductorRms: 5.033620540612438,
+          mosfetRms: 4.13761059678065,
+          diodeRms: 2.866620710223788,
+          inputCapacitorRms: 2.389280899087459,
+          outputCapacitorRms: 0.5851522998543502,
+          inputPower: 60.810810810810814,
+        ),
+      ];
+
+      for (final scenario in scenarios) {
+        final result = engine.calculate(
+          BuckInputs(
+            inputVoltageMin: 36,
+            inputVoltageMax: 18,
+            outputVoltage: 12,
+            outputCurrent: 5,
+            switchingFrequency: 200e3,
+            rippleFraction: 0.30,
+            diodeForwardVoltage: 0.5,
+            operatingInputVoltage: scenario.vin,
+            operatingLoadPercent: 100,
+            selectedInductance: 10e-6,
+          ),
+        );
+
+        expect(result.isValid, isFalse);
+        expect(result.errors, ['Input voltage minimum cannot exceed maximum.']);
+        expect(result.values, isNotEmpty);
+        expect(result.values['operatingInputVoltage'], scenario.vin);
+        expect(result.values['isCcm'], 1);
+        expect(
+          result.values['minimumInductance'],
+          closeTo(13.513513513513515e-6, 1e-18),
+        );
+        expect(result.values['inductanceUsed'], 10e-6);
+        expect(
+          result.values['rippleCurrent'],
+          closeTo(scenario.ripple, 1e-12),
+        );
+        expect(
+          result.values['ripplePercent'],
+          closeTo(scenario.ripplePercent, 1e-10),
+        );
+        expect(
+          result.values['onTime'],
+          closeTo(scenario.onTime, 1e-18),
+        );
+        expect(
+          result.values['offTime'],
+          closeTo(scenario.offTime, 1e-18),
+        );
+        expect(
+          result.values['inductorRmsCurrent'],
+          closeTo(scenario.inductorRms, 1e-12),
+        );
+        expect(
+          result.values['mosfetRmsCurrent'],
+          closeTo(scenario.mosfetRms, 1e-12),
+        );
+        expect(
+          result.values['diodeRmsCurrent'],
+          closeTo(scenario.diodeRms, 1e-12),
+        );
+        expect(
+          result.values['inputCapacitorRmsCurrent'],
+          closeTo(scenario.inputCapacitorRms, 1e-12),
+        );
+        expect(
+          result.values['outputCapacitorRmsCurrent'],
+          closeTo(scenario.outputCapacitorRms, 1e-12),
+        );
+        expect(result.values['outputPower'], 60);
+        expect(
+          result.values['inputPower'],
+          closeTo(scenario.inputPower, 1e-12),
+        );
+      }
+    },
+  );
+
+  testWidgets(
+    'Buck highlights both reversed Vin bounds and keeps Java results visible',
+    (tester) async {
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        const MaterialApp(home: Scaffold(body: BuckScreen())),
+      );
+      await tester.pumpAndSettle();
+
+      var fields = find.byType(TextField);
+      await tester.enterText(fields.at(0), '36');
+      await tester.pumpAndSettle();
+      fields = find.byType(TextField);
+      await tester.enterText(fields.at(1), '18');
+      await tester.pumpAndSettle();
+      fields = find.byType(TextField);
+      await tester.enterText(fields.at(2), '36');
+      await tester.pumpAndSettle();
+
+      fields = find.byType(TextField);
+      final theme = Theme.of(tester.element(fields.at(0)));
+      expect(
+        tester.widget<TextField>(fields.at(0)).decoration!.fillColor,
+        theme.colorScheme.error,
+      );
+      expect(
+        tester.widget<TextField>(fields.at(1)).decoration!.fillColor,
+        theme.colorScheme.error,
+      );
+      expect(
+        tester.widget<TextField>(fields.at(3)).decoration!.fillColor,
+        isNot(theme.colorScheme.error),
+      );
+      expect(
+        find.text('Input voltage minimum cannot exceed maximum.'),
+        findsOneWidget,
+      );
+      expect(find.text('13.51 µH'), findsOneWidget);
+      expect(find.text('60.00 W'), findsOneWidget);
+      expect(find.text('61.64 W'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
