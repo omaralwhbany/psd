@@ -1266,6 +1266,43 @@ void main() {
         result.errors,
         contains(BuckEngine.automaticInductanceNegativeError),
       );
+
+      // With a positive custom L, the original PSD5 Buck class still
+      // calculates normally even though its separate Lmin display is
+      // negative. These values were captured from PSD5.jar under OpenJDK 21.
+      final custom = engine.calculate(
+        const BuckInputs(
+          inputVoltageMin: 36,
+          inputVoltageMax: 18,
+          outputVoltage: 24,
+          outputCurrent: 5,
+          switchingFrequency: 200e3,
+          rippleFraction: 0.30,
+          diodeForwardVoltage: 0.5,
+          operatingInputVoltage: 36,
+          operatingLoadPercent: 100,
+          selectedInductance: 10e-6,
+        ),
+      );
+      expect(custom.errors, contains('Input voltage minimum cannot exceed maximum.'));
+      expect(custom.values, isNotEmpty);
+      expect(
+        custom.values['minimumInductance'],
+        closeTo(-26.48648648648649e-6, 1e-18),
+      );
+      expect(custom.values['inductanceUsed'], 10e-6);
+      expect(
+        custom.values['onTime'],
+        closeTo(3.356164383561644e-6, 1e-18),
+      );
+      expect(
+        custom.values['inductorRmsCurrent'],
+        closeTo(5.132873605111401, 1e-12),
+      );
+      expect(
+        custom.values['inputPower'],
+        closeTo(120.82191780821918, 1e-12),
+      );
     },
   );
 }
