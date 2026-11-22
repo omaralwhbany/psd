@@ -898,7 +898,7 @@ calculated Lmin result (PSD5 decrements both chooseinduc and calcinduc)
 while keeping results and device waveforms visible.
 
 This is deliberately limited. Non-finite diode drops, zero/negative
-selected inductance, core input ranges, and over-duty behavior still have
+selected inductance, non-positive or over-limit input bounds, and over-duty behavior still have
 separate blocking or adaptation paths; this patch does not claim complete
 validation parity. No Buck equation, RMS integral, CCM/DCM decision, or
 waveform sample was changed.

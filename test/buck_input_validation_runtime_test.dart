@@ -667,7 +667,7 @@ void main() {
         find.text('Input voltage minimum cannot exceed maximum.'),
         findsOneWidget,
       );
-      expect(find.text('13.51 µH'), findsOneWidget);
+      expect(find.text('13.51 µH'), findsNWidgets(2));
       expect(find.text('60.00 W'), findsOneWidget);
       expect(find.text('61.64 W'), findsOneWidget);
       expect(tester.takeException(), isNull);
