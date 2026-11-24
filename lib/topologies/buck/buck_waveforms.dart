@@ -553,9 +553,12 @@ double? buckJavaGraphPanelFallbackY({
   if (maxValue < 0) maxValue = 0;
 
   final span = (maxValue - minValue).abs();
-  final mappingY = maxValue == 0 && minValue == 0
-      ? 100.0
-      : (plotBottom - plotTop) / span;
+  late final double mappingY;
+  if (maxValue == 0 && minValue == 0) {
+    mappingY = 100.0;
+  } else {
+    mappingY = (plotBottom - plotTop) / span;
+  }
   final mappedValue = value * mappingY;
   late final double down;
   if (minValue == 0) {
