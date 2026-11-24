@@ -98,6 +98,122 @@ void main() {
       expect(buckJavaGraphLabelKeepsMilliPrefix(double.nan), isTrue);
       expect(buckJavaGraphLabelKeepsMilliPrefix(double.infinity), isFalse);
     });
+
+    test('matches OpenJDK 21 adjacent binary64 rounding boundaries', () {
+      const cases = <(String, String, String)>[
+        ('0.004999999999999999', '0.005', '0.00'),
+        ('0.005', '0.005', '0.01'),
+        ('0.005000000000000001', '0.005', '0.01'),
+        ('0.014999999999999998', '0.015', '0.01'),
+        ('0.015', '0.015', '0.01'),
+        ('0.015000000000000001', '0.015', '0.02'),
+        ('0.024999999999999998', '0.025', '0.02'),
+        ('0.025', '0.025', '0.03'),
+        ('1.1249999999999998', '1.125', '1.12'),
+        ('1.125', '1.125', '1.12'),
+        ('1.1250000000000002', '1.125', '1.13'),
+        ('1.3749999999999998', '1.375', '1.37'),
+        ('1.375', '1.375', '1.38'),
+        ('1.3750000000000002', '1.375', '1.38'),
+        ('9.994999999999997', '9.995', '9.99'),
+        ('9.995', '9.995', '9.99'),
+        ('9.995000000000001', '9.995', '10.00'),
+        ('99.99499999999999', '99.995', '99.99'),
+        ('99.995', '99.995', '100.00'),
+        ('999.9949999999999', '999.995', '999.99'),
+        ('999.995', '999.995', '1000.00'),
+        ('4.5035996273704955e15', '4503599627370495.50',
+          '4503599627370495.50'),
+        ('4.503599627370496e15', '4503599627370496.00',
+          '4503599627370496.00'),
+        ('4.503599627370497e15', '4503599627370497.00',
+          '4503599627370497.00'),
+        ('4.6116860184273874e18', '4611686018427387400.00',
+          '4611686018427387400.00'),
+        ('4.611686018427388e18', '4611686018427387900.00',
+          '4611686018427387900.00'),
+        ('4.611686018427389e18', '4611686018427388900.00',
+          '4611686018427388900.00'),
+        ('9.223372036854775e18', '9223372036854774800.00',
+          '9223372036854774800.00'),
+        ('9.223372036854776e18', '9223372036854776000.00',
+          '9223372036854776000.00'),
+        ('1e23', '99999999999999990000000.00',
+          '99999999999999990000000.00'),
+        ('1e24', '1000000000000000000000000.00',
+          '1000000000000000000000000.00'),
+        ('1e25', '10000000000000000000000000.00',
+          '10000000000000000000000000.00'),
+        ('1e26', '100000000000000000000000000.00',
+          '100000000000000000000000000.00'),
+      ];
+
+      for (final testCase in cases) {
+        final value = double.parse(testCase.$1);
+        expect(
+          formatBuckJavaDecimal(
+            value,
+            minFractionDigits: 2,
+            maxFractionDigits: 6,
+          ),
+          testCase.$2,
+          reason: 'OpenJDK 21 #0.00#### oracle',
+        );
+        expect(
+          formatBuckJavaDecimal(
+            value,
+            minFractionDigits: 2,
+            maxFractionDigits: 2,
+          ),
+          testCase.$3,
+          reason: 'OpenJDK 21 #0.00 oracle',
+        );
+      }
+
+      expect(
+        formatBuckJavaDecimal(
+          double.parse('4.9e-324'),
+          minFractionDigits: 2,
+          maxFractionDigits: 2,
+        ),
+        '0.00',
+      );
+      expect(
+        formatBuckJavaDecimal(
+          double.parse('1e-300'),
+          minFractionDigits: 2,
+          maxFractionDigits: 2,
+        ),
+        '0.00',
+      );
+      final oneE300 = '1' + List<String>.filled(300, '0').join() + '.00';
+      expect(
+        formatBuckJavaDecimal(
+          double.parse('1e300'),
+          minFractionDigits: 2,
+          maxFractionDigits: 2,
+        ),
+        oneE300,
+      );
+
+      expect(
+        buckJavaGraphLabelKeepsMilliPrefix(
+          double.parse('0.9999994999999999'),
+        ),
+        isTrue,
+      );
+      expect(
+        buckJavaGraphLabelKeepsMilliPrefix(double.parse('0.9999995')),
+        isFalse,
+      );
+      expect(
+        buckJavaGraphLabelKeepsMilliPrefix(
+          double.parse('0.9999995000000002'),
+        ),
+        isFalse,
+      );
+    });
+
   });
 
   testWidgets(
