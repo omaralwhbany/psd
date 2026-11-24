@@ -557,11 +557,14 @@ double? buckJavaGraphPanelFallbackY({
       ? 100.0
       : (plotBottom - plotTop) / span;
   final mappedValue = value * mappingY;
-  final down = minValue == 0
-      ? plotBottom
-      : maxValue == 0
-          ? plotTop
-          : plotBottom + mappingY * minValue;
+  late final double down;
+  if (minValue == 0) {
+    down = plotBottom;
+  } else if (maxValue == 0) {
+    down = plotTop;
+  } else {
+    down = plotBottom + mappingY * minValue;
+  }
 
   if (value.isFinite &&
       minValue.isFinite &&
@@ -573,11 +576,14 @@ double? buckJavaGraphPanelFallbackY({
     return null;
   }
 
-  final javaDown = minValue == 0
-      ? _javaGraphPanelInt(plotBottom)
-      : maxValue == 0
-          ? _javaGraphPanelInt(plotTop)
-          : _javaGraphPanelInt(down);
+  late final int javaDown;
+  if (minValue == 0) {
+    javaDown = _javaGraphPanelInt(plotBottom);
+  } else if (maxValue == 0) {
+    javaDown = _javaGraphPanelInt(plotTop);
+  } else {
+    javaDown = _javaGraphPanelInt(down);
+  }
   return _javaGraphPanelInt(javaDown - mappedValue).toDouble();
 }
 
