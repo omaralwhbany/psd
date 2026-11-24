@@ -534,6 +534,60 @@ class _BuckDeviceMetricsView extends StatelessWidget {
   }
 }
 
+/// Returns the original GraphPanel y coordinate only when its binary64
+/// mapping becomes non-finite or overflows. For ordinary finite ranges the
+/// painter keeps its smooth Flutter mapping. Java2D narrows each non-finite
+/// y coordinate to a signed 32-bit integer (NaN -> 0), rather than replacing
+/// every point with zero when one graph bound is infinite.
+@visibleForTesting
+double? buckJavaGraphPanelFallbackY({
+  required double value,
+  required double minimum,
+  required double maximum,
+  required double plotTop,
+  required double plotBottom,
+}) {
+  var minValue = minimum;
+  var maxValue = maximum;
+  if (minValue > 0) minValue = 0;
+  if (maxValue < 0) maxValue = 0;
+
+  final span = (maxValue - minValue).abs();
+  final mappingY = maxValue == 0 && minValue == 0
+      ? 100.0
+      : (plotBottom - plotTop) / span;
+  final mappedValue = value * mappingY;
+  final down = minValue == 0
+      ? plotBottom
+      : maxValue == 0
+          ? plotTop
+          : plotBottom + mappingY * minValue;
+
+  if (value.isFinite &&
+      minValue.isFinite &&
+      maxValue.isFinite &&
+      span.isFinite &&
+      mappingY.isFinite &&
+      mappedValue.isFinite &&
+      down.isFinite) {
+    return null;
+  }
+
+  final javaDown = minValue == 0
+      ? _javaGraphPanelInt(plotBottom)
+      : maxValue == 0
+          ? _javaGraphPanelInt(plotTop)
+          : _javaGraphPanelInt(down);
+  return _javaGraphPanelInt(javaDown - mappedValue).toDouble();
+}
+
+int _javaGraphPanelInt(double value) {
+  if (value.isNaN) return 0;
+  if (value >= 2147483647.0) return 2147483647;
+  if (value <= -2147483648.0) return -2147483648;
+  return value.truncate();
+}
+
 class _BuckTracePainter extends CustomPainter {
   const _BuckTracePainter({
     required this.points,
@@ -584,14 +638,18 @@ class _BuckTracePainter extends CustomPainter {
     }
 
     double y(double value) {
-      // Java2D casts NaN coordinates to integer zero. Flutter's Canvas rejects
-      // NaN Offsets, so retain the source's finite zero-coordinate fallback.
-      if (!value.isFinite ||
-          !minValue.isFinite ||
-          !maxValue.isFinite ||
-          !valueSpan.isFinite) {
-        return 0;
-      }
+      // GraphPanel uses height / abs(maxY - minY), then Java's d2i cast for
+      // the baseline and every plotted y coordinate. Preserve those fallback
+      // coordinates when a finite input creates an infinite range or when a
+      // waveform contains NaN/Infinity.
+      final fallback = buckJavaGraphPanelFallbackY(
+        value: value,
+        minimum: minValue,
+        maximum: maxValue,
+        plotTop: top,
+        plotBottom: plotBottom,
+      );
+      if (fallback != null) return fallback;
       return valueSpan == 0
           ? plotBottom
           : plotBottom - (value - minValue) / valueSpan * (plotBottom - top);
