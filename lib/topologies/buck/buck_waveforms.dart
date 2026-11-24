@@ -3,11 +3,12 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'buck_inputs.dart';
+import 'buck_java_decimal_format.dart';
 
 /// Mirrors Buck.java's six-decimal side-label rounding and Graph.java's
 /// negated >= 1 comparison. NaN therefore does not trigger the V/A prefix.
 bool _javaGraphLabelKeepsMilliPrefix(double value) =>
-    !(value.abs() >= 0.9999995);
+    buckJavaGraphLabelKeepsMilliPrefix(value);
 
 /// One sample from the original PSD5 Buck graph time base (microseconds).
 class BuckWaveformPoint {
@@ -495,31 +496,31 @@ class _BuckDeviceMetricsView extends StatelessWidget {
     final entries = <(String, String)>[
       (
         'minimumVoltage',
-        '${(metrics.minimumVoltage * voltageScale).toStringAsFixed(2)} $voltageUnit'
+        '${formatBuckJavaGraphMetric(metrics.minimumVoltage, voltageScale)} $voltageUnit'
       ),
       (
         'maximumVoltage',
-        '${(metrics.maximumVoltage * voltageScale).toStringAsFixed(2)} $voltageUnit'
+        '${formatBuckJavaGraphMetric(metrics.maximumVoltage, voltageScale)} $voltageUnit'
       ),
       (
         'minimumCurrent',
-        '${(metrics.minimumCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+        '${formatBuckJavaGraphMetric(metrics.minimumCurrent, currentScale)} $currentUnit'
       ),
       (
         'maximumCurrent',
-        '${(metrics.maximumCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+        '${formatBuckJavaGraphMetric(metrics.maximumCurrent, currentScale)} $currentUnit'
       ),
       (
         'rmsCurrent',
-        '${(metrics.rmsCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+        '${formatBuckJavaGraphMetric(metrics.rmsCurrent, currentScale)} $currentUnit'
       ),
       (
         'averageCurrent',
-        '${(metrics.averageCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+        '${formatBuckJavaGraphMetric(metrics.averageCurrent, currentScale)} $currentUnit'
       ),
       (
         'acCurrent',
-        '${(metrics.acCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+        '${formatBuckJavaGraphMetric(metrics.acCurrent, currentScale)} $currentUnit'
       ),
     ];
     final style = Theme.of(context).textTheme.labelSmall;
@@ -617,9 +618,30 @@ class _BuckTracePainter extends CustomPainter {
 
     final middleValue = maxValue / 2;
     final middleY = (zeroY + top) / 2;
-    drawRightAligned(maxValue.toStringAsFixed(2), top);
-    drawRightAligned(middleValue.toStringAsFixed(2), middleY);
-    drawRightAligned(minValue.toStringAsFixed(2), plotBottom);
+    drawRightAligned(
+      formatBuckJavaDecimal(
+        maxValue,
+        minFractionDigits: 2,
+        maxFractionDigits: 2,
+      ),
+      top,
+    );
+    drawRightAligned(
+      formatBuckJavaDecimal(
+        middleValue,
+        minFractionDigits: 2,
+        maxFractionDigits: 2,
+      ),
+      middleY,
+    );
+    drawRightAligned(
+      formatBuckJavaDecimal(
+        minValue,
+        minFractionDigits: 2,
+        maxFractionDigits: 2,
+      ),
+      plotBottom,
+    );
     canvas.drawLine(Offset(left - 4, middleY), Offset(left + 4, middleY), axis);
 
     var lastLabelRight = -1000.0;
@@ -629,12 +651,14 @@ class _BuckTracePainter extends CustomPainter {
       canvas.drawLine(Offset(px, zeroY - 4), Offset(px, zeroY + 4), axis);
       final painter = TextPainter(
         text: TextSpan(
-            text: timeRange
-                .graphPanelTickLabelValue(
-                  points[index].timeMicroseconds,
-                  plotRight - left,
-                )
-                .toStringAsFixed(2),
+            text: formatBuckJavaDecimal(
+              timeRange.graphPanelTickLabelValue(
+                points[index].timeMicroseconds,
+                plotRight - left,
+              ),
+              minFractionDigits: 2,
+              maxFractionDigits: 2,
+            ),
             style: textStyle),
         textDirection: TextDirection.ltr,
       )..layout();
@@ -644,7 +668,14 @@ class _BuckTracePainter extends CustomPainter {
       lastLabelRight = start + 30;
     }
     final maxPainter = TextPainter(
-      text: TextSpan(text: timeMax.toStringAsFixed(2), style: textStyle),
+      text: TextSpan(
+        text: formatBuckJavaDecimal(
+          timeMax,
+          minFractionDigits: 2,
+          maxFractionDigits: 2,
+        ),
+        style: textStyle,
+      ),
       textDirection: TextDirection.ltr,
     )..layout();
     final maxStart = plotRight - maxPainter.width / 2;
