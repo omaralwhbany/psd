@@ -306,7 +306,8 @@ void main() {
         ),
         '0.00',
       );
-      final oneE300 = '1' + List<String>.filled(300, '0').join() + '.00';
+      final zeroes = List<String>.filled(300, '0').join();
+      final oneE300 = '1$zeroes.00';
       expect(
         formatBuckJavaDecimal(
           double.parse('1e300'),
