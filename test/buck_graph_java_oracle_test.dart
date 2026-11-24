@@ -197,6 +197,78 @@ void main() {
       }
     });
   }
+  test('Buck GraphPanel non-finite y bounds preserve Java cast coordinates', () {
+    const top = 7.0;
+    const bottom = 75.0;
+
+    // Original PSD5.jar GraphPanel runtime with [1, 2, +Infinity, 3]:
+    // finite points stay on the zero baseline; the infinite point narrows
+    // through NaN to Java int zero.
+    expect(
+      buckJavaGraphPanelFallbackY(
+        value: 1,
+        minimum: 0,
+        maximum: double.infinity,
+        plotTop: top,
+        plotBottom: bottom,
+      ),
+      bottom,
+    );
+    expect(
+      buckJavaGraphPanelFallbackY(
+        value: double.infinity,
+        minimum: 0,
+        maximum: double.infinity,
+        plotTop: top,
+        plotBottom: bottom,
+      ),
+      0,
+    );
+    expect(
+      buckJavaGraphPanelFallbackY(
+        value: 3,
+        minimum: double.negativeInfinity,
+        maximum: 3,
+        plotTop: top,
+        plotBottom: bottom,
+      ),
+      0,
+    );
+    expect(
+      buckJavaGraphPanelFallbackY(
+        value: double.nan,
+        minimum: double.nan,
+        maximum: double.nan,
+        plotTop: top,
+        plotBottom: bottom,
+      ),
+      0,
+    );
+
+    // A finite range whose subtraction overflows also gives Java a zero
+    // mapping factor, leaving finite samples at the source baseline.
+    expect(
+      buckJavaGraphPanelFallbackY(
+        value: 1e308,
+        minimum: -1e308,
+        maximum: 1e308,
+        plotTop: top,
+        plotBottom: bottom,
+      ),
+      bottom,
+    );
+    expect(
+      buckJavaGraphPanelFallbackY(
+        value: 2,
+        minimum: 0,
+        maximum: 4,
+        plotTop: top,
+        plotBottom: bottom,
+      ),
+      isNull,
+    );
+  });
+
   test('Buck source-derived device graphs follow the operating load slider',
       () {
     const input = BuckInputs(
