@@ -245,6 +245,32 @@ void main() {
       0,
     );
 
+    // GraphPanel ignores a NaN that appears after finite samples while
+    // scanning extrema, but its plotted coordinate still narrows NaN to 0.
+    expect(
+      buckJavaGraphPanelFallbackY(
+        value: double.nan,
+        minimum: 0,
+        maximum: 3,
+        plotTop: top,
+        plotBottom: bottom,
+      ),
+      0,
+    );
+
+    // With a negative-infinity minimum, GraphPanel clamps the maximum to
+    // zero and keeps finite samples on the upper baseline.
+    expect(
+      buckJavaGraphPanelFallbackY(
+        value: -1,
+        minimum: double.negativeInfinity,
+        maximum: 0,
+        plotTop: top,
+        plotBottom: bottom,
+      ),
+      top,
+    );
+
     // A finite range whose subtraction overflows also gives Java a zero
     // mapping factor, leaving finite samples at the source baseline.
     expect(
