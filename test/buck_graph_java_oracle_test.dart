@@ -197,9 +197,7 @@ void main() {
       }
     });
   }
-  test(
-    'Buck GraphPanel non-finite y bounds preserve Java cast coordinates',
-    () {
+  test('Buck GraphPanel maps non-finite Y bounds like Java', () {
     const top = 7.0;
     const bottom = 75.0;
 
@@ -269,8 +267,7 @@ void main() {
       ),
       isNull,
     );
-    },
-  );
+  });
 
   test('Buck source-derived device graphs follow the operating load slider',
       () {
