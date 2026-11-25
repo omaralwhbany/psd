@@ -283,6 +283,29 @@ void main() {
       ),
       bottom,
     );
+    // A subnormal finite span overflows mappingY. The JVM d2i conversion
+    // saturates the resulting positive and negative infinities to int bounds.
+    expect(
+      buckJavaGraphPanelFallbackY(
+        value: -double.minPositive,
+        minimum: -double.minPositive,
+        maximum: double.minPositive,
+        plotTop: top,
+        plotBottom: bottom,
+      ),
+      2147483647.0,
+    );
+    expect(
+      buckJavaGraphPanelFallbackY(
+        value: double.minPositive,
+        minimum: -double.minPositive,
+        maximum: double.minPositive,
+        plotTop: top,
+        plotBottom: bottom,
+      ),
+      -2147483648.0,
+    );
+
     expect(
       buckJavaGraphPanelFallbackY(
         value: 2,
