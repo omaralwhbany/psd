@@ -28,11 +28,19 @@ class BuckGraphTimeRange {
 
   double get spanMicroseconds => maximumMicroseconds - minimumMicroseconds;
 
+  double _mappingX(double plotWidth) {
+    // GraphPanel uses 100.0 for both a zero-only range and any equal bounds.
+    if ((maximumMicroseconds == 0.0 && minimumMicroseconds == 0.0) ||
+        maximumMicroseconds == minimumMicroseconds) {
+      return 100.0;
+    }
+    return plotWidth / spanMicroseconds.abs();
+  }
+
   /// GraphPanel maps x directly from zero; it scales by the full range but
   /// deliberately does not subtract minimumMicroseconds from each sample.
   double graphPanelXOffset(double timeMicroseconds, double plotWidth) {
-    final mappingX = plotWidth / spanMicroseconds.abs();
-    return timeMicroseconds * mappingX;
+    return timeMicroseconds * _mappingX(plotWidth);
   }
 
   /// Reproduces GraphPanel's DecimalFormat input for a tick label.
@@ -40,7 +48,7 @@ class BuckGraphTimeRange {
     double timeMicroseconds,
     double plotWidth,
   ) {
-    final mappingX = plotWidth / spanMicroseconds.abs();
+    final mappingX = _mappingX(plotWidth);
     return maximumMicroseconds * (timeMicroseconds * mappingX / plotWidth);
   }
 
@@ -534,6 +542,49 @@ class _BuckDeviceMetricsView extends StatelessWidget {
   }
 }
 
+/// Returns the original GraphPanel x coordinate only when its binary64
+/// mapping becomes non-finite or overflows. For ordinary finite ranges the
+/// painter keeps its smooth Flutter mapping. GraphPanel uses a 100.0 mapping
+/// for equal x bounds and Java's d2i conversion for non-finite coordinates.
+@visibleForTesting
+double? buckJavaGraphPanelFallbackX({
+  required double value,
+  required double minimum,
+  required double maximum,
+  required double plotLeft,
+  required double plotWidth,
+}) {
+  final span = maximum - minimum;
+  final mappingX = ((maximum == 0.0 && minimum == 0.0) || maximum == minimum)
+      ? 100.0
+      : plotWidth / span.abs();
+  final mappedValue = value * mappingX;
+  final coordinate = plotLeft + mappedValue;
+
+  if (value.isFinite &&
+      minimum.isFinite &&
+      maximum.isFinite &&
+      span.isFinite &&
+      mappingX.isFinite &&
+      mappedValue.isFinite &&
+      coordinate.isFinite &&
+      coordinate >= -2147483648.0 &&
+      coordinate <= 2147483647.0) {
+    return null;
+  }
+  return _javaGraphPanelInt(coordinate).toDouble();
+}
+
+/// DecimalFormat("#0.00") renders Java's exceptional floating values using
+/// the infinity symbol rather than Dart's "Infinity" spelling.
+@visibleForTesting
+String buckJavaGraphPanelAxisLabel(double value) {
+  if (value.isNaN) return 'NaN';
+  if (value == double.infinity) return '∞';
+  if (value == double.negativeInfinity) return '-∞';
+  return value.toStringAsFixed(2);
+}
+
 /// Returns the original GraphPanel y coordinate only when its binary64
 /// mapping becomes non-finite or overflows. For ordinary finite ranges the
 /// painter keeps its smooth Flutter mapping. Java2D narrows each non-finite
@@ -637,11 +688,16 @@ class _BuckTracePainter extends CustomPainter {
     // fixed 1 ns edge offsets can make early samples negative when ton < 1 ns.
     final timeRange = BuckGraphTimeRange.fromPoints(points);
     final timeMax = timeRange.maximumMicroseconds;
-    final timeSpan = timeRange.spanMicroseconds;
-    if (!timeSpan.isFinite || timeSpan <= 0) return;
 
     double x(double time) {
-      if (!time.isFinite) return 0;
+      final fallback = buckJavaGraphPanelFallbackX(
+        value: time,
+        minimum: timeRange.minimumMicroseconds,
+        maximum: timeRange.maximumMicroseconds,
+        plotLeft: left,
+        plotWidth: plotRight - left,
+      );
+      if (fallback != null) return fallback;
       final mapped = left + timeRange.graphPanelXOffset(time, plotRight - left);
       return mapped.isFinite ? mapped : 0;
     }
@@ -684,9 +740,9 @@ class _BuckTracePainter extends CustomPainter {
 
     final middleValue = maxValue / 2;
     final middleY = (zeroY + top) / 2;
-    drawRightAligned(maxValue.toStringAsFixed(2), top);
-    drawRightAligned(middleValue.toStringAsFixed(2), middleY);
-    drawRightAligned(minValue.toStringAsFixed(2), plotBottom);
+    drawRightAligned(buckJavaGraphPanelAxisLabel(maxValue), top);
+    drawRightAligned(buckJavaGraphPanelAxisLabel(middleValue), middleY);
+    drawRightAligned(buckJavaGraphPanelAxisLabel(minValue), plotBottom);
     canvas.drawLine(Offset(left - 4, middleY), Offset(left + 4, middleY), axis);
 
     var lastLabelRight = -1000.0;
@@ -696,12 +752,12 @@ class _BuckTracePainter extends CustomPainter {
       canvas.drawLine(Offset(px, zeroY - 4), Offset(px, zeroY + 4), axis);
       final painter = TextPainter(
         text: TextSpan(
-            text: timeRange
-                .graphPanelTickLabelValue(
-                  points[index].timeMicroseconds,
-                  plotRight - left,
-                )
-                .toStringAsFixed(2),
+            text: buckJavaGraphPanelAxisLabel(
+              timeRange.graphPanelTickLabelValue(
+                points[index].timeMicroseconds,
+                plotRight - left,
+              ),
+            ),
             style: textStyle),
         textDirection: TextDirection.ltr,
       )..layout();
@@ -711,7 +767,7 @@ class _BuckTracePainter extends CustomPainter {
       lastLabelRight = start + 30;
     }
     final maxPainter = TextPainter(
-      text: TextSpan(text: timeMax.toStringAsFixed(2), style: textStyle),
+      text: TextSpan(text: buckJavaGraphPanelAxisLabel(timeMax), style: textStyle),
       textDirection: TextDirection.ltr,
     )..layout();
     final maxStart = plotRight - maxPainter.width / 2;
