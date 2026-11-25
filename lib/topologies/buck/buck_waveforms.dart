@@ -767,7 +767,10 @@ class _BuckTracePainter extends CustomPainter {
       lastLabelRight = start + 30;
     }
     final maxPainter = TextPainter(
-      text: TextSpan(text: buckJavaGraphPanelAxisLabel(timeMax), style: textStyle),
+      text: TextSpan(
+        text: buckJavaGraphPanelAxisLabel(timeMax),
+        style: textStyle,
+      ),
       textDirection: TextDirection.ltr,
     )..layout();
     final maxStart = plotRight - maxPainter.width / 2;
