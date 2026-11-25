@@ -197,6 +197,121 @@ void main() {
       }
     });
   }
+  test('Buck GraphPanel maps non-finite X bounds like Java', () {
+    const left = 65.0;
+    const width = 70.0;
+
+    // OpenJDK 21 GraphPanel runtime at 200x150 uses X=70 and x origin 65.
+    // For equal x bounds it selects mappingX=100 rather than dividing by 0.
+    const zeroRange = BuckGraphTimeRange(
+      minimumMicroseconds: 1,
+      maximumMicroseconds: 1,
+    );
+    expect(zeroRange.graphPanelXOffset(1, width), 100);
+    expect(left + zeroRange.graphPanelXOffset(1, width), 165);
+    expect(
+      zeroRange.graphPanelTickLabelValue(1, width),
+      closeTo(100 / 70, 1e-12),
+    );
+    expect(
+      buckJavaGraphPanelFallbackX(
+        value: 1,
+        minimum: 1,
+        maximum: 1,
+        plotLeft: left,
+        plotWidth: width,
+      ),
+      isNull,
+    );
+
+    // Direct GraphPanel runtime probes: a first NaN pins both extrema and
+    // maps every x coordinate to int zero; a later NaN is ignored by extrema
+    // scanning but its own plotted coordinate still narrows to zero.
+    expect(
+      buckJavaGraphPanelFallbackX(
+        value: 1,
+        minimum: double.nan,
+        maximum: double.nan,
+        plotLeft: left,
+        plotWidth: width,
+      ),
+      0,
+    );
+    expect(
+      buckJavaGraphPanelFallbackX(
+        value: double.nan,
+        minimum: 0,
+        maximum: 2,
+        plotLeft: left,
+        plotWidth: width,
+      ),
+      0,
+    );
+
+    // With an infinite range (including finite subtraction overflow), the
+    // Java mapping factor is zero: finite samples remain at the x origin,
+    // while Infinity*0 becomes NaN and narrows to integer zero.
+    expect(
+      buckJavaGraphPanelFallbackX(
+        value: 1,
+        minimum: 0,
+        maximum: double.infinity,
+        plotLeft: left,
+        plotWidth: width,
+      ),
+      left,
+    );
+    expect(
+      buckJavaGraphPanelFallbackX(
+        value: double.infinity,
+        minimum: 0,
+        maximum: double.infinity,
+        plotLeft: left,
+        plotWidth: width,
+      ),
+      0,
+    );
+    expect(
+      buckJavaGraphPanelFallbackX(
+        value: 1e308,
+        minimum: -1e308,
+        maximum: 1e308,
+        plotLeft: left,
+        plotWidth: width,
+      ),
+      left,
+    );
+
+    // A subnormal x span overflows mappingX; JVM d2i saturates to int limits.
+    expect(
+      buckJavaGraphPanelFallbackX(
+        value: -double.minPositive,
+        minimum: -double.minPositive,
+        maximum: double.minPositive,
+        plotLeft: left,
+        plotWidth: width,
+      ),
+      -2147483648.0,
+    );
+    expect(
+      buckJavaGraphPanelFallbackX(
+        value: double.minPositive,
+        minimum: -double.minPositive,
+        maximum: double.minPositive,
+        plotLeft: left,
+        plotWidth: width,
+      ),
+      2147483647.0,
+    );
+  });
+
+  test('Buck GraphPanel axis labels spell exceptional values like Java', () {
+    expect(buckJavaGraphPanelAxisLabel(double.nan), 'NaN');
+    expect(buckJavaGraphPanelAxisLabel(double.infinity), '∞');
+    expect(buckJavaGraphPanelAxisLabel(double.negativeInfinity), '-∞');
+    expect(buckJavaGraphPanelAxisLabel(1.25), '1.25');
+  });
+
   test('Buck GraphPanel maps non-finite Y bounds like Java', () {
     const top = 7.0;
     const bottom = 75.0;
