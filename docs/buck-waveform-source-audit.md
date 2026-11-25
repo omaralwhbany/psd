@@ -897,3 +897,38 @@ normal painter path. No Buck calculation, RMS equation, waveform sample
 value, or time coordinate changed. This is a renderer parity correction
 verified against an actual `PSD5.jar` GraphPanel runtime, not a Flutter
 runtime comparison.
+
+
+## 2026-11-26: non-finite and degenerate GraphPanel x ranges
+
+Re-read the original `GraphPanel.java` and its `paintComponent()` bytecode
+from `PSD5.jar`. The source selects `mappingX = 100.0` when
+`maxX == minX` (including the all-zero case); otherwise it divides the
+plot width by `abs(maxX - minX)`. It does not abort painting when the x
+range is zero, NaN, or infinite. Each plotted coordinate is
+`(int)(65.0 + point.x * mappingX)`, which uses JVM `d2i` conversion.
+
+A direct OpenJDK 21 runtime probe instantiated the original GraphPanel from
+`PSD5.jar`, painted it at 200x150, and inspected the red trace:
+- Equal x samples `[1, 1, 1, 1]` rendered a vertical trace at x=164..165;
+  this confirms the source's special mapping factor of 100.
+- A first NaN sample `[NaN, 0, 1, 2]` pinned the scanned extrema and
+  narrowed all plotted x coordinates to zero.
+- A later NaN sample was ignored during extrema scanning, but its own
+  coordinate still narrowed to zero.
+- Positive or negative infinity in the range left finite samples at x=65
+  and mapped the infinite sample to x=0 because `Infinity * 0` is NaN.
+- Finite extrema `[-1e308, 0, 1e308]` overflowed their subtraction; the
+  zero mapping factor kept finite samples at x=65.
+- A subnormal span overflowed the mapping factor and placed the trace beyond
+  the image after JVM signed-32-bit saturation.
+
+The Flutter painter previously returned before drawing whenever the x span
+was non-finite or non-positive. That blanked traces for cases where the
+original Java GraphPanel still paints them. The fix preserves the normal
+finite-range Flutter mapping, applies the source's 100.0 equal-bound rule,
+and uses JVM `d2i` fallback coordinates for non-finite/overflow mappings.
+Exceptional axis labels now use Java's `NaN` and infinity-symbol spellings.
+No Buck calculation, RMS equation, waveform sample, or time coordinate was
+changed. The runtime evidence is from the original `PSD5.jar` GraphPanel,
+not from a Flutter runtime comparison.
