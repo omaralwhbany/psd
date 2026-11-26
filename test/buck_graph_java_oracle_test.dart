@@ -701,29 +701,6 @@ void main() {
     expect(result.values['inductorVoltageMin'], -4.0);
     expect(result.values['inductorVoltageMax'], 3.7);
   });
-}
-
-/// Expands the seven original Java per-cycle samples into Graph.java's
-/// first 20 plotted points; the final 21st source point is intentionally cut.
-List<double> _expandJavaBuckSamples(List<dynamic> sourceSamples) {
-  final p = sourceSamples.map((value) => (value as num).toDouble()).toList();
-  return [
-    ...p,
-    p[0],
-    p[2],
-    p[3],
-    p[4],
-    p[5],
-    p[6],
-    p[0],
-    p[2],
-    p[3],
-    p[4],
-    p[5],
-    p[6],
-    p[0],
-    p[2],
-  ].take(20).toList();
 
   group('OpenJDK 21 DecimalFormat compatibility', () {
     test('matches HALF_EVEN and binary64 tie behavior', () {
@@ -1129,4 +1106,28 @@ List<double> _expandJavaBuckSamples(List<dynamic> sourceSamples) {
       expect(tester.takeException(), isNull);
     },
   );
+}
+
+/// Expands the seven original Java per-cycle samples into Graph.java's
+/// first 20 plotted points; the final 21st source point is intentionally cut.
+List<double> _expandJavaBuckSamples(List<dynamic> sourceSamples) {
+  final p = sourceSamples.map((value) => (value as num).toDouble()).toList();
+  return [
+    ...p,
+    p[0],
+    p[2],
+    p[3],
+    p[4],
+    p[5],
+    p[6],
+    p[0],
+    p[2],
+    p[3],
+    p[4],
+    p[5],
+    p[6],
+    p[0],
+    p[2],
+  ].take(20).toList();
+
 }
