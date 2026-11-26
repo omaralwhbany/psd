@@ -90,8 +90,8 @@ void main() {
                 currentLabel: 'Current',
                 periodLabel: 'One switching period',
                 timeAxisLabel: 'Time (µs)',
-                deviceTitles: const {'inductor': 'Inductor L1'},
-                metricLabels: const {
+                deviceTitles: {'inductor': 'Inductor L1'},
+                metricLabels: {
                   'minimumVoltage': 'Vmin',
                   'maximumVoltage': 'Vmax',
                   'minimumCurrent': 'Imin',
