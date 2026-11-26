@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'buck_inputs.dart';
+import 'buck_java_decimal_format.dart';
 
 /// Mirrors Buck.java's six-decimal side-label rounding and Graph.java's
 /// negated >= 1 comparison. NaN therefore does not trigger the V/A prefix.
@@ -582,7 +583,11 @@ String buckJavaGraphPanelAxisLabel(double value) {
   if (value.isNaN) return 'NaN';
   if (value == double.infinity) return '∞';
   if (value == double.negativeInfinity) return '-∞';
-  return value.toStringAsFixed(2);
+  return formatBuckJavaDecimal(
+    value,
+    minFractionDigits: 2,
+    maxFractionDigits: 2,
+  );
 }
 
 /// Returns the original GraphPanel y coordinate only when its binary64

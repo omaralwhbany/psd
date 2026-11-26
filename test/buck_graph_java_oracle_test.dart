@@ -305,11 +305,18 @@ void main() {
     );
   });
 
-  test('Buck GraphPanel axis labels spell exceptional values like Java', () {
+  test('Buck GraphPanel axis labels match Java DecimalFormat', () {
+    // GraphPanel.paintComponent uses DecimalFormat("#0.00") for every axis
+    // and tick label. These values are pinned by OpenJDK 21 runtime probes.
+    expect(buckJavaGraphPanelAxisLabel(1.125), '1.12');
+    expect(buckJavaGraphPanelAxisLabel(1.375), '1.38');
+    expect(buckJavaGraphPanelAxisLabel(-1.125), '-1.12');
+    expect(buckJavaGraphPanelAxisLabel(-1.375), '-1.38');
+    expect(buckJavaGraphPanelAxisLabel(0.005), '0.01');
+    expect(buckJavaGraphPanelAxisLabel(1.25), '1.25');
     expect(buckJavaGraphPanelAxisLabel(double.nan), 'NaN');
     expect(buckJavaGraphPanelAxisLabel(double.infinity), '∞');
     expect(buckJavaGraphPanelAxisLabel(double.negativeInfinity), '-∞');
-    expect(buckJavaGraphPanelAxisLabel(1.25), '1.25');
   });
 
   test('Buck GraphPanel maps non-finite Y bounds like Java', () {
