@@ -82,7 +82,7 @@ void main() {
       ]);
 
       await tester.pumpWidget(
-        const MaterialApp(
+        const const MaterialApp(
           home: Scaffold(
             body: SingleChildScrollView(
               child: BuckDeviceWaveformsView(
@@ -92,7 +92,6 @@ void main() {
                 periodLabel: 'One switching period',
                 timeAxisLabel: 'Time (µs)',
                 deviceTitles: {'inductor': 'Inductor L1'},
-                metricLabels: {
                   'minimumVoltage': 'Vmin',
                   'maximumVoltage': 'Vmax',
                   'minimumCurrent': 'Imin',
@@ -1070,7 +1069,7 @@ void main() {
           home: Scaffold(
             body: SingleChildScrollView(
               child: BuckDeviceWaveformsView(
-                waveforms: BuckWaveformSet([device]),
+                waveforms: const BuckWaveformSet([device]),
                 voltageLabel: 'Voltage',
                 currentLabel: 'Current',
                 periodLabel: 'Three periods',
@@ -1124,17 +1123,17 @@ void main() {
         averageCurrent: 2,
         acCurrent: 1,
       );
-      final device = BuckDeviceWaveform(
+      const device = BuckDeviceWaveform(
         id: 'nonfinite',
         title: 'Non-finite probe',
         voltage: [
           const BuckWaveformPoint(0, 1),
           const BuckWaveformPoint(1, 2),
-          BuckWaveformPoint(double.infinity, double.infinity),
+          const BuckWaveformPoint(double.infinity, double.infinity),
           const BuckWaveformPoint(3, 3),
         ],
         current: [
-          BuckWaveformPoint(double.nan, double.nan),
+          const BuckWaveformPoint(double.nan, double.nan),
           const BuckWaveformPoint(1, 2),
           const BuckWaveformPoint(2, 3),
           const BuckWaveformPoint(3, 4),
@@ -1152,7 +1151,8 @@ void main() {
                 currentLabel: 'Current',
                 periodLabel: 'One switching period',
                 timeAxisLabel: 'Time (µs)',
-                deviceTitles: {'nonfinite': 'Non-finite probe'},
+                deviceTitles: const {'nonfinite': 'Non-finite probe'},
+                metricLabels: const {
                 metricLabels: {
                   'minimumVoltage': 'Vmin',
                   'maximumVoltage': 'Vmax',
