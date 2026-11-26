@@ -1142,7 +1142,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SingleChildScrollView(
               child: BuckDeviceWaveformsView(
@@ -1151,8 +1151,7 @@ void main() {
                 currentLabel: 'Current',
                 periodLabel: 'One switching period',
                 timeAxisLabel: 'Time (µs)',
-                deviceTitles: const {'nonfinite': 'Non-finite probe'},
-                metricLabels: const {
+                deviceTitles: {'nonfinite': 'Non-finite probe'},
                 metricLabels: {
                   'minimumVoltage': 'Vmin',
                   'maximumVoltage': 'Vmax',
