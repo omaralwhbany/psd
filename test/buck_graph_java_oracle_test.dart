@@ -1070,7 +1070,7 @@ void main() {
           home: Scaffold(
             body: SingleChildScrollView(
               child: BuckDeviceWaveformsView(
-                waveforms: const BuckWaveformSet([device]),
+                waveforms: BuckWaveformSet([device]),
                 voltageLabel: 'Voltage',
                 currentLabel: 'Current',
                 periodLabel: 'Three periods',
