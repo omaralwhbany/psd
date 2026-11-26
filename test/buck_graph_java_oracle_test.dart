@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:psd/topologies/buck/buck_engine.dart';
 import 'package:psd/topologies/buck/buck_inputs.dart';
@@ -49,6 +50,69 @@ void main() {
     expect(metrics(minimumVoltage: double.nan).voltageScale, 1000);
     expect(metrics(acCurrent: double.nan).currentScale, 1000);
   });
+
+  testWidgets(
+    'Buck graph metric labels preserve Java two-stage DecimalFormat rounding',
+    (tester) async {
+      const value = 0.47791537253375116;
+      const metrics = BuckDeviceMetrics(
+        minimumVoltage: value,
+        maximumVoltage: value,
+        minimumCurrent: value,
+        maximumCurrent: value,
+        rmsCurrent: value,
+        averageCurrent: value,
+        acCurrent: value,
+      );
+      const waveforms = BuckWaveformSet([
+        BuckDeviceWaveform(
+          id: 'inductor',
+          title: 'Inductor L1',
+          voltage: [
+            BuckWaveformPoint(0, value),
+            BuckWaveformPoint(1, value),
+          ],
+          current: [
+            BuckWaveformPoint(0, value),
+            BuckWaveformPoint(1, value),
+          ],
+          metrics: metrics,
+        ),
+      ]);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: BuckDeviceWaveformsView(
+                waveforms: waveforms,
+                voltageLabel: 'Voltage',
+                currentLabel: 'Current',
+                periodLabel: 'One switching period',
+                timeAxisLabel: 'Time (µs)',
+                deviceTitles: const {'inductor': 'Inductor L1'},
+                metricLabels: const {
+                  'minimumVoltage': 'Vmin',
+                  'maximumVoltage': 'Vmax',
+                  'minimumCurrent': 'Imin',
+                  'maximumCurrent': 'Imax',
+                  'rmsCurrent': 'Irms',
+                  'averageCurrent': 'Iavg',
+                  'acCurrent': 'Iac',
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Buck.java rounds to six fractional digits before Graph.java parses,
+      // scales to mV/mA, and formats again to two fractional digits.
+      expect(find.text('Vmin: 477.91 mV'), findsOneWidget);
+      expect(find.text('Imin: 477.91 mA'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   for (final caseName in ['ccm', 'dcm', 'boundary', 'duty100']) {
     test('all five Buck $caseName graph traces match original PSD5.jar runtime',
