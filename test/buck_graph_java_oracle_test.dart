@@ -1129,5 +1129,4 @@ List<double> _expandJavaBuckSamples(List<dynamic> sourceSamples) {
     p[0],
     p[2],
   ].take(20).toList();
-
 }
