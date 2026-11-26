@@ -5,11 +5,6 @@ import 'package:flutter/material.dart';
 import 'buck_inputs.dart';
 import 'buck_java_decimal_format.dart';
 
-/// Mirrors Buck.java's six-decimal side-label rounding and Graph.java's
-/// negated >= 1 comparison. NaN therefore does not trigger the V/A prefix.
-bool _javaGraphLabelKeepsMilliPrefix(double value) =>
-    !(value.abs() >= 0.9999995);
-
 /// One sample from the original PSD5 Buck graph time base (microseconds).
 class BuckWaveformPoint {
   const BuckWaveformPoint(this.timeMicroseconds, this.value);
@@ -97,7 +92,7 @@ class BuckDeviceMetrics {
   // before Graph.java checks whether their absolute value is at least 1.
   // Six fractional digits mean 0.9999995 rounds to 1.00, so it uses V/A.
   double get voltageScale =>
-      [minimumVoltage, maximumVoltage].every(_javaGraphLabelKeepsMilliPrefix)
+      [minimumVoltage, maximumVoltage].every(buckJavaGraphLabelKeepsMilliPrefix)
           ? 1000
           : 1;
   double get currentScale => [
@@ -106,7 +101,7 @@ class BuckDeviceMetrics {
         rmsCurrent,
         averageCurrent,
         acCurrent,
-      ].every(_javaGraphLabelKeepsMilliPrefix)
+      ].every(buckJavaGraphLabelKeepsMilliPrefix)
           ? 1000
           : 1;
 }
@@ -504,31 +499,31 @@ class _BuckDeviceMetricsView extends StatelessWidget {
     final entries = <(String, String)>[
       (
         'minimumVoltage',
-        '${(metrics.minimumVoltage * voltageScale).toStringAsFixed(2)} $voltageUnit'
+        '${formatBuckJavaGraphMetric(metrics.minimumVoltage, voltageScale)} $voltageUnit'
       ),
       (
         'maximumVoltage',
-        '${(metrics.maximumVoltage * voltageScale).toStringAsFixed(2)} $voltageUnit'
+        '${formatBuckJavaGraphMetric(metrics.maximumVoltage, voltageScale)} $voltageUnit'
       ),
       (
         'minimumCurrent',
-        '${(metrics.minimumCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+        '${formatBuckJavaGraphMetric(metrics.minimumCurrent, currentScale)} $currentUnit'
       ),
       (
         'maximumCurrent',
-        '${(metrics.maximumCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+        '${formatBuckJavaGraphMetric(metrics.maximumCurrent, currentScale)} $currentUnit'
       ),
       (
         'rmsCurrent',
-        '${(metrics.rmsCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+        '${formatBuckJavaGraphMetric(metrics.rmsCurrent, currentScale)} $currentUnit'
       ),
       (
         'averageCurrent',
-        '${(metrics.averageCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+        '${formatBuckJavaGraphMetric(metrics.averageCurrent, currentScale)} $currentUnit'
       ),
       (
         'acCurrent',
-        '${(metrics.acCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+        '${formatBuckJavaGraphMetric(metrics.acCurrent, currentScale)} $currentUnit'
       ),
     ];
     final style = Theme.of(context).textTheme.labelSmall;
