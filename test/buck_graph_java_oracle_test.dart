@@ -82,7 +82,7 @@ void main() {
       ]);
 
       await tester.pumpWidget(
-        const const MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: SingleChildScrollView(
               child: BuckDeviceWaveformsView(
@@ -92,6 +92,7 @@ void main() {
                 periodLabel: 'One switching period',
                 timeAxisLabel: 'Time (µs)',
                 deviceTitles: {'inductor': 'Inductor L1'},
+                metricLabels: {
                   'minimumVoltage': 'Vmin',
                   'maximumVoltage': 'Vmax',
                   'minimumCurrent': 'Imin',
