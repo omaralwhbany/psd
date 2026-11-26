@@ -4,8 +4,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:psd/topologies/buck/buck_engine.dart';
-import 'package:psd/topologies/buck/buck_java_decimal_format.dart';
 import 'package:psd/topologies/buck/buck_inputs.dart';
+import 'package:psd/topologies/buck/buck_java_decimal_format.dart';
 import 'package:psd/topologies/buck/buck_waveforms.dart';
 
 void main() {
@@ -1129,5 +1129,4 @@ List<double> _expandJavaBuckSamples(List<dynamic> sourceSamples) {
       expect(tester.takeException(), isNull);
     },
   );
-
 }
