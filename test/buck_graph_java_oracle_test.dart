@@ -1106,6 +1106,76 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets(
+    'Buck graph painter renders PSD5 non-finite x/y samples without errors',
+    (tester) async {
+      tester.view.physicalSize = const Size(1000, 1200);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      const metrics = BuckDeviceMetrics(
+        minimumVoltage: 1,
+        maximumVoltage: 3,
+        minimumCurrent: 1,
+        maximumCurrent: 3,
+        rmsCurrent: 2,
+        averageCurrent: 2,
+        acCurrent: 1,
+      );
+      final device = BuckDeviceWaveform(
+        id: 'nonfinite',
+        title: 'Non-finite probe',
+        voltage: [
+          const BuckWaveformPoint(0, 1),
+          const BuckWaveformPoint(1, 2),
+          BuckWaveformPoint(double.infinity, double.infinity),
+          const BuckWaveformPoint(3, 3),
+        ],
+        current: [
+          BuckWaveformPoint(double.nan, double.nan),
+          const BuckWaveformPoint(1, 2),
+          const BuckWaveformPoint(2, 3),
+          const BuckWaveformPoint(3, 4),
+        ],
+        metrics: metrics,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: BuckDeviceWaveformsView(
+                waveforms: BuckWaveformSet([device]),
+                voltageLabel: 'Voltage',
+                currentLabel: 'Current',
+                periodLabel: 'One switching period',
+                timeAxisLabel: 'Time (µs)',
+                deviceTitles: {'nonfinite': 'Non-finite probe'},
+                metricLabels: {
+                  'minimumVoltage': 'Vmin',
+                  'maximumVoltage': 'Vmax',
+                  'minimumCurrent': 'Imin',
+                  'maximumCurrent': 'Imax',
+                  'rmsCurrent': 'Irms',
+                  'averageCurrent': 'Iavg',
+                  'acCurrent': 'Iac',
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Direct OpenJDK 21 GraphPanel probes cover +Infinity in both axes and
+      // a first NaN sample that pins both extrema. The Flutter widget must
+      // still complete its real CustomPaint pass without an exception.
+      expect(find.byType(CustomPaint).evaluate().length, greaterThanOrEqualTo(2));
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
 
 /// Expands the seven original Java per-cycle samples into Graph.java's
