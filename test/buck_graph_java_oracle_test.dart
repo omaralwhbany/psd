@@ -1172,7 +1172,10 @@ void main() {
       // Direct OpenJDK 21 GraphPanel probes cover +Infinity in both axes and
       // a first NaN sample that pins both extrema. The Flutter widget must
       // still complete its real CustomPaint pass without an exception.
-      expect(find.byType(CustomPaint).evaluate().length, greaterThanOrEqualTo(2));
+      expect(
+        find.byType(CustomPaint).evaluate().length,
+        greaterThanOrEqualTo(2),
+      );
       expect(tester.takeException(), isNull);
     },
   );
