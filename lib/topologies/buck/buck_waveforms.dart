@@ -258,7 +258,10 @@ class BuckWaveformSet {
 
     double acCurrent(double rms, double average,
         {bool clampBelowAverage = false}) {
-      if (clampBelowAverage && rms < average) return 0;
+      // Buck.inductorGetLabelsValuesCurrent() computes AC current only when
+      // iind_rms >= iind_avg_buck. Negating that comparison also preserves
+      // Java's zero fallback when either operand is NaN.
+      if (clampBelowAverage && !(rms >= average)) return 0;
       return math.sqrt(rms * rms - average * average);
     }
 
