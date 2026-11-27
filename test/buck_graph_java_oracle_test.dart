@@ -50,8 +50,9 @@ void main() {
     expect(metrics(acCurrent: double.nan).currentScale, 1000);
   });
 
-  test('Buck AC metric exceptional behavior matches all five PSD5 devices',
-      () {
+  test(
+    'Buck AC metric exceptional behavior matches all five PSD5 devices',
+    () {
     final input = BuckInputs.defaults();
     final result = const BuckEngine().calculate(input);
     expect(result.isValid, isTrue);
@@ -149,7 +150,8 @@ void main() {
         }
       }
     }
-  });
+    },
+  );
 
   for (final caseName in ['ccm', 'dcm', 'boundary', 'duty100']) {
     test('all five Buck $caseName graph traces match original PSD5.jar runtime',
