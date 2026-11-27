@@ -50,29 +50,77 @@ void main() {
     expect(metrics(acCurrent: double.nan).currentScale, 1000);
   });
 
-  test('Buck inductor AC metric follows PSD5 rms >= average guard', () {
+  test('Buck AC metric exceptional behavior matches all five PSD5 devices',
+      () {
     final input = BuckInputs.defaults();
     final result = const BuckEngine().calculate(input);
     expect(result.isValid, isTrue);
 
-    // Buck.inductorGetLabelsValuesCurrent() initializes AC current to zero
-    // and assigns sqrt(rms²-average²) only inside `if (rms >= average)`.
-    // The original JAR therefore returns 0.00 when either operand is NaN.
-    final cases = <Map<String, double>>[
-      {'inductorRmsCurrent': double.nan},
-      {'inductorAverageCurrent': double.nan},
-      {'inductorRmsCurrent': 1.0, 'inductorAverageCurrent': 2.0},
+    // These outcomes came from invoking all five private label methods in
+    // PSD5.jar under OpenJDK 21. Only inductorGetLabelsValuesCurrent()
+    // initializes AC current to zero and guards sqrt with rms >= average.
+    // The other four original methods always evaluate sqrt(rms²-average²).
+    final deviceFields = <({String id, String rmsKey, String averageKey})>[
+      (
+        id: 'inputCapacitor',
+        rmsKey: 'inputCapacitorRmsCurrent',
+        averageKey: 'inputCapacitorAverageCurrent',
+      ),
+      (
+        id: 'mosfet',
+        rmsKey: 'mosfetRmsCurrent',
+        averageKey: 'mosfetAverageCurrent',
+      ),
+      (
+        id: 'inductor',
+        rmsKey: 'inductorRmsCurrent',
+        averageKey: 'inductorAverageCurrent',
+      ),
+      (
+        id: 'diode',
+        rmsKey: 'diodeRmsCurrent',
+        averageKey: 'diodeAverageCurrent',
+      ),
+      (
+        id: 'outputCapacitor',
+        rmsKey: 'outputCapacitorRmsCurrent',
+        averageKey: 'outputCapacitorAverageCurrent',
+      ),
     ];
-    for (final overrides in cases) {
-      final values = <String, double>{...result.values, ...overrides};
-      final waveforms = BuckWaveformSet.fromCalculation(
-        input: input,
-        values: values,
-      );
-      final inductor = waveforms.devices.singleWhere(
-        (device) => device.id == 'inductor',
-      );
-      expect(inductor.metrics.acCurrent, 0, reason: '$overrides');
+    final scenarios = <({String name, double rms, double average, bool exceptional})>[
+      (name: 'NaN RMS', rms: double.nan, average: 2.0, exceptional: true),
+      (name: 'NaN average', rms: 2.0, average: double.nan, exceptional: true),
+      (name: 'RMS below average', rms: 1.0, average: 2.0, exceptional: true),
+      (name: 'finite RMS above average', rms: 3.0, average: 2.0, exceptional: false),
+    ];
+
+    for (final deviceField in deviceFields) {
+      for (final scenario in scenarios) {
+        final values = <String, double>{
+          ...result.values,
+          deviceField.rmsKey: scenario.rms,
+          deviceField.averageKey: scenario.average,
+        };
+        final waveforms = BuckWaveformSet.fromCalculation(
+          input: input,
+          values: values,
+        );
+        final device = waveforms.devices.singleWhere(
+          (candidate) => candidate.id == deviceField.id,
+        );
+        final reason = '${deviceField.id}: ${scenario.name}';
+        if (scenario.exceptional && deviceField.id == 'inductor') {
+          expect(device.metrics.acCurrent, 0, reason: reason);
+        } else if (scenario.exceptional) {
+          expect(device.metrics.acCurrent.isNaN, isTrue, reason: reason);
+        } else {
+          expect(
+            device.metrics.acCurrent,
+            closeTo(2.23606797749979, 1e-12),
+            reason: reason,
+          );
+        }
+      }
     }
   });
 
