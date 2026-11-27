@@ -51,7 +51,7 @@ void main() {
   });
 
   test('Buck inductor AC metric follows PSD5 rms >= average guard', () {
-    const input = BuckInputs.defaults();
+    final input = BuckInputs.defaults();
     final result = const BuckEngine().calculate(input);
     expect(result.isValid, isTrue);
 
