@@ -50,6 +50,32 @@ void main() {
     expect(metrics(acCurrent: double.nan).currentScale, 1000);
   });
 
+  test('Buck inductor AC metric follows PSD5 rms >= average guard', () {
+    const input = BuckInputs.defaults();
+    final result = const BuckEngine().calculate(input);
+    expect(result.isValid, isTrue);
+
+    // Buck.inductorGetLabelsValuesCurrent() initializes AC current to zero
+    // and assigns sqrt(rms²-average²) only inside `if (rms >= average)`.
+    // The original JAR therefore returns 0.00 when either operand is NaN.
+    final cases = <Map<String, double>>[
+      {'inductorRmsCurrent': double.nan},
+      {'inductorAverageCurrent': double.nan},
+      {'inductorRmsCurrent': 1.0, 'inductorAverageCurrent': 2.0},
+    ];
+    for (final overrides in cases) {
+      final values = <String, double>{...result.values, ...overrides};
+      final waveforms = BuckWaveformSet.fromCalculation(
+        input: input,
+        values: values,
+      );
+      final inductor = waveforms.devices.singleWhere(
+        (device) => device.id == 'inductor',
+      );
+      expect(inductor.metrics.acCurrent, 0, reason: '$overrides');
+    }
+  });
+
   for (final caseName in ['ccm', 'dcm', 'boundary', 'duty100']) {
     test('all five Buck $caseName graph traces match original PSD5.jar runtime',
         () {
