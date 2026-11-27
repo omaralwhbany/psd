@@ -788,11 +788,11 @@ regression pins the Java-runtime `40.54 %` value and checks both the result
 style and input warning.
 
 This is a display-only correction; no Buck calculation or validation rule
-was changed. A separate parity gap remains: Flutter currently rejects
-ripple fractions outside `(0, 1]` before producing numeric results, while
-PSD5 calculates first and marks the relevant fields in `runChecks()`.
-That engine-validation behavior remains open for a separately scoped audit;
-this patch does not claim to resolve it.
+was changed. At the time of this initial screen-highlight patch, invalid
+ripple fractions still followed a blocking validation path. The later
+2026-11-20 section below records the source-runtime extension for a positive
+custom inductor; the automatic-inductance path retains its separate finite-
+`Lmin` guard when no finite design inductance can be produced.
 
 
 ## 2026-11-20: invalid ripple targets retain PSD5 calculated results
@@ -866,3 +866,49 @@ This was verified by directly executing the original Buck class from PSD5.jar un
 All four cases retained the same Java runtime operating values: 2.0270270270270263 A actual current excursion, 5.033620540612438 A inductor RMS, 4.13761059678065 A MOSFET RMS, 2.866620710223788 A diode RMS, 2.389280899087459 A input-capacitor RMS, 0.5851522998543502 A output-capacitor RMS, 60 W output power, and 60.810810810810814 W input power.
 
 Flutter now keeps the invalid ripple message non-blocking only when a valid positive custom inductance is selected, so the same source-calculated values remain visible. The automatic-inductance path retains its existing blocking guard for negative/non-finite design inductance. Regression fixtures pin the fixed Java runtime values and the separate input/result warning states. No Buck equation, RMS integral, or waveform sample was changed.
+
+
+## 2026-11-27: inductor AC-current label exceptional-value parity
+
+Re-inspected the original `Buck.java` label methods and the matching
+`Buck.class` bytecode in `PSD5.jar`. The five device methods do not use
+one common AC-current rule:
+
+- Input capacitor, MOSFET, diode, and output capacitor always evaluate
+  `sqrt(rms * rms - average * average)`.
+- The inductor initializes its AC-current value to `0.0` and evaluates the
+  square root only when `iind_rms >= iind_avg_buck`.
+
+That exact comparison matters for IEEE-754 exceptional values. If either
+inductor operand is NaN, Java's `>=` comparison is false and the displayed
+inductor AC current remains `0.00`. The other four device methods evaluate
+the square root directly and produce NaN when either operand is NaN or when
+RMS is below average.
+
+This behavior was checked at three distinct evidence levels:
+
+1. **Source inspection:** the conditional initialization and comparison are
+   present only in `Buck.inductorGetLabelsValuesCurrent()`; the other four
+   methods contain an unconditional square root.
+2. **Bytecode inspection:** `javap -p -c` shows `dcmpl`, the conditional
+   branch around `Math.sqrt`, and the initial `dconst_0` for the inductor
+   method. The other four bytecode methods call `Math.sqrt` unconditionally.
+3. **Original Java runtime:** under OpenJDK 21, a reflective probe invoked all
+   five private label methods from the original `PSD5.jar`. With
+   `RMS=NaN, average=2`, `RMS=2, average=NaN`, and `RMS=1, average=2`,
+   the inductor returned `0.00` while the other four returned `NaN`.
+   With `RMS=3, average=2`, all five returned `2.236068`.
+
+Flutter previously used `rms < average` as its inductor-only guard. That
+matches the finite below-average case but does not match Java for NaN,
+because `NaN < average` is false and the square root is still evaluated.
+The correction changes the guard to the logical negation of the original
+`rms >= average` condition. The new regression test injects NaN RMS, NaN
+average, below-average, and finite above-average values for all five devices.
+Only the inductor path clamps the first three cases to zero; the other four
+retain Java's NaN behavior.
+
+This is a graph-label parity correction only. It does not change any Buck
+calculation, RMS/average value, stress equation, or waveform sample. The
+runtime evidence above is from the original Java methods in `PSD5.jar`, not
+from executing Flutter.
