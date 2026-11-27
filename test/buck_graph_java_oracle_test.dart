@@ -57,67 +57,88 @@ void main() {
     expect(result.isValid, isTrue);
 
     // These outcomes came from invoking all five private label methods in
-    // PSD5.jar under OpenJDK 21. Only inductorGetLabelsValuesCurrent()
-    // initializes AC current to zero and guards sqrt with rms >= average.
-    // The other four original methods always evaluate sqrt(rms²-average²).
-    final deviceFields = <({String id, String rmsKey, String averageKey})>[
-      (
-        id: 'inputCapacitor',
-        rmsKey: 'inputCapacitorRmsCurrent',
-        averageKey: 'inputCapacitorAverageCurrent',
-      ),
-      (
-        id: 'mosfet',
-        rmsKey: 'mosfetRmsCurrent',
-        averageKey: 'mosfetAverageCurrent',
-      ),
-      (
-        id: 'inductor',
-        rmsKey: 'inductorRmsCurrent',
-        averageKey: 'inductorAverageCurrent',
-      ),
-      (
-        id: 'diode',
-        rmsKey: 'diodeRmsCurrent',
-        averageKey: 'diodeAverageCurrent',
-      ),
-      (
-        id: 'outputCapacitor',
-        rmsKey: 'outputCapacitorRmsCurrent',
-        averageKey: 'outputCapacitorAverageCurrent',
-      ),
+    // PSD5.jar under OpenJDK 21. Only the inductor method initializes AC
+    // current to zero and guards sqrt with rms >= average. The other four
+    // original methods always evaluate sqrt(rms²-average²).
+    final deviceFields = <Map<String, String>>[
+      {
+        'id': 'inputCapacitor',
+        'rmsKey': 'inputCapacitorRmsCurrent',
+        'averageKey': 'inputCapacitorAverageCurrent',
+      },
+      {
+        'id': 'mosfet',
+        'rmsKey': 'mosfetRmsCurrent',
+        'averageKey': 'mosfetAverageCurrent',
+      },
+      {
+        'id': 'inductor',
+        'rmsKey': 'inductorRmsCurrent',
+        'averageKey': 'inductorAverageCurrent',
+      },
+      {
+        'id': 'diode',
+        'rmsKey': 'diodeRmsCurrent',
+        'averageKey': 'diodeAverageCurrent',
+      },
+      {
+        'id': 'outputCapacitor',
+        'rmsKey': 'outputCapacitorRmsCurrent',
+        'averageKey': 'outputCapacitorAverageCurrent',
+      },
     ];
-    final scenarios =
-        <({String name, double rms, double average, bool exceptional})>[
-      (name: 'NaN RMS', rms: double.nan, average: 2.0, exceptional: true),
-      (name: 'NaN average', rms: 2.0, average: double.nan, exceptional: true),
-      (name: 'RMS below average', rms: 1.0, average: 2.0, exceptional: true),
-      (
-        name: 'finite RMS above average',
-        rms: 3.0,
-        average: 2.0,
-        exceptional: false,
-      ),
+    final scenarios = <Map<String, Object>>[
+      {
+        'name': 'NaN RMS',
+        'rms': double.nan,
+        'average': 2.0,
+        'exceptional': true,
+      },
+      {
+        'name': 'NaN average',
+        'rms': 2.0,
+        'average': double.nan,
+        'exceptional': true,
+      },
+      {
+        'name': 'RMS below average',
+        'rms': 1.0,
+        'average': 2.0,
+        'exceptional': true,
+      },
+      {
+        'name': 'finite RMS above average',
+        'rms': 3.0,
+        'average': 2.0,
+        'exceptional': false,
+      },
     ];
 
     for (final deviceField in deviceFields) {
+      final id = deviceField['id']!;
+      final rmsKey = deviceField['rmsKey']!;
+      final averageKey = deviceField['averageKey']!;
       for (final scenario in scenarios) {
+        final name = scenario['name']! as String;
+        final rms = scenario['rms']! as double;
+        final average = scenario['average']! as double;
+        final exceptional = scenario['exceptional']! as bool;
         final values = <String, double>{
           ...result.values,
-          deviceField.rmsKey: scenario.rms,
-          deviceField.averageKey: scenario.average,
+          rmsKey: rms,
+          averageKey: average,
         };
         final waveforms = BuckWaveformSet.fromCalculation(
           input: input,
           values: values,
         );
         final device = waveforms.devices.singleWhere(
-          (candidate) => candidate.id == deviceField.id,
+          (candidate) => candidate.id == id,
         );
-        final reason = '${deviceField.id}: ${scenario.name}';
-        if (scenario.exceptional && deviceField.id == 'inductor') {
+        final reason = '$id: $name';
+        if (exceptional && id == 'inductor') {
           expect(device.metrics.acCurrent, 0, reason: reason);
-        } else if (scenario.exceptional) {
+        } else if (exceptional) {
           expect(device.metrics.acCurrent.isNaN, isTrue, reason: reason);
         } else {
           expect(
