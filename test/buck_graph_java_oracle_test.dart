@@ -87,11 +87,17 @@ void main() {
         averageKey: 'outputCapacitorAverageCurrent',
       ),
     ];
-    final scenarios = <({String name, double rms, double average, bool exceptional})>[
+    final scenarios =
+        <({String name, double rms, double average, bool exceptional})>[
       (name: 'NaN RMS', rms: double.nan, average: 2.0, exceptional: true),
       (name: 'NaN average', rms: 2.0, average: double.nan, exceptional: true),
       (name: 'RMS below average', rms: 1.0, average: 2.0, exceptional: true),
-      (name: 'finite RMS above average', rms: 3.0, average: 2.0, exceptional: false),
+      (
+        name: 'finite RMS above average',
+        rms: 3.0,
+        average: 2.0,
+        exceptional: false,
+      ),
     ];
 
     for (final deviceField in deviceFields) {
