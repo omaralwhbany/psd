@@ -3,11 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'buck_inputs.dart';
-
-/// Mirrors Buck.java's six-decimal side-label rounding and Graph.java's
-/// negated >= 1 comparison. NaN therefore does not trigger the V/A prefix.
-bool _javaGraphLabelKeepsMilliPrefix(double value) =>
-    !(value.abs() >= 0.9999995);
+import 'buck_java_decimal_format.dart';
 
 /// One sample from the original PSD5 Buck graph time base (microseconds).
 class BuckWaveformPoint {
@@ -28,11 +24,19 @@ class BuckGraphTimeRange {
 
   double get spanMicroseconds => maximumMicroseconds - minimumMicroseconds;
 
+  double _mappingX(double plotWidth) {
+    // GraphPanel uses 100.0 for both a zero-only range and any equal bounds.
+    if ((maximumMicroseconds == 0.0 && minimumMicroseconds == 0.0) ||
+        maximumMicroseconds == minimumMicroseconds) {
+      return 100.0;
+    }
+    return plotWidth / spanMicroseconds.abs();
+  }
+
   /// GraphPanel maps x directly from zero; it scales by the full range but
   /// deliberately does not subtract minimumMicroseconds from each sample.
   double graphPanelXOffset(double timeMicroseconds, double plotWidth) {
-    final mappingX = plotWidth / spanMicroseconds.abs();
-    return timeMicroseconds * mappingX;
+    return timeMicroseconds * _mappingX(plotWidth);
   }
 
   /// Reproduces GraphPanel's DecimalFormat input for a tick label.
@@ -40,7 +44,7 @@ class BuckGraphTimeRange {
     double timeMicroseconds,
     double plotWidth,
   ) {
-    final mappingX = plotWidth / spanMicroseconds.abs();
+    final mappingX = _mappingX(plotWidth);
     return maximumMicroseconds * (timeMicroseconds * mappingX / plotWidth);
   }
 
@@ -88,7 +92,7 @@ class BuckDeviceMetrics {
   // before Graph.java checks whether their absolute value is at least 1.
   // Six fractional digits mean 0.9999995 rounds to 1.00, so it uses V/A.
   double get voltageScale =>
-      [minimumVoltage, maximumVoltage].every(_javaGraphLabelKeepsMilliPrefix)
+      [minimumVoltage, maximumVoltage].every(buckJavaGraphLabelKeepsMilliPrefix)
           ? 1000
           : 1;
   double get currentScale => [
@@ -97,7 +101,7 @@ class BuckDeviceMetrics {
         rmsCurrent,
         averageCurrent,
         acCurrent,
-      ].every(_javaGraphLabelKeepsMilliPrefix)
+      ].every(buckJavaGraphLabelKeepsMilliPrefix)
           ? 1000
           : 1;
 }
@@ -495,31 +499,31 @@ class _BuckDeviceMetricsView extends StatelessWidget {
     final entries = <(String, String)>[
       (
         'minimumVoltage',
-        '${(metrics.minimumVoltage * voltageScale).toStringAsFixed(2)} $voltageUnit'
+        '${formatBuckJavaGraphMetric(metrics.minimumVoltage, voltageScale)} $voltageUnit'
       ),
       (
         'maximumVoltage',
-        '${(metrics.maximumVoltage * voltageScale).toStringAsFixed(2)} $voltageUnit'
+        '${formatBuckJavaGraphMetric(metrics.maximumVoltage, voltageScale)} $voltageUnit'
       ),
       (
         'minimumCurrent',
-        '${(metrics.minimumCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+        '${formatBuckJavaGraphMetric(metrics.minimumCurrent, currentScale)} $currentUnit'
       ),
       (
         'maximumCurrent',
-        '${(metrics.maximumCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+        '${formatBuckJavaGraphMetric(metrics.maximumCurrent, currentScale)} $currentUnit'
       ),
       (
         'rmsCurrent',
-        '${(metrics.rmsCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+        '${formatBuckJavaGraphMetric(metrics.rmsCurrent, currentScale)} $currentUnit'
       ),
       (
         'averageCurrent',
-        '${(metrics.averageCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+        '${formatBuckJavaGraphMetric(metrics.averageCurrent, currentScale)} $currentUnit'
       ),
       (
         'acCurrent',
-        '${(metrics.acCurrent * currentScale).toStringAsFixed(2)} $currentUnit'
+        '${formatBuckJavaGraphMetric(metrics.acCurrent, currentScale)} $currentUnit'
       ),
     ];
     final style = Theme.of(context).textTheme.labelSmall;
@@ -532,6 +536,116 @@ class _BuckDeviceMetricsView extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Returns the original GraphPanel x coordinate only when its binary64
+/// mapping becomes non-finite or overflows. For ordinary finite ranges the
+/// painter keeps its smooth Flutter mapping. GraphPanel uses a 100.0 mapping
+/// for equal x bounds and Java's d2i conversion for non-finite coordinates.
+@visibleForTesting
+double? buckJavaGraphPanelFallbackX({
+  required double value,
+  required double minimum,
+  required double maximum,
+  required double plotLeft,
+  required double plotWidth,
+}) {
+  final span = maximum - minimum;
+  final mappingX = ((maximum == 0.0 && minimum == 0.0) || maximum == minimum)
+      ? 100.0
+      : plotWidth / span.abs();
+  final mappedValue = value * mappingX;
+  final coordinate = plotLeft + mappedValue;
+
+  if (value.isFinite &&
+      minimum.isFinite &&
+      maximum.isFinite &&
+      span.isFinite &&
+      mappingX.isFinite &&
+      mappedValue.isFinite &&
+      coordinate.isFinite &&
+      coordinate >= -2147483648.0 &&
+      coordinate <= 2147483647.0) {
+    return null;
+  }
+  return _javaGraphPanelInt(coordinate).toDouble();
+}
+
+/// DecimalFormat("#0.00") renders Java's exceptional floating values using
+/// the infinity symbol rather than Dart's "Infinity" spelling.
+@visibleForTesting
+String buckJavaGraphPanelAxisLabel(double value) {
+  if (value.isNaN) return 'NaN';
+  if (value == double.infinity) return '∞';
+  if (value == double.negativeInfinity) return '-∞';
+  return formatBuckJavaDecimal(
+    value,
+    minFractionDigits: 2,
+    maxFractionDigits: 2,
+  );
+}
+
+/// Returns the original GraphPanel y coordinate only when its binary64
+/// mapping becomes non-finite or overflows. For ordinary finite ranges the
+/// painter keeps its smooth Flutter mapping. Java2D narrows each non-finite
+/// y coordinate to a signed 32-bit integer (NaN -> 0), rather than replacing
+/// every point with zero when one graph bound is infinite.
+@visibleForTesting
+double? buckJavaGraphPanelFallbackY({
+  required double value,
+  required double minimum,
+  required double maximum,
+  required double plotTop,
+  required double plotBottom,
+}) {
+  var minValue = minimum;
+  var maxValue = maximum;
+  if (minValue > 0) minValue = 0;
+  if (maxValue < 0) maxValue = 0;
+
+  final span = (maxValue - minValue).abs();
+  late final double mappingY;
+  if (maxValue == 0 && minValue == 0) {
+    mappingY = 100.0;
+  } else {
+    mappingY = (plotBottom - plotTop) / span;
+  }
+  final mappedValue = value * mappingY;
+  late final double down;
+  if (minValue == 0) {
+    down = plotBottom;
+  } else if (maxValue == 0) {
+    down = plotTop;
+  } else {
+    down = plotBottom + mappingY * minValue;
+  }
+
+  if (value.isFinite &&
+      minValue.isFinite &&
+      maxValue.isFinite &&
+      span.isFinite &&
+      mappingY.isFinite &&
+      mappedValue.isFinite &&
+      down.isFinite) {
+    return null;
+  }
+
+  late final int javaDown;
+  if (minValue == 0) {
+    javaDown = _javaGraphPanelInt(plotBottom);
+  } else if (maxValue == 0) {
+    javaDown = _javaGraphPanelInt(plotTop);
+  } else {
+    javaDown = _javaGraphPanelInt(down);
+  }
+  return _javaGraphPanelInt(javaDown - mappedValue).toDouble();
+}
+
+int _javaGraphPanelInt(double value) {
+  if (value.isNaN) return 0;
+  if (value >= 2147483647.0) return 2147483647;
+  if (value <= -2147483648.0) return -2147483648;
+  return value.truncate();
 }
 
 class _BuckTracePainter extends CustomPainter {
@@ -574,24 +688,33 @@ class _BuckTracePainter extends CustomPainter {
     // fixed 1 ns edge offsets can make early samples negative when ton < 1 ns.
     final timeRange = BuckGraphTimeRange.fromPoints(points);
     final timeMax = timeRange.maximumMicroseconds;
-    final timeSpan = timeRange.spanMicroseconds;
-    if (!timeSpan.isFinite || timeSpan <= 0) return;
 
     double x(double time) {
-      if (!time.isFinite) return 0;
+      final fallback = buckJavaGraphPanelFallbackX(
+        value: time,
+        minimum: timeRange.minimumMicroseconds,
+        maximum: timeRange.maximumMicroseconds,
+        plotLeft: left,
+        plotWidth: plotRight - left,
+      );
+      if (fallback != null) return fallback;
       final mapped = left + timeRange.graphPanelXOffset(time, plotRight - left);
       return mapped.isFinite ? mapped : 0;
     }
 
     double y(double value) {
-      // Java2D casts NaN coordinates to integer zero. Flutter's Canvas rejects
-      // NaN Offsets, so retain the source's finite zero-coordinate fallback.
-      if (!value.isFinite ||
-          !minValue.isFinite ||
-          !maxValue.isFinite ||
-          !valueSpan.isFinite) {
-        return 0;
-      }
+      // GraphPanel uses height / abs(maxY - minY), then Java's d2i cast for
+      // the baseline and every plotted y coordinate. Preserve those fallback
+      // coordinates when a finite input creates an infinite range or when a
+      // waveform contains NaN/Infinity.
+      final fallback = buckJavaGraphPanelFallbackY(
+        value: value,
+        minimum: minValue,
+        maximum: maxValue,
+        plotTop: top,
+        plotBottom: plotBottom,
+      );
+      if (fallback != null) return fallback;
       return valueSpan == 0
           ? plotBottom
           : plotBottom - (value - minValue) / valueSpan * (plotBottom - top);
@@ -617,9 +740,9 @@ class _BuckTracePainter extends CustomPainter {
 
     final middleValue = maxValue / 2;
     final middleY = (zeroY + top) / 2;
-    drawRightAligned(maxValue.toStringAsFixed(2), top);
-    drawRightAligned(middleValue.toStringAsFixed(2), middleY);
-    drawRightAligned(minValue.toStringAsFixed(2), plotBottom);
+    drawRightAligned(buckJavaGraphPanelAxisLabel(maxValue), top);
+    drawRightAligned(buckJavaGraphPanelAxisLabel(middleValue), middleY);
+    drawRightAligned(buckJavaGraphPanelAxisLabel(minValue), plotBottom);
     canvas.drawLine(Offset(left - 4, middleY), Offset(left + 4, middleY), axis);
 
     var lastLabelRight = -1000.0;
@@ -629,12 +752,12 @@ class _BuckTracePainter extends CustomPainter {
       canvas.drawLine(Offset(px, zeroY - 4), Offset(px, zeroY + 4), axis);
       final painter = TextPainter(
         text: TextSpan(
-            text: timeRange
-                .graphPanelTickLabelValue(
-                  points[index].timeMicroseconds,
-                  plotRight - left,
-                )
-                .toStringAsFixed(2),
+            text: buckJavaGraphPanelAxisLabel(
+              timeRange.graphPanelTickLabelValue(
+                points[index].timeMicroseconds,
+                plotRight - left,
+              ),
+            ),
             style: textStyle),
         textDirection: TextDirection.ltr,
       )..layout();
@@ -644,7 +767,10 @@ class _BuckTracePainter extends CustomPainter {
       lastLabelRight = start + 30;
     }
     final maxPainter = TextPainter(
-      text: TextSpan(text: timeMax.toStringAsFixed(2), style: textStyle),
+      text: TextSpan(
+        text: buckJavaGraphPanelAxisLabel(timeMax),
+        style: textStyle,
+      ),
       textDirection: TextDirection.ltr,
     )..layout();
     final maxStart = plotRight - maxPainter.width / 2;

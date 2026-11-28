@@ -866,3 +866,69 @@ This was verified by directly executing the original Buck class from PSD5.jar un
 All four cases retained the same Java runtime operating values: 2.0270270270270263 A actual current excursion, 5.033620540612438 A inductor RMS, 4.13761059678065 A MOSFET RMS, 2.866620710223788 A diode RMS, 2.389280899087459 A input-capacitor RMS, 0.5851522998543502 A output-capacitor RMS, 60 W output power, and 60.810810810810814 W input power.
 
 Flutter now keeps the invalid ripple message non-blocking only when a valid positive custom inductance is selected, so the same source-calculated values remain visible. The automatic-inductance path retains its existing blocking guard for negative/non-finite design inductance. Regression fixtures pin the fixed Java runtime values and the separate input/result warning states. No Buck equation, RMS integral, or waveform sample was changed.
+
+
+## 2026-11-25: non-finite GraphPanel y bounds
+
+Re-inspected the original `GraphPanel.java` source and the matching
+`GraphPanel.paintComponent()` bytecode in `PSD5.jar`. The original computes
+`mappingY = Y / abs(maxY - minY)`, chooses the zero-axis baseline from the
+clamped extrema, and narrows each plotted y coordinate with JVM `d2i`.
+That narrowing maps NaN to integer zero and saturates infinities to the
+signed 32-bit limits.
+
+A direct OpenJDK 21 runtime probe instantiated the original `GraphPanel`
+from `PSD5.jar` with y samples `[1, 2, +Infinity, 3]`, painted it into a
+`BufferedImage`, and inspected the rendered red trace. The finite samples
+remained at the zero baseline (the bottom of the plot); the positive-infinity
+sample was mapped to y=0 because its multiplication by the zero mapping
+factor produced NaN and the Java cast returned zero.
+
+The Flutter painter previously returned y=0 for every sample whenever either
+bound or the range span was non-finite. That flattened the entire trace to the
+top for a positive-infinity maximum, unlike the original Java renderer. It
+now uses a narrow fallback that reproduces the source baseline selection and
+JVM double-to-int conversion only when the mapping is non-finite or overflows.
+The normal finite-range Flutter path is unchanged.
+
+A regression test covers positive infinity, negative infinity, NaN, finite
+range-subtraction overflow, and confirms ordinary finite ranges still use the
+normal painter path. No Buck calculation, RMS equation, waveform sample
+value, or time coordinate changed. This is a renderer parity correction
+verified against an actual `PSD5.jar` GraphPanel runtime, not a Flutter
+runtime comparison.
+
+
+## 2026-11-26: non-finite and degenerate GraphPanel x ranges
+
+Re-read the original `GraphPanel.java` and its `paintComponent()` bytecode
+from `PSD5.jar`. The source selects `mappingX = 100.0` when
+`maxX == minX` (including the all-zero case); otherwise it divides the
+plot width by `abs(maxX - minX)`. It does not abort painting when the x
+range is zero, NaN, or infinite. Each plotted coordinate is
+`(int)(65.0 + point.x * mappingX)`, which uses JVM `d2i` conversion.
+
+A direct OpenJDK 21 runtime probe instantiated the original GraphPanel from
+`PSD5.jar`, painted it at 200x150, and inspected the red trace:
+- Equal x samples `[1, 1, 1, 1]` rendered a vertical trace at x=164..165;
+  this confirms the source's special mapping factor of 100.
+- A first NaN sample `[NaN, 0, 1, 2]` pinned the scanned extrema and
+  narrowed all plotted x coordinates to zero.
+- A later NaN sample was ignored during extrema scanning, but its own
+  coordinate still narrowed to zero.
+- Positive or negative infinity in the range left finite samples at x=65
+  and mapped the infinite sample to x=0 because `Infinity * 0` is NaN.
+- Finite extrema `[-1e308, 0, 1e308]` overflowed their subtraction; the
+  zero mapping factor kept finite samples at x=65.
+- A subnormal span overflowed the mapping factor and placed the trace beyond
+  the image after JVM signed-32-bit saturation.
+
+The Flutter painter previously returned before drawing whenever the x span
+was non-finite or non-positive. That blanked traces for cases where the
+original Java GraphPanel still paints them. The fix preserves the normal
+finite-range Flutter mapping, applies the source's 100.0 equal-bound rule,
+and uses JVM `d2i` fallback coordinates for non-finite/overflow mappings.
+Exceptional axis labels now use Java's `NaN` and infinity-symbol spellings.
+No Buck calculation, RMS equation, waveform sample, or time coordinate was
+changed. The runtime evidence is from the original `PSD5.jar` GraphPanel,
+not from a Flutter runtime comparison.
