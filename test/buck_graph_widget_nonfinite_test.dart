@@ -168,9 +168,8 @@ void main() {
             format: ui.ImageByteFormat.rawRgba,
           );
           expect(bytes, isNotNull);
-          final expectedColor = index == 0
-              ? const Color(0xFF0000FF)
-              : const Color(0xFFFF0000);
+          final expectedColor =
+              index == 0 ? const Color(0xFF0000FF) : const Color(0xFFFF0000);
           expect(
             _hasStrongColor(bytes!, expectedColor),
             isTrue,
@@ -195,9 +194,12 @@ bool _hasStrongColor(ByteData bytes, Color target) {
     final red = bytes.getUint8(offset);
     final green = bytes.getUint8(offset + 1);
     final blue = bytes.getUint8(offset + 2);
-    if ((red - target.red).abs() <= 40 &&
-        (green - target.green).abs() <= 40 &&
-        (blue - target.blue).abs() <= 40) {
+    final targetRed = (target.r * 255.0).round();
+    final targetGreen = (target.g * 255.0).round();
+    final targetBlue = (target.b * 255.0).round();
+    if ((red - targetRed).abs() <= 40 &&
+        (green - targetGreen).abs() <= 40 &&
+        (blue - targetBlue).abs() <= 40) {
       return true;
     }
   }
